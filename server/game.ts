@@ -15,7 +15,7 @@ const rnd = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 const shuffle = <T,>(a: T[]): T[] => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
 type Idx = 0 | 1;
-interface Player { token: string; name: string; connected: boolean; curious: Record<string, number> }
+interface Player { token: string; name: string; connected: boolean; curious: Record<string, number>; allowTouch?: boolean }
 
 interface CurCard {
   kind: 'card'; seq: number; card: Card; mystery: boolean; flips: [boolean, boolean];
@@ -71,6 +71,7 @@ export class Room {
   phase: Phase = 'lobby';
   paused = false;
   dark = false;
+  music: Idx | null = null;
   unlock: null | { l: number; samples: Card[]; votes: [boolean | null, boolean | null]; opened: boolean } = null;
   ceiling: null | { picks: [number | null, number | null]; confirm: [boolean, boolean]; done: [boolean, boolean] } = null;
   arrive: null | { tonight: number; energy: Energy; vibes: [VibeId | null, VibeId | null]; memory: string | null; ready: [boolean, boolean]; countdownAt: number | null } = null;
@@ -302,6 +303,8 @@ export class Room {
       case 'pause': this.paused = true; break;
       case 'resume': this.paused = false; break;
       case 'dark': this.dark = !!x.on; break;
+      case 'music': if (x.on) this.music = me; else if (this.music === me) this.music = null; break;
+      case 'touch:allow': { const pl = this.players[me]; if (pl) pl.allowTouch = !!x.on; break; }
       case 'leave':
         if (this.phase === 'card' || this.phase === 'arrive' || this.phase === 'close') {
           this.sess = null; this.arrive = null; this.close = null; this.paused = false; this.dark = false; this.phase = 'home';
@@ -361,6 +364,9 @@ export class Room {
       phase: this.phase,
       paused: this.paused,
       dark: this.dark,
+      music: this.music === null ? null : this.music === me ? 'me' : 'partner',
+      partnerAllowsTouch: !!P[other]?.allowTouch,
+      meAllowsTouch: !!P[me]?.allowTouch,
       unlocked: this.prog.unlocked.slice(),
       sessions: this.prog.sessions,
       totalCards: TOTAL_CARDS,

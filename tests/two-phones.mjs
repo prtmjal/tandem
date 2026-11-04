@@ -29,6 +29,9 @@ const click = (p, name) => p.getByRole('button', { name, exact: false }).first()
 await A.goto(URL); await B.goto(URL);
 await shot(A, '01-welcome-dark'); await shot(B, '01-welcome-light');
 for (const p of [A, B]) { await p.check('#adult'); await click(p, 'let’s go'); }
+// How it works: A reads all three steps, B skips.
+for (let i = 0; i < 2; i++) await A.getByRole('button', { name: 'Next', exact: true }).click();
+await click(A, 'Let’s play'); await click(B, 'Skip');
 await A.fill('#name', 'Asha'); await click(A, 'Start a room');
 await A.waitForSelector('.codebig');
 const code = (await A.textContent('.codebig')).trim();
@@ -36,8 +39,8 @@ await shot(A, '02-lobby');
 await click(B, 'I have a code');
 await B.fill('#name', 'Sam'); await B.fill('#code', code);
 await click(B, 'Join room');
-await A.getByText('Start tonight').waitFor();
-await B.getByText('Start tonight').waitFor();
+await A.getByRole('button', { name: 'Start tonight’s session' }).waitFor();
+await B.getByRole('button', { name: 'Start tonight’s session' }).waitFor();
 await shot(A, '03-home-dark'); await shot(B, '03-home-light');
 
 // Unlock levels 3, 4, 5 with private two-key taps
@@ -51,7 +54,7 @@ for (const l of [3, 4, 5]) {
   await A.getByText('is open').waitFor();
   if (l === 3) await shot(A, '05-unlocked');
   await click(A, 'Back to the map');
-  await A.getByText('Start tonight').waitFor();
+  await A.getByRole('button', { name: 'Start tonight’s session' }).waitFor();
 }
 
 // Private ceilings: A wants 5, B wants 4. Tonight should be 4.
@@ -71,6 +74,13 @@ await A.getByRole('button', { name: /Coral/ }).click();
 await B.getByRole('button', { name: /Rose/ }).click();
 await sleep(300);
 await shot(A, '08-arrive-dark'); await shot(B, '08-arrive-light');
+// Mood: A turns on sounds and music, B allows touches from the menu.
+await A.getByRole('button', { name: 'Sounds off' }).click();
+await A.getByRole('button', { name: 'Music off' }).click();
+await B.getByRole('button', { name: /Play music here/ }).waitFor();
+await B.getByRole('button', { name: 'Settings' }).click();
+await B.getByRole('button', { name: /Let .* send you touches/ }).click();
+await B.getByRole('button', { name: 'Close' }).click();
 await click(A, 'I’m ready');
 await click(B, 'Begin');
 await sleep(1200);

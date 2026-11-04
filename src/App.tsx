@@ -4,7 +4,9 @@ import QRCode from 'qrcode';
 import { DECK } from '../shared/content';
 import { AGE_OK, REACTIONS, type VibeId, type View } from '../shared/protocol';
 import { VIBES, VIBE_IDS, cardColors, chipColor, hueDistance, blendHue, themeTokens, type Mode } from '../shared/theme';
-import { buzz, keys, net, store, useCountdown, useNet, useWakeLock } from './net';
+import { keys, net, store, useCountdown, useNet, useWakeLock } from './net';
+import { canVibrate, cue, prefs, startHeartbeat, startMusic, stopHeartbeat, stopMusic, unlockAudio, type HapticLevel } from './feel';
+import { Intro, Tip, introSeen, resetTips } from './guide';
 import { Avatar, Countdown, Floaters, I, Icon, MiniArt, PlayCard, Waiting, levelName, useToast } from './ui';
 import { LevelGlyph } from './art';
 
@@ -63,6 +65,8 @@ export default function App() {
   const theme = useTheme(view, myVibe, pref);
   const [floaters, setFloaters] = useState<{ id: number; r: string; x: number }[]>([]);
   const [toast, showToast] = useToast();
+  const [intro, setIntro] = useState(!introSeen());
+  const [touchAt, setTouchAt] = useState(0);
   const fid = useRef(0);
 
   const addFloat = useCallback((r: string) => {
@@ -71,8 +75,9 @@ export default function App() {
     setTimeout(() => setFloaters(f => f.filter(z => z.id !== id)), 2400);
   }, []);
   useEffect(() => {
-    net.onReact = r => { addFloat(r); buzz(12); };
-    net.onCelebrate = () => { confetti(); buzz([30, 60, 30, 60, 80]); };
+    net.onReact = r => { addFloat(r); cue('ready'); };
+    net.onCelebrate = () => { confetti(); cue('level'); };
+    net.onTouch = () => { cue('touch'); setTouchAt(Date.now()); };
   }, [addFloat]);
   useWakeLock(view?.phase === 'card' || view?.phase === 'close' || view?.phase === 'arrive');
 
@@ -80,9 +85,10 @@ export default function App() {
 
   let screen: JSX.Element;
   if (!age) screen = <AgeGate onYes={() => { store.set(keys.age, AGE_OK); setAge(true); }} mode={theme.mode} hue={theme.cardHue} />;
+  else if (intro && !saved) screen = <Intro onDone={() => setIntro(false)} />;
   else if (!saved || !view) screen = <Start reconnecting={!!saved && status !== 'online'} mode={theme.mode} hue={theme.cardHue} />;
   else screen = <Room view={view} theme={theme} myVibe={myVibe} pickVibe={pickVibe} pref={pref}
-    setPref={p => { setPref(p); store.set(keys.mode, p); }} react={r => { net.react(r); addFloat(r); buzz(8); }} toast={showToast} online={status === 'online'} />;
+    setPref={p => { setPref(p); store.set(keys.mode, p); }} react={r => { net.react(r); addFloat(r); cue('tap'); }} toast={showToast} online={status === 'online'} />;
 
   return (
     <LazyMotion features={loadFeatures} strict>
@@ -90,6 +96,7 @@ export default function App() {
         <InAppBanner />
         {screen}
         <Floaters items={floaters} />
+        {touchAt > 0 && <TouchPulse key={touchAt} name={view ? view.names[view.me === 0 ? 1 : 0] : ''} />}
         <AnimatePresence>{toast && <m.div className="toast" role="status" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>{toast}</m.div>}</AnimatePresence>
       </MotionConfig>
     </LazyMotion>
@@ -225,6 +232,12 @@ function Room(p: RoomProps) {
   const { view } = p;
   const partner = view.names[view.me === 0 ? 1 : 0];
   const [menu, setMenu] = useState(false);
+  const nightOn = view.phase === 'arrive' || view.phase === 'card' || view.phase === 'close';
+  const musicLevel = view.session?.card?.kind === 'card' ? view.session.card.level : view.session?.tonight ?? view.arrive?.tonight ?? 1;
+  useEffect(() => {
+    if (view.music === 'me' && nightOn && !view.paused) startMusic(musicLevel); else stopMusic();
+  }, [view.music, nightOn, view.paused, musicLevel]);
+  useEffect(() => () => { stopMusic(); stopHeartbeat(); }, []);
   let body: JSX.Element;
   switch (view.phase) {
     case 'lobby': body = <Lobby view={view} />; break;
@@ -249,16 +262,16 @@ function Room(p: RoomProps) {
       {body}
       {view.paused && <PauseOverlay />}
       {view.dark && <button className="dark" onClick={() => net.act({ a: 'dark', on: false })}>The app is quiet. Tap to come back.</button>}
-      {menu && <Menu {...p} close={() => setMenu(false)} />}
+      {menu && <Menu {...p} partner={partner} close={() => setMenu(false)} />}
     </main>
   );
 }
 
-function Menu(p: RoomProps & { close: () => void }) {
+function Menu(p: RoomProps & { close: () => void; partner: string }) {
   const [sure, setSure] = useState(false);
-  const hapt = store.get(keys.sound) !== 'off';
-  const [h, setH] = useState(hapt);
+  const [how, setHow] = useState(false);
   const [plain, setPlain] = useState(store.get(keys.plain) === '1');
+  if (how) return <Intro inline onDone={() => setHow(false)} />;
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Settings" onClick={e => { if (e.target === e.currentTarget) p.close(); }}>
       <div className="panel">
@@ -269,7 +282,13 @@ function Menu(p: RoomProps & { close: () => void }) {
           <p className="eyebrow">Light or dark</p>
           <div className="seg">{(['auto', 'light', 'dark'] as ModePref[]).map(m => <button key={m} className="ctrl small" aria-pressed={p.pref === m} onClick={() => p.setPref(m)}>{m === 'auto' ? 'Match phone' : m === 'light' ? 'Light' : 'Dark'}</button>)}</div>
           <p className="tiny muted">After 10 pm at level 5 and up, the app shifts into a deeper, dimmer late-night look.</p>
-          <button className="ctrl" aria-pressed={h} onClick={() => { const n = !h; setH(n); store.set(keys.sound, n ? 'on' : 'off'); }}>Vibration {h ? 'on' : 'off'} <span className="tiny">(Android)</span></button>
+          <p className="eyebrow">Sound and touch</p>
+          <MoodControls view={p.view} partner={p.partner} full />
+          <p className="eyebrow">Help</p>
+          <div className="row">
+            <button className="ctrl" onClick={() => setHow(true)}>How to play</button>
+            <button className="ctrl" onClick={() => { resetTips(); p.toast('Tips will show again'); }}>Show tips again</button>
+          </div>
           <button className="ctrl" aria-pressed={plain} onClick={() => { const n = !plain; setPlain(n); store.set(keys.plain, n ? '1' : '0'); document.documentElement.classList.toggle('plain', n); }}>Larger text, plain cards {plain ? 'on' : 'off'}</button>
         </div>
         <p className="tiny muted">Room {p.view.code}</p>
@@ -326,7 +345,8 @@ function Home(p: RoomProps) {
         <p className="eyebrow">{view.sessions ? `${view.sessions} ${view.sessions === 1 ? 'night' : 'nights'} together` : 'Your first night'}</p>
         <h1>Tonight</h1>
       </div>
-      <button className="btn" onClick={() => { buzz(10); net.act({ a: 'tonight' }); }}>Start tonight’s session</button>
+      <Tip id="home">Tap “Start tonight’s session” to begin. Curious about a locked level? Tap it to peek at sample cards, then each of you answers privately.</Tip>
+      <button className="btn" onClick={() => { cue('tap'); net.act({ a: 'tonight' }); }}>Start tonight’s session</button>
       <div className="stack">
         <div><h3>The map</h3><p className="tiny muted">Move up or down freely. Levels 3 and up open when you both choose them, privately.</p></div>
         <div className="map">
@@ -378,8 +398,8 @@ function Unlock(p: RoomProps & { partner: string }) {
           <>
             <p>Curious about {levelName(u.l)}? {p.partner} won’t see your answer.</p>
             <div className="row">
-              <button className="ctrl" onClick={() => { buzz(10); net.act({ a: 'unlock:vote', yes: true }); }}>I’m curious</button>
-              <button className="ctrl" onClick={() => net.act({ a: 'unlock:vote', yes: false })}>Not now</button>
+              <button className="ctrl" onClick={() => { cue('tap'); net.act({ a: 'unlock:vote', yes: true }); }}>I’m curious</button>
+              <button className="ctrl" onClick={() => { cue('tap'); net.act({ a: 'unlock:vote', yes: false }); }}>Not now</button>
             </div>
           </>
         ) : (
@@ -413,7 +433,7 @@ function Ceiling(p: RoomProps & { partner: string }) {
         {p.view.unlocked.map(l => {
           const st = cardColors(l, p.theme.cardHue, p.theme.mode, p.theme.cardVibe);
           return (
-            <button key={l} className="choice" aria-pressed={pick === l} onClick={() => { buzz(8); net.act({ a: 'ceiling:pick', l }); }}>
+            <button key={l} className="choice" aria-pressed={pick === l} onClick={() => { cue('tap'); net.act({ a: 'ceiling:pick', l }); }}>
               <span className="swatch" style={{ background: st.field, color: st.motif }}><MiniArt level={l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} seed={'sw' + l} /></span>
               <span style={{ flex: 1 }}><b>{l} · {levelName(l)}</b></span>
               <LevelGlyph level={l} size={16} />
@@ -427,7 +447,7 @@ function Ceiling(p: RoomProps & { partner: string }) {
         </button>
       )}
       <div className="bottom">
-        <button className="btn" disabled={!pick || (pick >= 7 && !c.myConfirm)} onClick={() => { buzz(15); net.act({ a: 'ceiling:done' }); }}>Lock in my choice</button>
+        <button className="btn" disabled={!pick || (pick >= 7 && !c.myConfirm)} onClick={() => { cue('ready'); net.act({ a: 'ceiling:done' }); }}>Lock in my choice</button>
         <button className="btn ghost" onClick={() => net.act({ a: 'home' })}>Back</button>
       </div>
     </>
@@ -437,14 +457,15 @@ function Ceiling(p: RoomProps & { partner: string }) {
 function Arrive(p: RoomProps & { partner: string }) {
   const a = p.view.arrive!;
   const meI = p.view.names[p.view.me][0] || 'Y', themI = p.partner[0] || 'P';
-  const onDone = useCallback(() => { buzz([15, 40, 15]); }, []);
+  const onDone = useCallback(() => { cue('reveal'); }, []);
   return (
     <>
       <div className="stack"><p className="eyebrow">Tonight</p><h1>{levelName(a.tonight)}</h1></div>
+      <Tip id="arrive">Pick a colour and an energy, then both tap “I’m ready”. The first card appears on both phones at the same moment.</Tip>
       <div className="stack">
         <h3>Pick your colour for tonight</h3>
         <div className="vibes">
-          {VIBE_IDS.map(v => <VibeBtn key={v} v={v} mode={p.theme.mode} on={a.myVibe === v} onClick={() => { buzz(8); p.pickVibe(v); }}
+          {VIBE_IDS.map(v => <VibeBtn key={v} v={v} mode={p.theme.mode} on={a.myVibe === v} onClick={() => { cue('tap'); p.pickVibe(v); }}
             marks={[...(a.myVibe === v ? [meI.toUpperCase()] : []), ...(a.partnerVibe === v ? [themI.toUpperCase()] : [])]} />)}
         </div>
         <p className="tiny muted">If you pick different colours, the cards take turns between them.</p>
@@ -456,6 +477,10 @@ function Arrive(p: RoomProps & { partner: string }) {
             <button key={k} className="ctrl" aria-pressed={a.energy === k} onClick={() => net.act({ a: 'energy', v: k })} style={{ flexDirection: 'column', gap: 0 }}><span>{t}</span><span className="tiny" style={{ fontWeight: 500 }}>{s}</span></button>)}
         </div>
       </div>
+      <div className="stack">
+        <h3>Set the mood <span className="tiny muted" style={{ fontWeight: 500 }}>optional</span></h3>
+        <MoodControls view={p.view} partner={p.partner} />
+      </div>
       {a.memory && <div className="panel"><p className="eyebrow">A memory you kept</p><p>{a.memory}</p></div>}
       <div className="envelope" style={{ ['--env' as string]: cardColors(7, p.theme.cardHue, 'dark').field }}>
         <div className="body" /><div className="flap" /><div className="seal">T</div>
@@ -464,7 +489,7 @@ function Arrive(p: RoomProps & { partner: string }) {
       <div className="bottom">
         {a.myReady
           ? <div className="center" style={{ display: 'flex', justifyContent: 'center', minHeight: 52, alignItems: 'center' }}>{a.partnerReady ? <span className="muted">Here we go</span> : <Waiting>Waiting for {p.partner}</Waiting>}</div>
-          : <button className="btn" onClick={() => { buzz(12); net.act({ a: 'ready' }); }}>{a.partnerReady ? `${p.partner} is ready. Begin` : 'I’m ready'}</button>}
+          : <button className="btn" onClick={() => { cue('ready'); net.act({ a: 'ready' }); }}>{a.partnerReady ? `${p.partner} is ready. Begin` : 'I’m ready'}</button>}
         <p className="tiny muted" style={{ textAlign: 'center' }}>Either of you can pass any card, tap Softer, or pause at any time.</p>
       </div>
       <Countdown at={a.countdownAt} onDone={onDone} />
@@ -478,14 +503,19 @@ function Play(p: RoomProps & { partner: string }) {
   const arriveAt = p.view.arrive?.countdownAt ?? null;
   const pre = useCountdown(arriveAt);
   const kept = cv.kind === 'card' && cv.card ? s.keptIds.includes(cv.card.id) : false;
-  const next = () => { buzz(10); net.act({ a: 'next', seq: cv.seq }); };
+  const next = () => { cue('tap'); net.act({ a: 'next', seq: cv.seq }); }; // Pass and Next feel identical
   const level = cv.kind === 'card' ? cv.level : s.tonight;
   const showDark = cv.kind === 'card' && cv.card && cv.card.l === 8 && ['Whisper', 'Chain', 'Choose'].includes(cv.card.type);
   const [mysteryShown, setMysteryShown] = useState(false);
   const eyesUp = useEyesUp(cv.seq);
-  useEffect(() => { if (cv.kind === 'card' && cv.mystery && cv.flipped && !mysteryShown) { setMysteryShown(true); buzz([15, 40, 15]); } }, [cv, mysteryShown]);
+  useEffect(() => { if (cv.kind === 'card' && cv.mystery && cv.flipped && !mysteryShown) setMysteryShown(true); }, [cv, mysteryShown]);
+  const glow = useRevealCue(cv, p.view.me);
 
   let main: JSX.Element, actions: JSX.Element;
+  const tip = cv.kind === 'twist' ? <Tip id="twist">A wildcard changes the pace for a moment. Do it together, or pass.</Tip>
+    : cv.mystery && !cv.flipped ? <Tip id="mystery">This card is face down. It turns over when you both tap Flip.</Tip>
+    : cv.gate ? <Tip id="gate">Answer on your own phone. If either of you says “not tonight”, the card quietly changes. Nobody sees who said what.</Tip>
+    : <Tip id="card">Read it out loud and talk it through. When you’re ready, either of you taps Next. Pass works exactly the same way.</Tip>;
   if (cv.kind === 'twist') {
     main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'tw' + cv.seq} text={cap(cv.text.replace(/^Twist:\s*/, ''))} type="Twist" title="Wildcard" special="holo" />;
     actions = <PassNext onPass={next} onNext={next} nextLabel="Done" />;
@@ -494,14 +524,14 @@ function Play(p: RoomProps & { partner: string }) {
       backLabel={<><b>Mystery card</b><span className="tiny">Flip it together</span></>} />;
     actions = cv.myFlip
       ? <div className="center" style={{ display: 'flex', justifyContent: 'center', minHeight: 52, alignItems: 'center' }}><Waiting>Waiting for {p.partner} to flip</Waiting></div>
-      : <button className="btn" onClick={() => { buzz(12); net.act({ a: 'flip', seq: cv.seq }); }}>{cv.partnerFlip ? `${p.partner} is ready. Flip it` : 'Flip it'}</button>;
+      : <button className="btn" onClick={() => { cue('flip'); net.act({ a: 'flip', seq: cv.seq }); }}>{cv.partnerFlip ? `${p.partner} is ready. Flip it` : 'Flip it'}</button>;
   } else if (cv.gate) {
     main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'g' + cv.seq} faceDown
       backLabel={<><b>{cv.gate.teaser}</b><span className="tiny">Answer privately on your phone</span></>} />;
     actions = cv.gate.myVote
       ? <div className="panel center"><p className="eyebrow">Locked in</p>{cv.gate.partnerVoted ? <p className="muted">Revealing…</p> : <Waiting>Waiting for {p.partner}</Waiting>}</div>
       : <div className="panel"><p className="eyebrow">Private. {p.partner} won’t see this.</p><p>Are you open to it tonight?</p>
-        <div className="row">{(['y', 'm', 'n'] as const).map(v => <button key={v} className="ctrl" onClick={() => { buzz(10); net.act({ a: 'gate', seq: cv.seq, v }); }}>{v === 'y' ? 'Yes' : v === 'm' ? 'Maybe' : 'Not tonight'}</button>)}</div></div>;
+        <div className="row">{(['y', 'm', 'n'] as const).map(v => <button key={v} className="ctrl" onClick={() => { cue('tap'); net.act({ a: 'gate', seq: cv.seq, v }); }}>{v === 'y' ? 'Yes' : v === 'm' ? 'Maybe' : 'Not tonight'}</button>)}</div></div>;
   } else {
     const c = cv.card!;
     main = <PlayCard dealKey={cv.seq} level={c.l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={c} seed={c.id} special={cv.mystery ? 'gold' : undefined} />;
@@ -510,7 +540,7 @@ function Play(p: RoomProps & { partner: string }) {
         {c.t > 0 && <TimerRow endsAt={cv.timerEndsAt} secs={c.t} onStart={() => net.act({ a: 'timer', seq: cv.seq })} />}
         <PassNext onPass={next} onNext={next} />
         <div className="row">
-          <button className="ctrl small" aria-pressed={kept} onClick={() => { buzz(8); net.act({ a: 'keep', seq: cv.seq }); }}><Icon d={I.star} size={16} /> {kept ? 'Kept' : 'Keep this one'}</button>
+          <button className="ctrl small" aria-pressed={kept} onClick={() => { cue('tap'); net.act({ a: 'keep', seq: cv.seq }); }}><Icon d={I.star} size={16} /> {kept ? 'Kept' : 'Keep this one'}</button>
           {showDark && <button className="ctrl small" onClick={() => net.act({ a: 'dark', on: true })}><Icon d={I.moon} size={16} /> Go dark</button>}
         </div>
       </>
@@ -525,12 +555,14 @@ function Play(p: RoomProps & { partner: string }) {
         </div>
         <div className="prog"><i style={{ width: `${Math.round((s.idx / s.N) * 100)}%` }} /></div>
       </div>
-      <div className="grow" style={{ display: 'grid', placeItems: 'center' }}>{pre > 0 ? null : main}</div>
+      {tip}
+      <div className={'grow cardstage' + (glow ? ' glow' : '')} key={'g' + glow} style={{ display: 'grid', placeItems: 'center' }}>{pre > 0 ? null : main}</div>
       <div className={'bottom' + (eyesUp ? ' eyes-up' : '')}>
         {actions}
         <div className="row night">
           <button className="ctrl small" onClick={() => net.act({ a: 'pause' })}><Icon d={I.pause} size={16} /> Pause</button>
           <button className="ctrl small" onClick={() => { net.act({ a: 'softer' }); p.toast('Softer from here'); }}><Icon d={I.softer} size={16} /> Softer</button>
+          {p.view.partnerAllowsTouch && <SendTouch partner={p.partner} />}
         </div>
         <div className="reacts" aria-label="Send a reaction">{REACTIONS.map(r => <button key={r} aria-label={'Send ' + r} onClick={() => p.react(r)}>{r}</button>)}</div>
       </div>
@@ -542,6 +574,81 @@ function Play(p: RoomProps & { partner: string }) {
 /** Pass and Next are the same control in every way: size, colour, weight and position (Pass left, Next right). */
 function PassNext({ onPass, onNext, nextLabel = 'Next' }: { onPass: () => void; onNext: () => void; nextLabel?: string }) {
   return <div className="row pair"><button className="ctrl" onClick={onPass}>Pass</button><button className="ctrl" onClick={onNext}>{nextLabel}</button></div>;
+}
+
+/** Sound, vibration and a soft glow when a card face appears. Private-vote reveals always play the same two-phone
+ *  chord, whether the card was kept or quietly swapped, so the sound never gives an answer away. Returns a glow key. */
+function useRevealCue(cv: NonNullable<NonNullable<View['session']>['card']>, me: 0 | 1) {
+  const prev = useRef<{ seq: number; hidden: boolean; gated: boolean } | null>(null);
+  const [glow, setGlow] = useState(0);
+  const hidden = cv.kind === 'card' && (!!cv.gate || (cv.mystery && !cv.flipped));
+  const gated = cv.kind === 'card' && !!cv.gate;
+  useEffect(() => {
+    const was = prev.current;
+    prev.current = { seq: cv.seq, hidden, gated };
+    if (hidden) return;
+    if (!was || was.seq !== cv.seq) { cue('flip'); setGlow(g => g + 1); }
+    else if (was.hidden) { cue(was.gated ? 'yes' : 'reveal', me); setGlow(g => g + 1); }
+  }, [cv.seq, hidden, gated, me]);
+  return glow;
+}
+
+/** Hold to send a soft pulse to your partner's phone, once a second, for up to 15 seconds. Only shown when they allow it. */
+function SendTouch({ partner }: { partner: string }) {
+  const [on, setOn] = useState(false);
+  const t = useRef<{ iv: number; stop: number } | null>(null);
+  const end = () => { if (t.current) { clearInterval(t.current.iv); clearTimeout(t.current.stop); t.current = null; } setOn(false); };
+  const start = (e: React.PointerEvent) => {
+    e.preventDefault(); end(); setOn(true);
+    net.touch(); cue('touch');
+    t.current = { iv: window.setInterval(() => net.touch(), 1000), stop: window.setTimeout(end, 15000) };
+  };
+  useEffect(() => end, []);
+  return (
+    <button className={'ctrl small touchbtn' + (on ? ' on' : '')} onPointerDown={start} onPointerUp={end} onPointerLeave={end} onPointerCancel={end}
+      onContextMenu={e => e.preventDefault()} aria-label={`Hold to send ${partner} a touch`}>
+      <span aria-hidden="true">♡</span> {on ? 'Sending…' : 'Hold: touch'}
+    </button>
+  );
+}
+
+/** What the receiver sees (every phone, including iPhone): a slow ring and a quiet line. */
+function TouchPulse({ name }: { name: string }) {
+  const [show, setShow] = useState(true);
+  useEffect(() => { const id = setTimeout(() => setShow(false), 1600); return () => clearTimeout(id); }, []);
+  if (!show) return null;
+  return <div className="touchpulse" role="status"><span className="ring" aria-hidden="true" /><span className="lbl">{name ? `${name} sent a touch` : 'A touch'}</span></div>;
+}
+
+/** Sound and touch settings for this phone. Everything starts off. Music plays on one phone only. */
+function MoodControls({ view, partner, full }: { view: View; partner: string; full?: boolean }) {
+  const [, force] = useState(0); const r = () => force(n => n + 1);
+  const sfx = prefs.sfx, quiet = prefs.quiet;
+  const music = () => {
+    if (view.music === 'me') net.act({ a: 'music', on: false });
+    else { unlockAudio(true); net.act({ a: 'music', on: true }); }
+  };
+  return (
+    <div className="stack mood">
+      <div className="row">
+        <button className="ctrl" aria-pressed={sfx && !quiet} onClick={() => { prefs.sfx = !sfx; if (!sfx) { prefs.quiet = false; unlockAudio(); cue('reveal'); } r(); }}>{sfx && !quiet ? 'Sounds on' : 'Sounds off'}</button>
+        <button className="ctrl" aria-pressed={view.music === 'me'} onClick={() => { if (quiet) { prefs.quiet = false; r(); } music(); }}>
+          {view.music === 'me' ? 'Music: this phone' : view.music === 'partner' ? 'Play music here' : 'Music off'}
+        </button>
+      </div>
+      <p className="tiny muted">{view.music === 'partner' ? `Music is playing on ${partner}’s phone. Only one phone plays it, so it never echoes.` : view.music === 'me' ? 'Slow and wordless, so it never competes with talking. Tap again to stop.' : 'Sounds are soft taps and flips. Music plays on one phone only.'}</p>
+      {full && <>
+        {canVibrate && <>
+          <p className="tiny" style={{ fontWeight: 600 }}>Vibration</p>
+          <div className="seg">{(['off', 'subtle', 'normal'] as HapticLevel[]).map(l => <button key={l} className="ctrl small" aria-pressed={prefs.haptics === l} onClick={() => { prefs.haptics = l; r(); cue('tap'); }}>{l === 'off' ? 'Off' : l === 'subtle' ? 'Subtle' : 'Normal'}</button>)}</div>
+        </>}
+        <button className="ctrl" aria-pressed={prefs.heartbeat} onClick={() => { prefs.heartbeat = !prefs.heartbeat; r(); }}>Calm heartbeat during timers: {prefs.heartbeat ? 'on' : 'off'}</button>
+        <button className="ctrl" aria-pressed={view.meAllowsTouch} onClick={() => net.act({ a: 'touch:allow', on: !view.meAllowsTouch })}>{view.meAllowsTouch ? `${partner} can send you touches` : `Let ${partner} send you touches`}</button>
+        <p className="tiny muted">{view.partnerAllowsTouch ? `${partner} has touches on: hold “Hold: touch” on a card to send a soft pulse.` : `A touch is a soft pulse on the other phone. ${partner} will see that you’ve turned it on.`}</p>
+        <button className="ctrl" aria-pressed={quiet} onClick={() => { prefs.quiet = !quiet; if (!quiet && view.music === 'me') net.act({ a: 'music', on: false }); r(); }}>Quiet mode: {quiet ? 'on (no sound or vibration)' : 'off'}</button>
+      </>}
+    </div>
+  );
 }
 
 /** Six quiet seconds after a card appears, the controls dim so you look at each other, not the phone. Any touch restores them. */
@@ -562,9 +669,16 @@ function TimerRow({ endsAt, secs, onStart }: { endsAt: number | null; secs: numb
   const left = useCountdown(endsAt);
   const fmt = (ms: number) => { const t = Math.ceil(ms / 1000); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
   const done = endsAt !== null && left === 0;
-  useEffect(() => { if (done) buzz([20, 60, 20]); }, [done]);
-  if (!endsAt) return <button className="btn ghost" onClick={onStart}><Icon d={I.timer} /> Start a shared timer · {fmt(secs * 1000)}</button>;
-  return <div className="timer" role="timer" aria-live="polite">{done ? 'Time. Take a breath.' : fmt(left)}</div>;
+  useEffect(() => { if (done) { cue('done'); stopHeartbeat(); } }, [done]);
+  const [beat, setBeat] = useState(false);
+  useEffect(() => {
+    if (!endsAt || done || !prefs.heartbeat) return;
+    setBeat(true); startHeartbeat();
+    const id = setTimeout(() => setBeat(false), 15000);
+    return () => { clearTimeout(id); stopHeartbeat(); setBeat(false); };
+  }, [endsAt, done]);
+  if (!endsAt) return <button className="btn ghost" onClick={() => { cue('tap'); onStart(); }}><Icon d={I.timer} /> Start a shared timer · {fmt(secs * 1000)}</button>;
+  return <div className={'timer' + (beat ? ' beat' : '')} role="timer" aria-live="polite">{done ? 'Time. Take a breath.' : fmt(left)}</div>;
 }
 
 function Close(p: RoomProps & { partner: string }) {
@@ -572,11 +686,12 @@ function Close(p: RoomProps & { partner: string }) {
   const left = useCountdown(c.countdownAt);
   const revealed = c.stage === 1 && left === 0;
   const fired = useRef(false);
-  useEffect(() => { if (revealed && !fired.current) { fired.current = true; setTimeout(() => confetti(), 150); buzz([30, 60, 30, 60, 80]); } }, [revealed]);
+  useEffect(() => { if (revealed && !fired.current) { fired.current = true; setTimeout(() => confetti(), 150); cue('level'); } }, [revealed]);
   const hue = p.theme.cardHue;
   return (
     <>
       <div className="stack"><p className="eyebrow">{revealed ? 'The envelope' : 'Before you go'}</p><h2>{revealed ? 'For this week' : 'Closing card'}</h2></div>
+      {!revealed && <Tip id="close">Read the closing card together. Then open the envelope: it opens when you both tap.</Tip>}
       {!revealed ? (
         <>
           <PlayCard dealKey="closer" level={3} hue={hue} mode={p.theme.mode} card={null} seed="closer" text={c.closer} type="Share" title="Final card" special="gold" />
@@ -584,7 +699,7 @@ function Close(p: RoomProps & { partner: string }) {
           <div className="bottom">
             {c.myOpen
               ? <div style={{ display: 'flex', justifyContent: 'center', minHeight: 52, alignItems: 'center' }}>{c.partnerOpen ? <span className="muted">Opening…</span> : <Waiting>Waiting for {p.partner}</Waiting>}</div>
-              : <button className="btn" onClick={() => { buzz(12); net.act({ a: 'open' }); }}>{c.partnerOpen ? `${p.partner} is ready. Open it` : 'Open the envelope together'}</button>}
+              : <button className="btn" onClick={() => { cue('ready'); net.act({ a: 'open' }); }}>{c.partnerOpen ? `${p.partner} is ready. Open it` : 'Open the envelope together'}</button>}
           </div>
         </>
       ) : (

@@ -50,6 +50,11 @@ export interface View {
   phase: Phase;
   paused: boolean;
   dark: boolean;
+  /** Which phone plays music. Only one does, so the two never echo. */
+  music: 'me' | 'partner' | null;
+  /** Touches are opt-in for the receiver. Shown to the sender so the button only appears when welcome. */
+  partnerAllowsTouch: boolean;
+  meAllowsTouch: boolean;
   unlocked: number[];
   sessions: number;
   totalCards: number;
@@ -87,6 +92,8 @@ export type Action =
   | { a: 'resume' }
   | { a: 'leave' }
   | { a: 'dark'; on: boolean }
+  | { a: 'music'; on: boolean }
+  | { a: 'touch:allow'; on: boolean }
   | { a: 'open' }
   | { a: 'finish' };
 

@@ -231,3 +231,35 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
   .envelope .flap { transition: transform 150ms linear; }
   * { scroll-behavior: auto !important; }
 }
+
+/* ---------- How to play, tips ---------- */
+.intro { justify-content: space-between; }
+.intro-top { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
+.intro-step { gap: 14px; }
+.intro-art { font-size: 3rem; line-height: 1; }
+.intro-points { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.intro-points li { padding-left: 28px; position: relative; }
+.intro-points li::before { content: '✓'; position: absolute; left: 2px; color: var(--accent); font-weight: 800; }
+.dots-row { display: flex; justify-content: center; gap: 8px; }
+.dots-row i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.dots-row i.on { background: var(--accent); width: 22px; border-radius: 99px; }
+.linkbtn { background: none; border: 0; padding: 10px 4px; min-height: 44px; font-weight: 700; color: var(--fg); text-decoration: underline; text-underline-offset: 4px; }
+.tip { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1.5px solid var(--line); font-size: .93rem; }
+.tip .linkbtn { grid-column: 2; justify-self: start; padding: 2px 0; min-height: 32px; font-size: .88rem; }
+
+/* ---------- Sound and touch: every cue has a visual twin ---------- */
+.mood .row .ctrl { flex-direction: column; }
+@media (prefers-reduced-motion: no-preference) {
+  .cardstage.glow .card3d { animation: reveal-glow 420ms ease-out; }
+  @keyframes reveal-glow { 0% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); } 45% { transform: scale(1.04); filter: drop-shadow(0 0 18px var(--accent)); } 100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); } }
+  .timer.beat { animation: beat 1s ease-in-out infinite; }
+  @keyframes beat { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); } 15% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 0%, transparent); } }
+  .touchpulse .ring { animation: ring 1.5s ease-out forwards; }
+  @keyframes ring { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+  .touchbtn.on { animation: beat 1s ease-in-out infinite; }
+}
+.touchpulse { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: grid; place-items: center; }
+.touchpulse .ring { width: 60vmin; height: 60vmin; border-radius: 50%; border: 3px solid var(--accent); }
+.touchpulse .lbl { position: absolute; bottom: 22%; padding: 8px 14px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); font-weight: 600; }
+.touchbtn { touch-action: none; user-select: none; -webkit-user-select: none; }
+.overlay > .panel { max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }

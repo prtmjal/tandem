@@ -33,6 +33,7 @@ class Net {
   private snap = { view: this.view, status: this.status, saved: this.saved };
   onReact: ((r: string) => void) | null = null;
   onCelebrate: ((levels: number[]) => void) | null = null;
+  onTouch: (() => void) | null = null;
 
   constructor() {
     this.socket = io({ autoConnect: false, transports: ['websocket', 'polling'] });
@@ -43,6 +44,7 @@ class Net {
     this.socket.on('progress', (p: Progress) => saveProgress(p));
     this.socket.on('react', (r: string) => this.onReact?.(r));
     this.socket.on('celebrate', (l: number[]) => this.onCelebrate?.(l));
+    this.socket.on('touch', () => this.onTouch?.());
     this.socket.on('closed', () => this.forget());
     // Re-sync whenever the phone wakes up or comes back online.
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
@@ -101,6 +103,7 @@ class Net {
   }
   act(x: Action) { this.socket.emit('act', x); }
   react(r: string) { this.socket.emit('react', r); }
+  touch() { this.socket.emit('touch'); }
   forget() { this.socket.emit('leaveRoom'); this.view = null; this.save(null); }
 }
 
@@ -121,10 +124,6 @@ export function useCountdown(at: number | null) {
 }
 
 /* ---------- small device helpers ---------- */
-export function buzz(pattern: number | number[]) {
-  if (store.get(K.sound) === 'off') return;
-  try { navigator.vibrate?.(pattern); } catch { /* not supported on iOS */ }
-}
 
 export function useWakeLock(on: boolean) {
   useEffect(() => {

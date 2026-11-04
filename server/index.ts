@@ -125,6 +125,16 @@ io.on('connection', socket => {
     io.to(`${room.code}:${idx === 0 ? 1 : 0}`).emit('react', r);
   });
 
+  // "Send a touch": one pulse relayed to the partner, only if they have allowed touches. Never stored.
+  socket.on('touch', () => {
+    const room = rooms.get(socket.data.code); const idx = socket.data.idx as 0 | 1 | undefined;
+    if (!room || idx === undefined) return;
+    const other = idx === 0 ? 1 : 0;
+    if (!room.players[other]?.allowTouch) return;
+    if (limited('touch:' + socket.id, 20, 15 * 1000)) return; // at most ~60 bpm for 15 seconds
+    io.to(`${room.code}:${other}`).emit('touch');
+  });
+
   socket.on('leaveRoom', () => {
     const room = rooms.get(socket.data.code); const idx = socket.data.idx as 0 | 1 | undefined;
     if (!room || idx === undefined) return;

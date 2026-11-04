@@ -147,3 +147,25 @@ describe('sessions', () => {
     expect(r.view(0).ceiling!.meDone).toBe(true);
   });
 });
+
+describe('music and touches', () => {
+  it('only one phone plays music, and either can move it', () => {
+    const r = newRoom();
+    r.act(0, { a: 'music', on: true });
+    expect(r.view(0).music).toBe('me'); expect(r.view(1).music).toBe('partner');
+    r.act(1, { a: 'music', on: true });
+    expect(r.view(0).music).toBe('partner'); expect(r.view(1).music).toBe('me');
+    r.act(0, { a: 'music', on: false }); // not the owner: no change
+    expect(r.view(1).music).toBe('me');
+    r.act(1, { a: 'music', on: false });
+    expect(r.view(0).music).toBe(null);
+  });
+  it('touches are off until the receiver allows them', () => {
+    const r = newRoom();
+    expect(r.view(0).partnerAllowsTouch).toBe(false);
+    r.act(1, { a: 'touch:allow', on: true });
+    expect(r.view(0).partnerAllowsTouch).toBe(true);
+    expect(r.view(1).meAllowsTouch).toBe(true);
+    expect(r.view(1).partnerAllowsTouch).toBe(false);
+  });
+});
