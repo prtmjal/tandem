@@ -7,7 +7,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Server, type Socket } from 'socket.io';
 import { Room, sanitizeProgress } from './game';
-import { REACTIONS, type Action } from '../shared/protocol';
+import { ADULT_REQUIRED, REACTIONS, isAdultAttested, type Action } from '../shared/protocol';
 
 const PORT = Number(process.env.PORT || 3001);
 const IDLE_MS = 30 * 60 * 1000; // a room with nobody connected closes after 30 minutes
@@ -64,6 +64,7 @@ io.on('connection', socket => {
 
   socket.on('create', (msg: { name?: string; progress?: unknown }, ack: (r: unknown) => void) => {
     if (typeof ack !== 'function') return;
+    if (!isAdultAttested(msg)) return ack({ error: ADULT_REQUIRED });
     if (limited('create:' + ip, 20, 60 * 60 * 1000)) return ack({ error: 'Too many new rooms from this network. Try again in a while.' });
     const token = newSecret();
     const room = new Room(newCode(), newSecret(), { token, name: cleanName(msg?.name) || 'Partner 1', connected: true, curious: {} }, sanitizeProgress(msg?.progress));
@@ -77,6 +78,7 @@ io.on('connection', socket => {
 
   socket.on('join', (msg: { code?: string; secret?: string; name?: string; progress?: unknown }, ack: (r: unknown) => void) => {
     if (typeof ack !== 'function') return;
+    if (!isAdultAttested(msg)) return ack({ error: ADULT_REQUIRED });
     if (limited('join:' + ip, 10, 60 * 1000)) return ack({ error: 'Too many tries. Wait a minute and try again.' });
     const code = String(msg?.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     const room = rooms.get(code);

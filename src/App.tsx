@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, LazyMotion, MotionConfig, m } from 'motion/react';
 import QRCode from 'qrcode';
 import { DECK } from '../shared/content';
-import { REACTIONS, type VibeId, type View } from '../shared/protocol';
+import { AGE_OK, REACTIONS, type VibeId, type View } from '../shared/protocol';
 import { VIBES, VIBE_IDS, cardColors, hueDistance, blendHue, themeTokens, type Mode } from '../shared/theme';
 import { buzz, keys, net, store, useCountdown, useNet, useWakeLock } from './net';
 import { Avatar, Countdown, Floaters, I, Icon, MiniArt, PlayCard, Waiting, levelName, useToast } from './ui';
@@ -55,7 +55,7 @@ function useTheme(view: View | null, myVibe: VibeId, pref: ModePref) {
 /* ---------------- app shell ---------------- */
 export default function App() {
   const { view, status, saved } = useNet();
-  const [age, setAge] = useState(store.get(keys.age) === '1');
+  const [age, setAge] = useState(store.get(keys.age) === AGE_OK);
   const [myVibe, setMyVibe] = useState<VibeId>((store.get(keys.vibe) as VibeId) || 'rose');
   const [pref, setPref] = useState<ModePref>((store.get(keys.mode) as ModePref) || 'auto');
   const theme = useTheme(view, myVibe, pref);
@@ -77,7 +77,7 @@ export default function App() {
   const pickVibe = (v: VibeId) => { setMyVibe(v); store.set(keys.vibe, v); if (view?.phase === 'arrive') net.act({ a: 'vibe', v }); };
 
   let screen: JSX.Element;
-  if (!age) screen = <AgeGate onYes={() => { store.set(keys.age, '1'); setAge(true); }} mode={theme.mode} hue={theme.cardHue} />;
+  if (!age) screen = <AgeGate onYes={() => { store.set(keys.age, AGE_OK); setAge(true); }} mode={theme.mode} hue={theme.cardHue} />;
   else if (!saved || !view) screen = <Start reconnecting={!!saved && status !== 'online'} mode={theme.mode} hue={theme.cardHue} />;
   else screen = <Room view={view} theme={theme} myVibe={myVibe} pickVibe={pickVibe} pref={pref}
     setPref={p => { setPref(p); store.set(keys.mode, p); }} react={r => { net.react(r); addFloat(r); buzz(8); }} toast={showToast} online={status === 'online'} />;
@@ -114,6 +114,18 @@ function HeroFan({ mode, hue }: { mode: Mode; hue: number }) {
 }
 
 function AgeGate({ onYes, mode, hue }: { onYes: () => void; mode: Mode; hue: number }) {
+  const [sure, setSure] = useState(false);
+  const [under, setUnder] = useState(false);
+  if (under) return (
+    <main className="app">
+      <div className="grow" />
+      <div className="stack center" style={{ textAlign: 'center' }}>
+        <h2>This one’s for adults</h2>
+        <p className="muted">Tandem After Dark is only for people 18 and older. Thanks for being honest.</p>
+      </div>
+      <div className="grow" />
+    </main>
+  );
   return (
     <main className="app">
       <HeroFan mode={mode} hue={hue} />
@@ -122,8 +134,15 @@ function AgeGate({ onYes, mode, hue }: { onYes: () => void; mode: Mode; hue: num
         <h1>Tandem After Dark</h1>
         <p className="muted">Eight levels from first sparks to midnight, for couples of any gender or orientation. Each of you plays on your own phone, and your private answers stay private.</p>
       </div>
+      <div className="stack">
+        <label className="check">
+          <input id="adult" type="checkbox" checked={sure} onChange={e => setSure(e.target.checked)} />
+          <span>I’m 18 or older, and old enough for adult content where I live. My partner will confirm on their own phone.</span>
+        </label>
+      </div>
       <div className="bottom">
-        <button className="btn" onClick={onYes}>We’re both 18 or older</button>
+        <button className="btn" disabled={!sure} onClick={onYes}>I’m 18+, let’s go</button>
+        <button className="btn ghost" onClick={() => setUnder(true)}>I’m under 18</button>
         <p className="tiny muted center" style={{ textAlign: 'center' }}>Progress stays on your phones. The server only holds tonight’s room, then forgets it.</p>
       </div>
     </main>

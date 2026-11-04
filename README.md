@@ -14,7 +14,7 @@ Open http://localhost:5173 in two browser windows (or one window plus your phone
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (19 tests)
+npm test          # engine, privacy and palette contrast tests (20 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)

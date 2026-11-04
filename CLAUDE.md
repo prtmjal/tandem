@@ -13,7 +13,8 @@ A two-phone couples game. React (Vite) phone app plus one Node server with Socke
 2. **Content stays suggestive at most, never graphic.** Gender- and anatomy-neutral wording ("one of you", "your partner"). No minors or youthful framing, family role-play, non-consent themes, intoxication, or real people. Every card can be passed with one tap. Edit cards only in `shared/content.ts`.
 3. **Every theme passes WCAG AA.** Colours come from `shared/theme.ts` (vibe sets hue, level sets chroma and depth). `tests/theme.test.ts` checks all 96 combinations. No saffron and no pure white surfaces. Consent controls (`.ctrl`) look the same in every theme.
 4. **Consent controls are equal-weight.** Pass is the same size and tap cost as Next. Never add streaks, guilt copy or countdown pressure.
-5. **No hosting on serverless or shared Node hosting.** Rooms live in memory and need inbound WebSockets (Render, Railway, Fly, or a VPS).
+5. **Every person confirms 18+ on their own phone.** `create` and `join` must carry `adult: true` (`isAdultAttested` in `shared/protocol.ts`) or the server refuses them. Bump `AGE_OK` to ask everyone again. Never let one partner confirm for the other.
+6. **No hosting on serverless or shared Node hosting.** Rooms live in memory and need inbound WebSockets (Render, Railway, Fly, or a VPS).
 
 ## Layout
 - `shared/content.ts` cards and levels; `shared/protocol.ts` messages; `shared/theme.ts` palette

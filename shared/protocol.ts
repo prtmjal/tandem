@@ -1,6 +1,15 @@
 // Messages and views shared by the server and the phones.
 import type { Card } from './content';
 
+/** Stored on each phone once that person confirms they are 18+. Bump to ask everyone again. */
+export const AGE_OK = 'v2';
+
+/** Every create/join must carry the person's own 18+ confirmation, or the server refuses it. */
+export const isAdultAttested = (msg: unknown): boolean =>
+  typeof msg === 'object' && msg !== null && (msg as { adult?: unknown }).adult === true;
+
+export const ADULT_REQUIRED = 'Please confirm you’re 18 or older first.';
+
 export type Vote = 'y' | 'm' | 'n';
 export type Energy = 'low' | 'mid' | 'high';
 export type VibeId = 'rose' | 'coral' | 'plum' | 'lagoon';

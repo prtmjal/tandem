@@ -28,7 +28,7 @@ const click = (p, name) => p.getByRole('button', { name, exact: false }).first()
 // Onboarding
 await A.goto(URL); await B.goto(URL);
 await shot(A, '01-welcome-dark'); await shot(B, '01-welcome-light');
-await click(A, 'both 18'); await click(B, 'both 18');
+for (const p of [A, B]) { await p.check('#adult'); await click(p, 'let’s go'); }
 await A.fill('#name', 'Asha'); await click(A, 'Start a room');
 await A.waitForSelector('.codebig');
 const code = (await A.textContent('.codebig')).trim();
