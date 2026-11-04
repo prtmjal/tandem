@@ -4,7 +4,8 @@ import QRCode from 'qrcode';
 import { DECK } from '../shared/content';
 import { AGE_OK, REACTIONS, type VibeId, type View } from '../shared/protocol';
 import { VIBES, VIBE_IDS, cardColors, chipColor, hueDistance, blendHue, themeTokens, type Mode } from '../shared/theme';
-import { keys, net, store, useCountdown, useNet, useWakeLock } from './net';
+import { keys, loadPasses, net, shop, store, useCountdown, useNet, useWakeLock } from './net';
+import { DECKS, DECK_IDS, PASS_CARD_COUNT } from '../shared/decks';
 import { canVibrate, cue, prefs, startHeartbeat, startMusic, stopHeartbeat, stopMusic, unlockAudio, type HapticLevel } from './feel';
 import { Intro, Tip, introSeen, resetTips } from './guide';
 import { Avatar, Countdown, Floaters, I, Icon, MiniArt, PlayCard, Waiting, levelName, useToast } from './ui';
@@ -80,6 +81,13 @@ export default function App() {
     net.onTouch = () => { cue('touch'); setTouchAt(Date.now()); };
   }, [addFloat]);
   useWakeLock(view?.phase === 'card' || view?.phase === 'close' || view?.phase === 'arrive');
+  // Back from Stripe Checkout: swap the paid session for a pass code, then tidy the address bar.
+  useEffect(() => {
+    const sid = new URLSearchParams(location.search).get('paid');
+    if (!sid) return;
+    history.replaceState(null, '', location.pathname);
+    shop.claim(sid).then(() => showToast('Couple Pass is on for both of you')).catch(e => showToast((e as Error).message));
+  }, []);
 
   const pickVibe = (v: VibeId) => { setMyVibe(v); store.set(keys.vibe, v); if (view?.phase === 'arrive') net.act({ a: 'vibe', v }); };
 
@@ -284,6 +292,7 @@ function Menu(p: RoomProps & { close: () => void; partner: string }) {
           <p className="tiny muted">After 10 pm at level 5 and up, the app shifts into a deeper, dimmer late-night look.</p>
           <p className="eyebrow">Sound and touch</p>
           <MoodControls view={p.view} partner={p.partner} full />
+          <PassSettings view={p.view} toast={p.toast} />
           <p className="eyebrow">Help</p>
           <div className="row">
             <button className="ctrl" onClick={() => setHow(true)}>How to play</button>
@@ -365,6 +374,7 @@ function Home(p: RoomProps) {
         </div>
         <p className="tiny muted" style={{ textAlign: 'center' }}>{view.totalCards} cards in this version</p>
       </div>
+      <PassPanel view={view} />
     </>
   );
 }
@@ -620,6 +630,61 @@ function TouchPulse({ name }: { name: string }) {
   return <div className="touchpulse" role="status"><span className="ring" aria-hidden="true" /><span className="lbl">{name ? `${name} sent a touch` : 'A touch'}</span></div>;
 }
 
+/** The Couple Pass offer on the map screen. Never shown during a night, never with pressure. */
+function PassPanel({ view }: { view: View }) {
+  const [info, setInfo] = useState<{ enabled: boolean; price?: string | null } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => { shop.get().then(setInfo); }, []);
+  if (view.pass) return <div className="panel pass on"><p className="eyebrow">Couple Pass</p><p>On for both of you: {DECK_IDS.map(d => DECKS[d].name).join(', ')}. The extra cards mix into the levels you play.</p></div>;
+  if (!info?.enabled) return null;
+  return (
+    <div className="panel pass">
+      <p className="eyebrow">Couple Pass · optional</p>
+      <h3>{PASS_CARD_COUNT} more cards, woven into your levels</h3>
+      <ul className="decklist">{DECK_IDS.map(d => <li key={d}><b>{DECKS[d].name}.</b> {DECKS[d].blurb}</li>)}</ul>
+      <p className="tiny muted">One payment covers both of you, for good. No subscription. Levels still open only when you both choose them.</p>
+      {err && <p role="alert" className="alert"><span aria-hidden="true">⚠</span> {err}</p>}
+      <button className="btn" disabled={busy} onClick={async () => { setErr(''); setBusy(true); try { await shop.checkout(); } catch (e) { setErr((e as Error).message); setBusy(false); } }}>
+        {busy ? 'Opening checkout…' : `Get the Couple Pass${info.price ? ` · ${info.price}` : ''}`}
+      </button>
+    </div>
+  );
+}
+
+/** Menu: show this phone's pass code (to keep or move to a new phone) or restore one. */
+function PassSettings({ view, toast }: { view: View; toast: (s: string) => void }) {
+  const [codes, setCodes] = useState(loadPasses());
+  const [entry, setEntry] = useState('');
+  const [open, setOpen] = useState(false);
+  const [err, setErr] = useState('');
+  return (
+    <div className="stack">
+      <p className="eyebrow">Couple Pass</p>
+      {codes.length > 0 ? <>
+        <p className="tiny muted">Your pass code works on any phone. Keep a copy somewhere safe, like your notes or password manager.</p>
+        <button className="ctrl" onClick={async () => { try { await navigator.clipboard.writeText(codes[0]); toast('Pass code copied'); } catch { setOpen(true); } }}>Copy my pass code</button>
+        {open && <textarea className="passcode" readOnly value={codes[0]} rows={3} onFocus={e => e.currentTarget.select()} />}
+      </> : <>
+        <p className="tiny muted">{view.pass ? 'The pass is on in this room because your partner has it.' : 'Bought it on another phone? Paste your pass code here.'}</p>
+        <div className="row">
+          <input type="text" aria-label="Pass code" placeholder="TAD1.…" value={entry} onChange={e => setEntry(e.target.value)} autoComplete="off" spellCheck={false} />
+          <button className="ctrl" disabled={entry.trim().length < 20} onClick={async () => { setErr(''); try { await shop.restore(entry); setCodes(loadPasses()); setEntry(''); toast('Couple Pass restored'); } catch (e) { setErr((e as Error).message); } }}>Restore</button>
+        </div>
+        {err && <p role="alert" className="alert"><span aria-hidden="true">⚠</span> {err}</p>}
+      </>}
+    </div>
+  );
+}
+
+// "Bring your own music": search links only, so nothing is licensed or embedded and no account is touched.
+const BYO_QUERY = 'slow instrumental r&b lofi';
+const BYO = [
+  { name: 'Spotify', url: (q: string) => `https://open.spotify.com/search/${encodeURIComponent(q)}/playlists` },
+  { name: 'Apple Music', url: (q: string) => `https://music.apple.com/search?term=${encodeURIComponent(q)}` },
+  { name: 'YouTube Music', url: (q: string) => `https://music.youtube.com/search?q=${encodeURIComponent(q)}` },
+];
+
 /** Sound and touch settings for this phone. Everything starts off. Music plays on one phone only. */
 function MoodControls({ view, partner, full }: { view: View; partner: string; full?: boolean }) {
   const [, force] = useState(0); const r = () => force(n => n + 1);
@@ -637,6 +702,9 @@ function MoodControls({ view, partner, full }: { view: View; partner: string; fu
         </button>
       </div>
       <p className="tiny muted">{view.music === 'partner' ? `Music is playing on ${partner}’s phone. Only one phone plays it, so it never echoes.` : view.music === 'me' ? 'Slow and wordless, so it never competes with talking. Tap again to stop.' : 'Sounds are soft taps and flips. Music plays on one phone only.'}</p>
+      <p className="tiny byo">Prefer your own music? Search{' '}
+        {BYO.map((b, i) => <span key={b.name}>{i > 0 && ' · '}<a href={b.url(BYO_QUERY)} target="_blank" rel="noopener noreferrer">{b.name}</a></span>)}
+        {' '}for slow, wordless songs, and keep in-app music off.</p>
       {full && <>
         {canVibrate && <>
           <p className="tiny" style={{ fontWeight: 600 }}>Vibration</p>

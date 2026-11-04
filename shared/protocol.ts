@@ -55,6 +55,8 @@ export interface View {
   /** Touches are opt-in for the receiver. Shown to the sender so the button only appears when welcome. */
   partnerAllowsTouch: boolean;
   meAllowsTouch: boolean;
+  /** Couple Pass is on for this room (either partner bought it). */
+  pass: boolean;
   unlocked: number[];
   sessions: number;
   totalCards: number;

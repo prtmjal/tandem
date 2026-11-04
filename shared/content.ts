@@ -1,4 +1,5 @@
 // Card content for Tandem After Dark. Suggestive at most, never graphic.
+import { PASS_DECK } from './decks';
 // Card = [text, type, topic, optional timer seconds]
 export type Raw = (string | number)[];
 export type Frame = { t: string; type: string; topic: string; v: string[] };
@@ -983,6 +984,8 @@ for (let l = 1; l <= 8; l++) {
 }
 export const CARD_BY_ID: Record<string, Card> = {};
 for (const l in DECK) for (const c of DECK[l]) CARD_BY_ID[c.id] = c;
+// Couple Pass cards are known ids too, so progress (seen, parked) round-trips for them.
+for (const l in PASS_DECK) for (const c of PASS_DECK[l]) CARD_BY_ID[c.id] = c;
 export const TOTAL_CARDS = Object.values(DECK).reduce((a, b) => a + b.length, 0);
 
 const GATED = new Set(['Do', 'Session', 'Scene']);

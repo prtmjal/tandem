@@ -8,6 +8,7 @@ import {
 } from '../shared/protocol';
 
 import { isVibe } from '../shared/theme';
+import { PASS_CARD_COUNT, PASS_DECK } from '../shared/decks';
 const DAY = 24 * 3600 * 1000;
 const PARK_MS = 56 * DAY; // declined cards rest for 8 weeks
 const CURIOUS_MS = 14 * DAY; // an unmatched "curious" tap expires silently
@@ -72,6 +73,8 @@ export class Room {
   paused = false;
   dark = false;
   music: Idx | null = null;
+  /** Couple Pass: on when either partner brought a valid pass code. Adds the pass decks to every level. */
+  pass = false;
   unlock: null | { l: number; samples: Card[]; votes: [boolean | null, boolean | null]; opened: boolean } = null;
   ceiling: null | { picks: [number | null, number | null]; confirm: [boolean, boolean]; done: [boolean, boolean] } = null;
   arrive: null | { tonight: number; energy: Energy; vibes: [VibeId | null, VibeId | null]; memory: string | null; ready: [boolean, boolean]; countdownAt: number | null } = null;
@@ -112,7 +115,9 @@ export class Room {
   }
 
   /* ---------------- deck engine ---------------- */
-  private bufK(l: number) { return Math.max(2, Math.round(DECK[l].length * 0.15)); }
+  /** The cards this room can draw at a level: the free deck, plus the pass decks when the pass is on. */
+  deck(l: number): Card[] { return this.pass && PASS_DECK[l]?.length ? DECK[l].concat(PASS_DECK[l]) : DECK[l]; }
+  private bufK(l: number) { return Math.max(2, Math.round(this.deck(l).length * 0.15)); }
   private lvlFor(t: number) { let best = 1; for (const l of this.prog.unlocked) if (l <= t && l > best) best = l; return best; }
 
   draw(l: number, prefer?: (c: Card) => boolean): Card {
@@ -125,13 +130,13 @@ export class Room {
       if (prefer) { const pp = pool.filter(prefer); if (pp.length) pool = pp; }
       return pool;
     };
-    let pool = narrow(DECK[l].filter(ok));
+    let pool = narrow(this.deck(l).filter(ok));
     if (!pool.length) { // exhausted: reset history except the most recent cards
       this.prog.seen[k] = [];
       this.prog.last[k] = last.slice(-this.bufK(l));
-      pool = narrow(DECK[l].filter(c => !this.prog.last[k].includes(c.id) && !s.used.has(c.id)));
-      if (!pool.length) pool = DECK[l].filter(c => !s.used.has(c.id));
-      if (!pool.length) pool = DECK[l].slice();
+      pool = narrow(this.deck(l).filter(c => !this.prog.last[k].includes(c.id) && !s.used.has(c.id)));
+      if (!pool.length) pool = this.deck(l).filter(c => !s.used.has(c.id));
+      if (!pool.length) pool = this.deck(l).slice();
     }
     const c = rnd(pool);
     this.prog.seen[k].push(c.id);
@@ -369,7 +374,8 @@ export class Room {
       meAllowsTouch: !!P[me]?.allowTouch,
       unlocked: this.prog.unlocked.slice(),
       sessions: this.prog.sessions,
-      totalCards: TOTAL_CARDS,
+      totalCards: TOTAL_CARDS + (this.pass ? PASS_CARD_COUNT : 0),
+      pass: this.pass,
       unlock: this.unlock ? {
         l: this.unlock.l, samples: this.unlock.samples, myVote: this.unlock.votes[me],
         partnerVoted: this.unlock.votes[other] !== null, opened: this.unlock.opened,

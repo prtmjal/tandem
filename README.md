@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (44 tests)
+npm test          # engine, privacy and palette contrast tests (49 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -29,6 +29,22 @@ The server and the web app ship together as one Node service. Any host that keep
 **Railway (about $5 a month, always on).** New project, deploy from GitHub repo. It detects the `Dockerfile`. Set no variables; it provides `PORT`.
 
 Use HTTPS in production (both hosts do this for you). Vibration, wake lock and installing to the home screen need it.
+
+## Couple Pass (optional payments)
+
+The game is free unless you turn payments on. The Couple Pass is a one-time purchase that adds 40 extra cards in three decks (Long distance, Love languages, Slow nights) to the levels a couple already plays. One purchase covers both partners. There is no database: after payment the phone keeps a signed pass code, and bringing it into a room turns the pass on for both phones. The code can be pasted on a new phone under Settings.
+
+To turn it on, set these on your host:
+
+| Variable | What it is |
+|---|---|
+| `STRIPE_SECRET_KEY` | Your Stripe secret key (`sk_live_...`, or `sk_test_...` to try it) |
+| `STRIPE_PRICE_PASS` | The Stripe Price ID for the pass, e.g. a one-time $19.99 price |
+| `STRIPE_PRICE_PASS_IN`, `_BR`, `_ID`, ... | Optional regional prices by country code. Used when your host sends a country header (Cloudflare `cf-ipcountry`, Fly, Vercel) |
+| `LICENSE_SECRET` | A random string of at least 32 characters. Keep it forever: changing it invalidates every pass code |
+| `PUBLIC_URL` | Optional. Your public address, e.g. `https://play.yourdomain.com`, for Stripe's return link |
+
+Before going live, ask Stripe to approve the business in writing (describe it as a couples' relationship and conversation game), set a discreet statement descriptor in the Stripe dashboard, and change the landing page FAQ answer "Is it free?" in `index.html`.
 
 ## How it works
 

@@ -263,3 +263,9 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
 .touchpulse .lbl { position: absolute; bottom: 22%; padding: 8px 14px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); font-weight: 600; }
 .touchbtn { touch-action: none; user-select: none; -webkit-user-select: none; }
 .overlay > .panel { max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+
+/* Couple Pass */
+.panel.pass h3 { font-family: var(--display); }
+.decklist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.passcode { width: 100%; font: .8rem/1.4 ui-monospace, monospace; padding: 10px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); word-break: break-all; }
+.byo a { font-weight: 600; text-underline-offset: 3px; }

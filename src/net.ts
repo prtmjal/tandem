@@ -3,7 +3,7 @@ import { io, type Socket } from 'socket.io-client';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { emptyProgress, type Action, type Progress, type View } from '../shared/protocol';
 
-const K = { age: 'tad.age2', name: 'tad.name', prog: 'tad.progress', sess: 'tad.session', vibe: 'tad.vibe', mode: 'tad.mode', sound: 'tad.haptics', plain: 'tad.plain' };
+const K = { age: 'tad.age2', name: 'tad.name', prog: 'tad.progress', sess: 'tad.session', vibe: 'tad.vibe', mode: 'tad.mode', sound: 'tad.haptics', plain: 'tad.plain', passes: 'tad.passes' };
 export const store = {
   get(k: string) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k: string, v: string) { try { localStorage.setItem(k, v); } catch { /* storage blocked: keep going */ } },
@@ -16,6 +16,33 @@ export function loadProgress(): Progress {
   return emptyProgress();
 }
 export const saveProgress = (p: Progress) => store.set(K.prog, JSON.stringify(p));
+
+/** Couple Pass codes kept on this phone. A code is a signed receipt; it works on any phone it's typed into. */
+export function loadPasses(): string[] {
+  try { const a = JSON.parse(store.get(K.passes) || '[]'); return Array.isArray(a) ? a.filter(x => typeof x === 'string').slice(0, 5) : []; } catch { return []; }
+}
+function savePass(code: string) { const a = loadPasses(); if (!a.includes(code)) store.set(K.passes, JSON.stringify([...a, code].slice(-5))); }
+
+async function post<T>(url: string, body: unknown): Promise<T> {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((j as { error?: string }).error || 'Something went wrong. Try again.');
+  return j as T;
+}
+export const shop = {
+  info: null as null | Promise<{ enabled: boolean; price?: string | null }>,
+  /** Whether payments are set up on this server, and the local price label. */
+  get() { return (this.info ??= fetch('/api/store').then(r => r.json()).catch(() => ({ enabled: false }))); },
+  async checkout() { const { url } = await post<{ url: string }>('/api/checkout', {}); location.assign(url); },
+  /** After Stripe sends the player back with ?paid=..., swap the session for a pass code. */
+  async claim(session: string) { const { code } = await post<{ code: string }>('/api/claim', { session }); savePass(code); net.sendPasses(); return code; },
+  async restore(code: string) {
+    const c = code.trim();
+    const { ok } = await post<{ ok: boolean }>('/api/verify', { code: c });
+    if (!ok) throw new Error('That pass code didn’t work. Check it and try again.');
+    savePass(c); net.sendPasses();
+  },
+};
 
 interface Saved { code: string; token: string; secret?: string }
 const loadSaved = (): Saved | null => { try { return JSON.parse(store.get(K.sess) || 'null'); } catch { return null; } };
@@ -85,12 +112,12 @@ class Net {
     });
   }
   async create(name: string) {
-    const r = await this.call<{ code: string; secret: string; token: string }>('create', { name, adult: true, progress: loadProgress() });
+    const r = await this.call<{ code: string; secret: string; token: string }>('create', { name, adult: true, progress: loadProgress(), passes: loadPasses() });
     this.save({ code: r.code, token: r.token, secret: r.secret });
     return r;
   }
   async join(code: string, name: string, secret?: string) {
-    const r = await this.call<{ code: string; token: string }>('join', { code, name, secret, adult: true, progress: loadProgress() });
+    const r = await this.call<{ code: string; token: string }>('join', { code, name, secret, adult: true, progress: loadProgress(), passes: loadPasses() });
     this.save({ code: r.code, token: r.token });
   }
   private resume() {
@@ -99,11 +126,13 @@ class Net {
       if (err) return;
       if (r?.error) { this.forget(); return; }
       if (r.secret !== s.secret) this.save({ ...s, secret: r.secret });
+      if (loadPasses().length) this.sendPasses();
     });
   }
   act(x: Action) { this.socket.emit('act', x); }
   react(r: string) { this.socket.emit('react', r); }
   touch() { this.socket.emit('touch'); }
+  sendPasses() { if (this.saved) this.socket.emit('pass', loadPasses()); }
   forget() { this.socket.emit('leaveRoom'); this.view = null; this.save(null); }
 }
 

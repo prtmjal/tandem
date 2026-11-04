@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Server, type Socket } from 'socket.io';
 import { Room, sanitizeProgress } from './game';
+import { claim, createCheckout, hasPass, priceFor, priceLabel, storeConfig } from './store';
 import { ADULT_REQUIRED, REACTIONS, isAdultAttested, type Action } from '../shared/protocol';
 
 const PORT = Number(process.env.PORT || 3001);
@@ -62,7 +63,7 @@ io.on('connection', socket => {
   // Clock sync so both phones run countdowns and timers off the same moment.
   socket.on('time', (ack: (t: number) => void) => { if (typeof ack === 'function') ack(Date.now()); });
 
-  socket.on('create', (msg: { name?: string; progress?: unknown }, ack: (r: unknown) => void) => {
+  socket.on('create', (msg: { name?: string; progress?: unknown; passes?: unknown }, ack: (r: unknown) => void) => {
     if (typeof ack !== 'function') return;
     if (!isAdultAttested(msg)) return ack({ error: ADULT_REQUIRED });
     if (limited('create:' + ip, 20, 60 * 60 * 1000)) return ack({ error: 'Too many new rooms from this network. Try again in a while.' });
@@ -70,13 +71,14 @@ io.on('connection', socket => {
     const room = new Room(newCode(), newSecret(), { token, name: cleanName(msg?.name) || 'Partner 1', connected: true, curious: {} }, sanitizeProgress(msg?.progress));
     room.prog.curious = {};
     room.players[0]!.curious = sanitizeProgress(msg?.progress).curious;
+    room.pass = hasPass(store, msg?.passes);
     rooms.set(room.code, room);
     tokens.set(token, { code: room.code, idx: 0 });
     attach(socket, room, 0);
     ack({ code: room.code, secret: room.secret, token });
   });
 
-  socket.on('join', (msg: { code?: string; secret?: string; name?: string; progress?: unknown }, ack: (r: unknown) => void) => {
+  socket.on('join', (msg: { code?: string; secret?: string; name?: string; progress?: unknown; passes?: unknown }, ack: (r: unknown) => void) => {
     if (typeof ack !== 'function') return;
     if (!isAdultAttested(msg)) return ack({ error: ADULT_REQUIRED });
     if (limited('join:' + ip, 10, 60 * 1000)) return ack({ error: 'Too many tries. Wait a minute and try again.' });
@@ -90,6 +92,7 @@ io.on('connection', socket => {
     const token = newSecret();
     const prog = sanitizeProgress(msg?.progress);
     room.join({ token, name: cleanName(msg?.name) || 'Partner 2', connected: true, curious: prog.curious }, prog);
+    if (hasPass(store, msg?.passes)) room.pass = true;
     tokens.set(token, { code: room.code, idx: 1 });
     attach(socket, room, 1);
     ack({ code: room.code, token });
@@ -123,6 +126,14 @@ io.on('connection', socket => {
     if (!room || idx === undefined || !(REACTIONS as readonly string[]).includes(r)) return;
     if (limited('react:' + socket.id, 20, 5 * 1000)) return;
     io.to(`${room.code}:${idx === 0 ? 1 : 0}`).emit('react', r);
+  });
+
+  // A pass bought or restored mid-night turns the pass on for this room.
+  socket.on('pass', (codes: unknown) => {
+    const room = rooms.get(socket.data.code); const idx = socket.data.idx as 0 | 1 | undefined;
+    if (!room || idx === undefined || room.pass) return;
+    if (limited('pass:' + socket.id, 10, 60 * 1000)) return;
+    if (hasPass(store, codes)) { room.pass = true; broadcast(room); }
   });
 
   // "Send a touch": one pulse relayed to the partner, only if they have allowed touches. Never stored.
@@ -169,12 +180,41 @@ setInterval(() => {
 }, 60 * 1000).unref();
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1); // hosts terminate HTTPS in front of us; use their forwarded protocol for payment return links
 app.use((_, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-Frame-Options', 'DENY');
   next();
 });
+/* ---------------- Couple Pass (off unless Stripe is configured) ---------------- */
+const store = storeConfig();
+const countryOf = (h: Record<string, unknown>) => String(h['cf-ipcountry'] || h['x-vercel-ip-country'] || h['fly-client-ip-country'] || '').slice(0, 2) || undefined;
+const reqIp = (req: express.Request) => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+app.get('/api/store', async (req, res) => {
+  if (!store) return res.json({ enabled: false });
+  res.json({ enabled: true, price: await priceLabel(store, priceFor(store, countryOf(req.headers))) });
+});
+app.post('/api/checkout', express.json({ limit: '2kb' }), async (req, res) => {
+  if (!store) return res.status(404).json({ error: 'Payments are not set up.' });
+  if (limited('checkout:' + reqIp(req), 10, 60 * 60 * 1000)) return res.status(429).json({ error: 'Too many tries. Try again later.' });
+  try { res.json({ url: await createCheckout(store, process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`, countryOf(req.headers)) }); }
+  catch { res.status(502).json({ error: 'Couldn’t reach the payment page. Try again in a moment.' }); }
+});
+app.post('/api/claim', express.json({ limit: '2kb' }), async (req, res) => {
+  if (!store) return res.status(404).json({ error: 'Payments are not set up.' });
+  if (limited('claim:' + reqIp(req), 20, 60 * 60 * 1000)) return res.status(429).json({ error: 'Too many tries. Try again later.' });
+  try {
+    const code = await claim(store, req.body?.session);
+    if (!code) return res.status(402).json({ error: 'That payment isn’t complete yet.' });
+    res.json({ code });
+  } catch { res.status(502).json({ error: 'Couldn’t confirm the payment. Try again in a moment.' }); }
+});
+app.post('/api/verify', express.json({ limit: '2kb' }), (req, res) => {
+  if (limited('verify:' + reqIp(req), 30, 60 * 60 * 1000)) return res.status(429).json({ ok: false });
+  res.json({ ok: hasPass(store, [req.body?.code]) });
+});
+
 app.get('/healthz', (_, res) => res.json({ ok: true, rooms: rooms.size }));
 
 // Serve the built web app whenever it exists (after `npm run build`). In dev, Vite serves it instead.
