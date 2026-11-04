@@ -12,7 +12,7 @@ export const ADULT_REQUIRED = 'Please confirm you’re 18 or older first.';
 
 export type Vote = 'y' | 'm' | 'n';
 export type Energy = 'low' | 'mid' | 'high';
-export type VibeId = 'rose' | 'coral' | 'plum' | 'lagoon';
+export type VibeId = 'rose' | 'coral' | 'plum' | 'lagoon' | 'iris';
 export type Phase = 'lobby' | 'home' | 'unlock' | 'ceiling' | 'arrive' | 'card' | 'close';
 
 /** Saved on each phone only. Uploaded when a phone joins a room, merged on the server. */

@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (23 tests)
+npm test          # engine, privacy and palette contrast tests (42 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -35,7 +35,7 @@ Use HTTPS in production (both hosts do this for you). Vibration, wake lock and i
 | Part | Where |
 |---|---|
 | Cards (300), levels, twists, envelopes | `shared/content.ts` |
-| Palette: vibe sets hue, level sets depth; 96 themes contrast-checked | `shared/theme.ts`, `tests/theme.test.ts` |
+| Palette: vibe sets hue, level sets depth; every theme contrast-checked | `shared/theme.ts`, `tests/theme.test.ts` |
 | Game rules, session arc, no-repeat deck, private votes | `server/game.ts` |
 | Rooms, codes, rate limits, expiry | `server/index.ts` |
 | Phone app: screens, card art, motion | `src/App.tsx`, `src/ui.tsx`, `src/art.tsx` |

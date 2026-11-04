@@ -3,7 +3,7 @@ import { AnimatePresence, LazyMotion, MotionConfig, m } from 'motion/react';
 import QRCode from 'qrcode';
 import { DECK } from '../shared/content';
 import { AGE_OK, REACTIONS, type VibeId, type View } from '../shared/protocol';
-import { VIBES, VIBE_IDS, cardColors, hueDistance, blendHue, themeTokens, type Mode } from '../shared/theme';
+import { VIBES, VIBE_IDS, cardColors, chipColor, hueDistance, blendHue, themeTokens, type Mode } from '../shared/theme';
 import { buzz, keys, net, store, useCountdown, useNet, useWakeLock } from './net';
 import { Avatar, Countdown, Floaters, I, Icon, MiniArt, PlayCard, Waiting, levelName, useToast } from './ui';
 import { LevelGlyph } from './art';
@@ -37,6 +37,8 @@ function useTheme(view: View | null, myVibe: VibeId, pref: ModePref) {
   const seq = view?.session?.card?.seq ?? 0;
   const cardHue = hb === null ? ha : close ? chromeHue : seq % 2 ? hb : ha;
   const accentVibe: VibeId = hb !== null && !close && seq % 2 && b ? b : a;
+  // The card belongs to one partner's vibe unless the two are blended; that vibe's drift and chroma then apply.
+  const cardVibe: VibeId | undefined = hb === null ? a : close ? (a === b ? a : undefined) : (seq % 2 && b ? b : a);
   const t = themeTokens(chromeHue, accentVibe, mode, hb ?? undefined);
   useEffect(() => {
     const r = document.documentElement.style;
@@ -49,7 +51,7 @@ function useTheme(view: View | null, myVibe: VibeId, pref: ModePref) {
     document.documentElement.style.colorScheme = mode === 'light' ? 'light' : 'dark';
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', t.bg);
   }, [t.bg, t.bg2, t.surface, t.fg, t.muted, t.line, t.accent, t.onAccent, t.gold, t.ctrlBg, t.ctrlFg, t.ctrlLine, t.glowA, t.glowB, mode]);
-  return { mode, cardHue, chromeHue };
+  return { mode, cardHue, chromeHue, cardVibe, myVibe: a, partnerVibe: b };
 }
 
 /* ---------------- app shell ---------------- */
@@ -85,11 +87,34 @@ export default function App() {
   return (
     <LazyMotion features={loadFeatures} strict>
       <MotionConfig reducedMotion="user">
+        <InAppBanner />
         {screen}
         <Floaters items={floaters} />
         <AnimatePresence>{toast && <m.div className="toast" role="status" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>{toast}</m.div>}</AnimatePresence>
       </MotionConfig>
     </LazyMotion>
+  );
+}
+
+/* ---------------- in-app browsers ---------------- */
+// Invite links often open inside Instagram, TikTok, WhatsApp or Messenger, whose built-in browsers can drop storage
+// and block sound. Suggest the real browser, once, without blocking play.
+const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|Messenger|TikTok|musical_ly|Bytedance|WhatsApp|Snapchat|Line\/|LinkedInApp|Twitter/i;
+function InAppBanner() {
+  const [hide, setHide] = useState(() => typeof navigator === 'undefined' || !IN_APP.test(navigator.userAgent) || sessionStorage.getItem('tad.iab') === '1');
+  const [copied, setCopied] = useState(false);
+  if (hide) return null;
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const copy = async () => { try { await navigator.clipboard.writeText(location.href); setCopied(true); } catch { /* copy blocked */ } };
+  const close = () => { try { sessionStorage.setItem('tad.iab', '1'); } catch { /* ignore */ } setHide(true); };
+  return (
+    <div className="iab" role="note">
+      <p>For the smoothest night, open this in {ios ? 'Safari' : 'Chrome'}: tap <b>⋯</b> then <b>Open in browser</b>.</p>
+      <div className="row">
+        <button className="ctrl small" onClick={copy}>{copied ? 'Link copied' : 'Copy link'}</button>
+        <button className="ctrl small" onClick={close}>Keep going here</button>
+      </div>
+    </div>
   );
 }
 
@@ -178,7 +203,7 @@ function Start({ reconnecting, mode, hue }: { reconnecting: boolean; mode: Mode;
         {joining && !invite && <label className="field">Room code
           <input id="code" className="code" type="text" maxLength={6} autoCapitalize="characters" autoComplete="off" placeholder="ABC234" value={code} onChange={e => setCode(e.target.value.toUpperCase())} />
         </label>}
-        {err && <p role="alert" style={{ color: 'var(--accent)', fontWeight: 600 }}>{err}</p>}
+        {err && <p role="alert" className="alert"><span aria-hidden="true">⚠</span> {err}</p>}
       </div>
       <div className="bottom">
         {joining
@@ -192,7 +217,7 @@ function Start({ reconnecting, mode, hue }: { reconnecting: boolean; mode: Mode;
 
 /* ---------------- in a room ---------------- */
 interface RoomProps {
-  view: View; theme: { mode: Mode; cardHue: number; chromeHue: number }; myVibe: VibeId; pickVibe: (v: VibeId) => void;
+  view: View; theme: { mode: Mode; cardHue: number; chromeHue: number; cardVibe?: VibeId; myVibe: VibeId; partnerVibe: VibeId | null }; myVibe: VibeId; pickVibe: (v: VibeId) => void;
   pref: ModePref; setPref: (p: ModePref) => void; react: (r: string) => void; toast: (s: string) => void; online: boolean;
 }
 
@@ -214,8 +239,9 @@ function Room(p: RoomProps) {
     <main className="app">
       <div className="top">
         <div className="who">
-          <Avatar name={view.bothJoined ? partner : '·'} online={view.bothJoined ? view.partnerConnected : undefined} />
+          <Avatar name={view.bothJoined ? partner : '·'} online={view.bothJoined ? view.partnerConnected : undefined} vibe={p.theme.partnerVibe} mode={p.theme.mode} who="partner" />
           <span>{view.bothJoined ? (view.partnerConnected ? `With ${partner}` : `${partner}’s phone is asleep`) : 'Waiting for your partner'}</span>
+          {view.bothJoined && p.theme.partnerVibe && <span className="pglyph" style={{ color: chipColor(p.theme.partnerVibe, p.theme.mode, 'partner') }} title={VIBES[p.theme.partnerVibe].name}>{VIBES[p.theme.partnerVibe].glyph}<span className="sr-only">{partner} picked {VIBES[p.theme.partnerVibe].name}</span></span>}
         </div>
         <button className="iconbtn" aria-label="Settings" onClick={() => setMenu(true)}><Icon d={I.menu} /></button>
       </div>
@@ -232,6 +258,7 @@ function Menu(p: RoomProps & { close: () => void }) {
   const [sure, setSure] = useState(false);
   const hapt = store.get(keys.sound) !== 'off';
   const [h, setH] = useState(hapt);
+  const [plain, setPlain] = useState(store.get(keys.plain) === '1');
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Settings" onClick={e => { if (e.target === e.currentTarget) p.close(); }}>
       <div className="panel">
@@ -243,6 +270,7 @@ function Menu(p: RoomProps & { close: () => void }) {
           <div className="seg">{(['auto', 'light', 'dark'] as ModePref[]).map(m => <button key={m} className="ctrl small" aria-pressed={p.pref === m} onClick={() => p.setPref(m)}>{m === 'auto' ? 'Match phone' : m === 'light' ? 'Light' : 'Dark'}</button>)}</div>
           <p className="tiny muted">After 10 pm at level 5 and up, the app shifts into a deeper, dimmer late-night look.</p>
           <button className="ctrl" aria-pressed={h} onClick={() => { const n = !h; setH(n); store.set(keys.sound, n ? 'on' : 'off'); }}>Vibration {h ? 'on' : 'off'} <span className="tiny">(Android)</span></button>
+          <button className="ctrl" aria-pressed={plain} onClick={() => { const n = !plain; setPlain(n); store.set(keys.plain, n ? '1' : '0'); document.documentElement.classList.toggle('plain', n); }}>Larger text, plain cards {plain ? 'on' : 'off'}</button>
         </div>
         <p className="tiny muted">Room {p.view.code}</p>
         {sure
@@ -254,11 +282,11 @@ function Menu(p: RoomProps & { close: () => void }) {
 }
 
 function VibeBtn({ v, on, mode, onClick, marks }: { v: VibeId; on: boolean; mode: Mode; onClick: () => void; marks?: string[] }) {
-  const c5 = cardColors(6, VIBES[v].hue, mode === 'light' ? 'light' : mode), c3 = cardColors(7, VIBES[v].hue, 'light');
+  const c5 = cardColors(6, VIBES[v].hue, mode, v), c3 = cardColors(7, VIBES[v].hue, 'light', v);
   return (
     <button className="vibe" aria-pressed={on} onClick={onClick} style={{ background: `linear-gradient(135deg, ${c5.field}, ${c3.field})` }}>
       {marks && marks.length > 0 && <span className="marks">{marks.map((mk, i) => <span key={i}>{mk}</span>)}</span>}
-      <b>{VIBES[v].name}</b><small>{VIBES[v].reads}</small>
+      <b><span className="glyph" aria-hidden="true">{VIBES[v].glyph}</span> {VIBES[v].name}</b><small>{VIBES[v].reads}</small>
     </button>
   );
 }
@@ -304,11 +332,11 @@ function Home(p: RoomProps) {
         <div className="map">
           {[1, 2, 3, 4, 5, 6, 7, 8].map(l => {
             const isOpen = open.has(l);
-            const st = cardColors(l, p.theme.cardHue, p.theme.mode);
+            const st = cardColors(l, p.theme.cardHue, p.theme.mode, p.theme.cardVibe);
             return (
               <button key={l} className={'tile' + (isOpen ? '' : ' locked')} style={{ ['--field' as string]: st.field, ['--ink' as string]: st.ink, ['--motif' as string]: st.motif }}
                 onClick={() => { if (!isOpen) net.act({ a: 'unlock:open', l }); }} aria-label={`${l}, ${levelName(l)}, ${isOpen ? 'open' : 'locked. Tap to see sample cards'}`}>
-                <MiniArt level={l} hue={p.theme.cardHue} mode={p.theme.mode} seed={'tile' + l} />
+                <MiniArt level={l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} seed={'tile' + l} />
                 {!isOpen && <span className="lock chip"><Icon d={I.lock} size={14} /> Curious?</span>}
                 <span className="lbl"><b><LevelGlyph level={l} /> {l} · {levelName(l)}</b><span>{isOpen ? 'Open' : 'Tap to peek'}</span></span>
               </button>
@@ -336,7 +364,7 @@ function Unlock(p: RoomProps & { partner: string }) {
       <div className="stack"><p className="eyebrow">Peek at level {u.l}</p><h2>{levelName(u.l)}</h2><p className="muted">Three sample cards. You both see these.</p></div>
       <div className="stack">
         {u.samples.map((c, i) => {
-          const st = cardColors(u.l, p.theme.cardHue, p.theme.mode);
+          const st = cardColors(u.l, p.theme.cardHue, p.theme.mode, p.theme.cardVibe);
           return (
             <m.div key={c.id} className="panel" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .07 }} style={{ background: st.field, color: st.ink, borderColor: 'transparent' }}>
               <p className="prompt l" style={{ fontSize: '1.05rem' }}>{c.text}</p>
@@ -383,10 +411,10 @@ function Ceiling(p: RoomProps & { partner: string }) {
         <p className="muted">{c.partnerDone ? `${p.partner} has chosen. ` : ''}Tonight plays at the lower of your two choices, and the app only shows “Tonight: level”.</p></div>
       <div className="choices">
         {p.view.unlocked.map(l => {
-          const st = cardColors(l, p.theme.cardHue, p.theme.mode);
+          const st = cardColors(l, p.theme.cardHue, p.theme.mode, p.theme.cardVibe);
           return (
             <button key={l} className="choice" aria-pressed={pick === l} onClick={() => { buzz(8); net.act({ a: 'ceiling:pick', l }); }}>
-              <span className="swatch" style={{ background: st.field, color: st.motif }}><MiniArt level={l} hue={p.theme.cardHue} mode={p.theme.mode} seed={'sw' + l} /></span>
+              <span className="swatch" style={{ background: st.field, color: st.motif }}><MiniArt level={l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} seed={'sw' + l} /></span>
               <span style={{ flex: 1 }}><b>{l} · {levelName(l)}</b></span>
               <LevelGlyph level={l} size={16} />
             </button>
@@ -454,20 +482,21 @@ function Play(p: RoomProps & { partner: string }) {
   const level = cv.kind === 'card' ? cv.level : s.tonight;
   const showDark = cv.kind === 'card' && cv.card && cv.card.l === 8 && ['Whisper', 'Chain', 'Choose'].includes(cv.card.type);
   const [mysteryShown, setMysteryShown] = useState(false);
+  const eyesUp = useEyesUp(cv.seq);
   useEffect(() => { if (cv.kind === 'card' && cv.mystery && cv.flipped && !mysteryShown) { setMysteryShown(true); buzz([15, 40, 15]); } }, [cv, mysteryShown]);
 
   let main: JSX.Element, actions: JSX.Element;
   if (cv.kind === 'twist') {
-    main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} mode={p.theme.mode} card={null} seed={'tw' + cv.seq} text={cap(cv.text.replace(/^Twist:\s*/, ''))} type="Twist" title="Wildcard" special="holo" onSwipe={next} />;
-    actions = <div className="row"><button className="btn" onClick={next}>Done</button><button className="ctrl" onClick={next}>Pass</button></div>;
+    main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'tw' + cv.seq} text={cap(cv.text.replace(/^Twist:\s*/, ''))} type="Twist" title="Wildcard" special="holo" />;
+    actions = <PassNext onPass={next} onNext={next} nextLabel="Done" />;
   } else if (cv.mystery && !cv.flipped) {
-    main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} mode={p.theme.mode} card={null} seed={'my' + cv.seq} faceDown special="gold"
+    main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'my' + cv.seq} faceDown special="gold"
       backLabel={<><b>Mystery card</b><span className="tiny">Flip it together</span></>} />;
     actions = cv.myFlip
       ? <div className="center" style={{ display: 'flex', justifyContent: 'center', minHeight: 52, alignItems: 'center' }}><Waiting>Waiting for {p.partner} to flip</Waiting></div>
       : <button className="btn" onClick={() => { buzz(12); net.act({ a: 'flip', seq: cv.seq }); }}>{cv.partnerFlip ? `${p.partner} is ready. Flip it` : 'Flip it'}</button>;
   } else if (cv.gate) {
-    main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} mode={p.theme.mode} card={null} seed={'g' + cv.seq} faceDown
+    main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'g' + cv.seq} faceDown
       backLabel={<><b>{cv.gate.teaser}</b><span className="tiny">Answer privately on your phone</span></>} />;
     actions = cv.gate.myVote
       ? <div className="panel center"><p className="eyebrow">Locked in</p>{cv.gate.partnerVoted ? <p className="muted">Revealing…</p> : <Waiting>Waiting for {p.partner}</Waiting>}</div>
@@ -475,11 +504,11 @@ function Play(p: RoomProps & { partner: string }) {
         <div className="row">{(['y', 'm', 'n'] as const).map(v => <button key={v} className="ctrl" onClick={() => { buzz(10); net.act({ a: 'gate', seq: cv.seq, v }); }}>{v === 'y' ? 'Yes' : v === 'm' ? 'Maybe' : 'Not tonight'}</button>)}</div></div>;
   } else {
     const c = cv.card!;
-    main = <PlayCard dealKey={cv.seq} level={c.l} hue={p.theme.cardHue} mode={p.theme.mode} card={c} seed={c.id} special={cv.mystery ? 'gold' : undefined} onSwipe={next} />;
+    main = <PlayCard dealKey={cv.seq} level={c.l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={c} seed={c.id} special={cv.mystery ? 'gold' : undefined} />;
     actions = (
       <>
         {c.t > 0 && <TimerRow endsAt={cv.timerEndsAt} secs={c.t} onStart={() => net.act({ a: 'timer', seq: cv.seq })} />}
-        <div className="row"><button className="btn" onClick={next}>Next card</button><button className="ctrl" onClick={next}>Pass</button></div>
+        <PassNext onPass={next} onNext={next} />
         <div className="row">
           <button className="ctrl small" aria-pressed={kept} onClick={() => { buzz(8); net.act({ a: 'keep', seq: cv.seq }); }}><Icon d={I.star} size={16} /> {kept ? 'Kept' : 'Keep this one'}</button>
           {showDark && <button className="ctrl small" onClick={() => net.act({ a: 'dark', on: true })}><Icon d={I.moon} size={16} /> Go dark</button>}
@@ -492,20 +521,41 @@ function Play(p: RoomProps & { partner: string }) {
     <>
       <div className="stack" style={{ gap: 8 }}>
         <div className="top">
-          <button className="ctrl small" onClick={() => net.act({ a: 'pause' })}><Icon d={I.pause} size={16} /> Pause</button>
           <span className="tiny muted">Tonight: {levelName(s.tonight)} · {Math.min(s.idx + 1, s.N)}/{s.N}</span>
-          <button className="ctrl small" onClick={() => { net.act({ a: 'softer' }); p.toast('Softer from here'); }}>Softer</button>
         </div>
         <div className="prog"><i style={{ width: `${Math.round((s.idx / s.N) * 100)}%` }} /></div>
       </div>
       <div className="grow" style={{ display: 'grid', placeItems: 'center' }}>{pre > 0 ? null : main}</div>
-      <div className="bottom">
+      <div className={'bottom' + (eyesUp ? ' eyes-up' : '')}>
         {actions}
+        <div className="row night">
+          <button className="ctrl small" onClick={() => net.act({ a: 'pause' })}><Icon d={I.pause} size={16} /> Pause</button>
+          <button className="ctrl small" onClick={() => { net.act({ a: 'softer' }); p.toast('Softer from here'); }}><Icon d={I.softer} size={16} /> Softer</button>
+        </div>
         <div className="reacts" aria-label="Send a reaction">{REACTIONS.map(r => <button key={r} aria-label={'Send ' + r} onClick={() => p.react(r)}>{r}</button>)}</div>
       </div>
       <Countdown at={arriveAt} />
     </>
   );
+}
+
+/** Pass and Next are the same control in every way: size, colour, weight and position (Pass left, Next right). */
+function PassNext({ onPass, onNext, nextLabel = 'Next' }: { onPass: () => void; onNext: () => void; nextLabel?: string }) {
+  return <div className="row pair"><button className="ctrl" onClick={onPass}>Pass</button><button className="ctrl" onClick={onNext}>{nextLabel}</button></div>;
+}
+
+/** Six quiet seconds after a card appears, the controls dim so you look at each other, not the phone. Any touch restores them. */
+function useEyesUp(key: number) {
+  const [up, setUp] = useState(false);
+  useEffect(() => {
+    let t = 0;
+    const arm = () => { setUp(false); clearTimeout(t); t = window.setTimeout(() => setUp(true), 6000); };
+    arm();
+    window.addEventListener('pointerdown', arm);
+    window.addEventListener('keydown', arm);
+    return () => { clearTimeout(t); window.removeEventListener('pointerdown', arm); window.removeEventListener('keydown', arm); };
+  }, [key]);
+  return up;
 }
 
 function TimerRow({ endsAt, secs, onStart }: { endsAt: number | null; secs: number; onStart: () => void }) {

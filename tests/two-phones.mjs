@@ -67,8 +67,8 @@ await click(B, 'Lock in');
 await A.getByText('Pick your colour').waitFor();
 
 // Vibes and readiness
-await A.getByRole('button', { name: /^Coral/ }).click();
-await B.getByRole('button', { name: /^Rose/ }).click();
+await A.getByRole('button', { name: /Coral/ }).click();
+await B.getByRole('button', { name: /Rose/ }).click();
 await sleep(300);
 await shot(A, '08-arrive-dark'); await shot(B, '08-arrive-light');
 await click(A, 'I’m ready');
@@ -101,7 +101,7 @@ for (let guard = 0; guard < 120; guard++) {
     if (twists === 1) await shot(A, '13-twist');
     await A.getByRole('button', { name: 'Done', exact: true }).click(); await sleep(450); continue;
   }
-  if (await A.getByRole('button', { name: 'Next card' }).isVisible().catch(() => false)) {
+  if (await A.getByRole('button', { name: 'Next', exact: true }).isVisible().catch(() => false)) {
     cards++;
     if (cards === 1) { await shot(A, '10-card-dark'); await shot(B, '10-card-light'); }
     if (cards === 3 && !reacted) {
@@ -120,12 +120,9 @@ for (let guard = 0; guard < 120; guard++) {
       const timer = A.getByRole('button', { name: /shared timer/ });
       if (await timer.isVisible().catch(() => false)) { await timer.click(); await sleep(1300); await shot(B, '16-shared-timer'); }
     }
-    // Alternate who taps Next, and swipe once to test the gesture.
-    if (cards === 4) {
-      const box = await B.locator('.card3d').boundingBox();
-      await B.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await B.mouse.down(); await B.mouse.move(box.x + box.width + 120, box.y + box.height / 2, { steps: 8 }); await B.mouse.up();
-    } else await (cards % 2 ? A : B).getByRole('button', { name: 'Next card' }).click();
+    // Alternate who taps Next, and Pass once: both move on in exactly the same way.
+    if (cards === 4) await B.getByRole('button', { name: 'Pass', exact: true }).click();
+    else await (cards % 2 ? A : B).getByRole('button', { name: 'Next', exact: true }).click();
     await sleep(450); continue;
   }
   await sleep(300);

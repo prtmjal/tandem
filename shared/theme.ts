@@ -4,13 +4,39 @@ import type { VibeId } from './protocol';
 
 export type Mode = 'light' | 'dark' | 'late';
 
-export const VIBES: Record<VibeId, { name: string; hue: number; reads: string; accentDark: string; accentLight: string }> = {
-  rose: { name: 'Rose', hue: 12, reads: 'Warm, loving', accentDark: '#fa7f91', accentLight: '#ae2749' },
-  coral: { name: 'Coral', hue: 40, reads: 'Playful, light', accentDark: '#f9875e', accentLight: '#a83902' },
-  plum: { name: 'Plum', hue: 335, reads: 'Mysterious', accentDark: '#e484d0', accentLight: '#9a3289' },
-  lagoon: { name: 'Lagoon', hue: 215, reads: 'Calm, unhurried', accentDark: '#07bfde', accentLight: '#016f82' },
+export interface Vibe {
+  name: string; hue: number; reads: string;
+  /** Shape shown with the colour so partners never rely on hue alone (colour-blind safe). */
+  glyph: string;
+  /** Hue change per level. Coral drifts pinker so deep Coral reads terracotta-rose, not brown. */
+  drift: number;
+  /** Chroma multiplier. Lagoon is muted so it stays blue-teal and inside sRGB. */
+  chroma: number;
+  accentLight: string; accentDark: string; accentLate: string;
+  /** Partner chips: [you, partner] per mode. Fixed lightness, so two players never converge at Level 8. */
+  chip: Record<Mode, [string, string]>;
+}
+
+// Values from reports/Couples game design research.md (palette spec). Accents are each vibe's "you" chip colour.
+export const VIBES: Record<VibeId, Vibe> = {
+  rose: { name: 'Rose', hue: 12, reads: 'Warm, loving', glyph: '●', drift: -1.4, chroma: 1,
+    accentLight: '#9D3D59', accentDark: '#F7ACBC', accentLate: '#CD9CA6',
+    chip: { light: ['#9D3D59', '#BF7284'], dark: ['#F7ACBC', '#C86B82'], late: ['#CD9CA6', '#9E6975'] } },
+  coral: { name: 'Coral', hue: 38, reads: 'Playful, light', glyph: '◆', drift: -2, chroma: 1,
+    accentLight: '#9F4325', accentDark: '#F8B09A', accentLate: '#CD9E90',
+    chip: { light: ['#9F4325', '#C0765F'], dark: ['#F8B09A', '#C97055'], late: ['#CD9E90', '#9F6C5C'] } },
+  plum: { name: 'Plum', hue: 335, reads: 'Mysterious', glyph: '▲', drift: -1.4, chroma: 1,
+    accentLight: '#8F4280', accentDark: '#E9AEDB', accentLate: '#C39DBA',
+    chip: { light: ['#8F4280', '#B274A4'], dark: ['#E9AEDB', '#B86FA9'], late: ['#C39DBA', '#956B8B'] } },
+  lagoon: { name: 'Lagoon', hue: 218, reads: 'Calm, unhurried', glyph: '■', drift: 0, chroma: 0.8,
+    accentLight: '#007394', accentDark: '#7CD3EB', accentLate: '#7FB5C4',
+    chip: { light: ['#007394', '#329AB4'], dark: ['#7CD3EB', '#009DBC'], late: ['#7FB5C4', '#458596'] } },
+  iris: { name: 'Iris', hue: 280, reads: 'Dreamy, open', glyph: '✦', drift: -1, chroma: 1,
+    accentLight: '#5658AB', accentDark: '#B8BEFE', accentLate: '#A3A7D1',
+    chip: { light: ['#5658AB', '#8085C8'], dark: ['#B8BEFE', '#7E83D3'], late: ['#A3A7D1', '#7276A3'] } },
 };
 export const VIBE_IDS = Object.keys(VIBES) as VibeId[];
+export const isVibe = (v: unknown): v is VibeId => typeof v === 'string' && v in VIBES;
 export const GOLD = '#e1b75c';
 
 // Card-field ramp (L, C) per level. Levels 1-4 light fields with dark ink, 5-8 deep fields with light ink.
@@ -65,19 +91,23 @@ export interface ThemeTokens {
   glowA: string; glowB: string;
 }
 
-export function cardColors(level: number, hue: number, mode: Mode): CardColors {
+/** Card face colours. Pass the vibe when the card belongs to one partner's colour, so its drift and chroma apply. */
+export function cardColors(level: number, hue: number, mode: Mode, vibe?: VibeId): CardColors {
   const i = Math.min(8, Math.max(1, level)) - 1;
-  const H = hue - 1.4 * i; // drift slightly warmer per level
+  const vb = vibe ? VIBES[vibe] : null;
+  const H = hue + (vb ? vb.drift : -1.4) * i; // drift slightly per level
   let L: number, C: number;
   if (mode !== 'light' && i < 4) [L, C] = FIELD_DARK_1_4[i];
   else if (mode === 'late' && i >= 4) [L, C] = FIELD_LATE_5_8[i - 4];
   else [L, C] = FIELD_LIGHT[i];
+  C *= vb ? vb.chroma : 1;
   const deep = L < 0.6;
   const inkL = deep ? (mode === 'late' ? 0.86 : 0.965) : 0.22;
   const ink = oklch(inkL, deep ? 0.012 : 0.035, H);
   const inkSoft = oklch(deep ? inkL - 0.12 : 0.36, deep ? 0.03 : 0.05, H);
   // Motif sits clearly above the field on deep cards, below it on light ones.
-  const motif = oklch(deep ? Math.min(0.72, L + 0.26) : L - 0.12, Math.min(0.17, C + 0.06), H);
+  // Levels 7-8 keep a bright highlight (L >= 0.70) so the deepest cards still glow rather than feel heavy.
+  const motif = oklch(deep ? (i >= 6 ? 0.72 : Math.min(0.72, L + 0.26)) : L - 0.12, Math.min(0.17, C + 0.06), H);
   return { field: oklch(L, C, H), ink, inkSoft, motif, deep };
 }
 
@@ -93,8 +123,11 @@ export function themeTokens(hue: number, accentVibe: VibeId, mode: Mode, hueB?: 
   return {
     bg: oklch(late ? 0.12 : 0.17, late ? 0.015 : 0.02, hue), bg2: oklch(late ? 0.15 : 0.21, 0.03, hue),
     surface: oklch(late ? 0.17 : 0.23, 0.03, hue), fg: oklch(late ? 0.88 : 0.95, 0.012, hue), muted: oklch(late ? 0.68 : 0.74, 0.025, hue),
-    line: oklch(late ? 0.27 : 0.32, 0.03, hue), accent: v.accentDark, onAccent: '#1b0b0e', gold: GOLD,
+    line: oklch(late ? 0.27 : 0.32, 0.03, hue), accent: late ? v.accentLate : v.accentDark, onAccent: '#1b0b0e', gold: GOLD,
     ctrlBg: '#161616', ctrlFg: '#fcfcfc', ctrlLine: '#5a5a5a',
     glowA: oklch(late ? 0.3 : 0.38, 0.1, hue), glowB: oklch(late ? 0.28 : 0.36, 0.09, hueB ?? hue + 30),
   };
 }
+
+/** A partner's chip colour. "you" is filled and lighter in dark modes; "partner" is an outlined ring. */
+export function chipColor(vibe: VibeId, mode: Mode, who: 'you' | 'partner') { return VIBES[vibe].chip[mode][who === 'you' ? 0 : 1]; }

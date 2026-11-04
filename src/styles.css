@@ -63,7 +63,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .btn[disabled] { opacity: .45; cursor: not-allowed; }
 .btn.ghost { background: transparent; color: var(--fg); border: 1.5px solid var(--line); }
 .btn.small { width: auto; min-height: 40px; padding: 8px 14px; font-size: .9rem; border-radius: 12px; }
-/* Consent controls look identical in every theme so they are never lost in a moody palette. */
+/* Consent controls look identical in every theme so they are never lost in a moody palette.
+   Pass and Next use the same .ctrl at 56px, side by side (.row.pair), Pass always on the left. */
 .ctrl {
   background: var(--ctrl-bg); color: var(--ctrl-fg); border: 1.5px solid var(--ctrl-line);
   border-radius: 14px; min-height: 48px; padding: 10px 14px; font-weight: 650; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -71,7 +72,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .ctrl:active { transform: scale(.97); }
 .ctrl[aria-pressed='true'] { outline: 3px solid var(--accent); outline-offset: 1px; }
-.ctrl.small { min-height: 38px; padding: 6px 12px; font-size: .85rem; border-radius: 11px; }
+.ctrl.small { min-height: 44px; padding: 6px 12px; font-size: .9rem; border-radius: 12px; }
+.row.pair .ctrl { min-height: 56px; font-size: 1.05rem; border-radius: 16px; }
+.row.night .ctrl { color: var(--ctrl-fg); }
+/* Eyes up: after a quiet moment the controls dim so the phone steps back. Any touch restores them. */
+.bottom { transition: opacity 600ms ease; }
+.bottom.eyes-up { opacity: .6; }
+/* Errors and stops use neutral ink with an icon, never red: in this palette red reads as heat. */
+.alert { color: var(--fg); font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.vibe .glyph { font-size: .9em; margin-right: 2px; }
+.who .pglyph { flex: none; font-size: .95rem; }
+/* In-app browser hint */
+.iab { position: relative; z-index: 3; max-width: 480px; margin: 0 auto; padding: max(10px, env(safe-area-inset-top)) 16px 10px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; font-size: .92rem; }
 
 .panel { background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--line); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 14px; backdrop-filter: blur(10px); }
 input[type=text] {
@@ -98,8 +111,9 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
 
 /* The card */
 .cardwrap { display: grid; place-items: center; perspective: 1400px; }
-.card3d { width: min(84vw, 360px); aspect-ratio: 5 / 7; max-height: 58dvh; position: relative; touch-action: pan-y; }
-.flipper { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 560ms cubic-bezier(.3, 1.4, .5, 1); }
+.card3d { width: min(84vw, 360px); aspect-ratio: 5 / 7; max-height: 62svh; position: relative; }
+/* Both phones flip on the same server moment. 480ms, card only, transform only. */
+.flipper { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 480ms cubic-bezier(.2, .8, .2, 1); }
 .flipper.down { transform: rotateY(180deg); }
 .face {
   position: absolute; inset: 0; border-radius: 24px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden;
@@ -115,10 +129,14 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
 .face .head { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; font-size: .78rem; font-weight: 700; letter-spacing: .04em; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; background: color-mix(in srgb, var(--field) 70%, transparent); border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); backdrop-filter: blur(6px); }
 .face .body { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 4px 22px 18px; gap: 12px; }
-.prompt { font-family: var(--display); font-weight: 500; line-height: 1.24; text-wrap: pretty; }
-.prompt.s { font-size: clamp(1.45rem, 6.6vw, 1.75rem); }
-.prompt.m { font-size: clamp(1.2rem, 5.4vw, 1.4rem); }
-.prompt.l { font-size: clamp(1.02rem, 4.5vw, 1.15rem); }
+.prompt { font-family: var(--display); font-weight: var(--pw, 500); line-height: 1.3; letter-spacing: -.015em; text-wrap: pretty; font-optical-sizing: auto; }
+.prompt.s { font-size: clamp(1.5rem, 6.4vw, 2rem); }
+.prompt.m { font-size: clamp(1.3rem, 5.6vw, 1.6rem); }
+.prompt.l { font-size: clamp(1.25rem, 5vw, 1.4rem); }
+/* Larger text, plain cards: no art on the face, bigger prompt. */
+.plain .face.front .art { display: none; }
+.plain .prompt.s, .plain .prompt.m { font-size: 2.25rem; }
+.plain .prompt.l { font-size: 1.75rem; }
 .face .foot { position: relative; z-index: 2; padding: 0 22px 18px; font-size: .8rem; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 8px; }
 .back .brand { position: relative; z-index: 2; margin: auto; text-align: center; display: flex; flex-direction: column; gap: 6px; padding: 18px 22px; border-radius: 18px; background: color-mix(in srgb, var(--field) 72%, transparent); backdrop-filter: blur(4px); }
 .back .brand b { font-family: var(--display); font-size: 1.5rem; }
@@ -204,7 +222,12 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
 .kept p { border-left: 3px solid var(--accent); padding-left: 10px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .flipper { transition: transform 150ms linear; }
+  /* No rotation: the card crossfades between back and face in 180ms. */
+  .flipper, .flipper.down { transform: none; transition: none; }
+  .face { transition: opacity 180ms ease; }
+  .face.back { transform: none; opacity: 0; }
+  .flipper.down .face.back { opacity: 1; }
+  .flipper.down .face.front { opacity: 0; }
   .envelope .flap { transition: transform 150ms linear; }
   * { scroll-behavior: auto !important; }
 }

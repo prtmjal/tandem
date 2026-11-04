@@ -1,16 +1,19 @@
 // Shared building blocks: the playing card, partner chip, waiting state, countdown, reactions.
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { AnimatePresence, m, useMotionValue, useTransform, type PanInfo } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { LEVELS, type Card } from '../shared/content';
-import { cardColors, type Mode } from '../shared/theme';
+import { cardColors, chipColor, type Mode } from '../shared/theme';
+import type { VibeId } from '../shared/protocol';
 import { GRAIN, LevelGlyph, Motif, TypeIcon } from './art';
 import { useCountdown } from './net';
 
 export const levelName = (l: number) => LEVELS[l]?.n || '';
 
-export function cardStyle(level: number, hue: number, mode: Mode): CSSProperties {
-  const c = cardColors(level, hue, mode);
-  return { ['--field' as string]: c.field, ['--ink' as string]: c.ink, ['--ink-soft' as string]: c.inkSoft, ['--motif' as string]: c.motif, ['--grain' as string]: GRAIN };
+export function cardStyle(level: number, hue: number, mode: Mode, vibe?: VibeId): CSSProperties {
+  const c = cardColors(level, hue, mode, vibe);
+  // Prompt weight steps from 500 at Level 1 to 600 at Level 8: more presence, no extra font files.
+  const w = Math.round(500 + (Math.min(8, Math.max(1, level)) - 1) * (100 / 7));
+  return { ['--field' as string]: c.field, ['--ink' as string]: c.ink, ['--ink-soft' as string]: c.inkSoft, ['--motif' as string]: c.motif, ['--grain' as string]: GRAIN, ['--pw' as string]: w };
 }
 
 const HINTS: Record<string, string> = {
@@ -22,37 +25,26 @@ const HINTS: Record<string, string> = {
 };
 
 interface PlayCardProps {
-  level: number; hue: number; mode: Mode; card: Card | null; seed: string;
+  level: number; hue: number; vibe?: VibeId; mode: Mode; card: Card | null; seed: string;
   faceDown?: boolean; special?: 'holo' | 'gold'; title?: string; text?: string; type?: string;
-  backLabel?: ReactNode; onSwipe?: () => void; dealKey?: string | number;
+  backLabel?: ReactNode; dealKey?: string | number;
 }
 
-/** A 5:7 card with a generated-art back and an illustrated face. Swipe sideways to move on. */
+/** A 5:7 card with a generated-art back and an illustrated face. No swipe: moving on is always a button. */
 export function PlayCard(p: PlayCardProps) {
   const text = p.text ?? p.card?.text ?? '';
   const type = p.type ?? p.card?.type ?? 'Ask';
   const size = text.length < 95 ? 's' : text.length < 170 ? 'm' : 'l';
-  const x = useMotionValue(0);
-  const rot = useTransform(x, [-200, 200], [-12, 12]);
-  const style = cardStyle(p.level, p.hue, p.mode);
-  const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (!p.onSwipe) return;
-    const w = 300;
-    if (Math.abs(info.offset.x) > w * 0.28 || Math.abs(info.velocity.x) > 500) p.onSwipe();
-  };
+  const style = cardStyle(p.level, p.hue, p.mode, p.vibe);
   return (
     <div className="cardwrap">
       <m.div
         key={p.dealKey}
         className="card3d"
-        style={{ ...style, x, rotate: rot }}
+        style={style}
         initial={{ y: 40, opacity: 0, scale: .96 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-        drag={p.onSwipe && !p.faceDown ? 'x' : false}
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.7}
-        onDragEnd={onDragEnd}
       >
         <div className={'flipper' + (p.faceDown ? ' down' : '')}>
           <div className={'face front' + (p.special ? ' ' + p.special : '')} aria-hidden={p.faceDown}>
@@ -61,7 +53,7 @@ export function PlayCard(p: PlayCardProps) {
               <span className="chip"><TypeIcon type={type} size={14} /> {type}</span>
             </div>
             <div className="art"><Motif level={p.level} seed={p.seed} color="currentColor" /></div>
-            <div className="body"><p className={'prompt ' + size}>{text}</p></div>
+            <div className="body"><h2 className="sr-only">{type === 'Twist' ? 'Wildcard' : `Level ${p.level}, ${levelName(p.level)}`}</h2><p className={'prompt ' + size}>{text}</p></div>
             <div className="foot"><span>{HINTS[type] || ''}</span><span>Pass anytime</span></div>
           </div>
           <div className={'face back' + (p.special === 'gold' ? ' gold' : '')} aria-hidden={!p.faceDown}>
@@ -76,13 +68,16 @@ export function PlayCard(p: PlayCardProps) {
   );
 }
 
-export function MiniArt({ level, hue, mode, seed }: { level: number; hue: number; mode: Mode; seed: string }) {
-  return <div className="art" style={cardStyle(level, hue, mode)}><Motif level={level} seed={seed} color="currentColor" /></div>;
+export function MiniArt({ level, hue, vibe, mode, seed }: { level: number; hue: number; vibe?: VibeId; mode: Mode; seed: string }) {
+  return <div className="art" style={cardStyle(level, hue, mode, vibe)}><Motif level={level} seed={seed} color="currentColor" /></div>;
 }
 
-export function Avatar({ name, online }: { name: string; online?: boolean }) {
+/** A player's chip: their initial plus their colour's glyph. "you" is filled, "partner" is an outlined ring. */
+export function Avatar({ name, online, vibe, mode, who = 'partner' }: { name: string; online?: boolean; vibe?: VibeId | null; mode?: Mode; who?: 'you' | 'partner' }) {
+  const col = vibe && mode ? chipColor(vibe, mode, who) : null;
+  const style = col ? (who === 'you' ? { background: col, borderColor: col, color: 'var(--bg)' } : { borderColor: col, borderWidth: 2.5 }) : undefined;
   return (
-    <span className="avatar" aria-hidden="true">
+    <span className="avatar" aria-hidden="true" style={style}>
       {(name.trim()[0] || '?').toUpperCase()}
       {online !== undefined && <i className={'dot' + (online ? '' : ' off')} />}
     </span>

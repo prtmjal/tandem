@@ -7,6 +7,7 @@ import {
   emptyProgress, type Action, type CardView, type Energy, type Phase, type Progress, type VibeId, type View, type Vote,
 } from '../shared/protocol';
 
+import { isVibe } from '../shared/theme';
 const DAY = 24 * 3600 * 1000;
 const PARK_MS = 56 * DAY; // declined cards rest for 8 weeks
 const CURIOUS_MS = 14 * DAY; // an unmatched "curious" tap expires silently
@@ -245,7 +246,7 @@ export class Room {
         if (this.phase === 'arrive' && this.arrive && ['low', 'mid', 'high'].includes(x.v)) this.arrive.energy = x.v;
         break;
       case 'vibe':
-        if ((this.phase === 'arrive' || this.phase === 'home') && ['rose', 'coral', 'plum', 'lagoon'].includes(x.v)) {
+        if ((this.phase === 'arrive' || this.phase === 'home') && isVibe(x.v)) {
           if (this.arrive) this.arrive.vibes[me] = x.v;
         }
         break;

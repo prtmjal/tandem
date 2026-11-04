@@ -3,7 +3,7 @@ import { io, type Socket } from 'socket.io-client';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { emptyProgress, type Action, type Progress, type View } from '../shared/protocol';
 
-const K = { age: 'tad.age2', name: 'tad.name', prog: 'tad.progress', sess: 'tad.session', vibe: 'tad.vibe', mode: 'tad.mode', sound: 'tad.haptics' };
+const K = { age: 'tad.age2', name: 'tad.name', prog: 'tad.progress', sess: 'tad.session', vibe: 'tad.vibe', mode: 'tad.mode', sound: 'tad.haptics', plain: 'tad.plain' };
 export const store = {
   get(k: string) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k: string, v: string) { try { localStorage.setItem(k, v); } catch { /* storage blocked: keep going */ } },
