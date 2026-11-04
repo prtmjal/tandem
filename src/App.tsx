@@ -265,7 +265,7 @@ function VibeBtn({ v, on, mode, onClick, marks }: { v: VibeId; on: boolean; mode
 
 function Lobby({ view }: { view: View }) {
   const secret = net.saved?.secret;
-  const link = `${location.origin}/?j=${view.code}${secret ? '.' + secret : ''}`;
+  const link = `${location.origin}/play?j=${view.code}${secret ? '.' + secret : ''}`;
   const [qr, setQr] = useState('');
   const [copied, setCopied] = useState(false);
   useEffect(() => { QRCode.toDataURL(link, { margin: 0, width: 320, color: { dark: '#1b0b0e', light: '#ffffff' } }).then(setQr).catch(() => {}); }, [link]);

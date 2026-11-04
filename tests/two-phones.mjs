@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 const { chromium } = createRequire(import.meta.url)('playwright');
 
-const URL = process.env.URL || 'http://localhost:3001';
+const URL = process.env.URL || 'http://localhost:3001/play';
 const OUT = process.env.OUT || 'tests/shots';
 mkdirSync(OUT, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
