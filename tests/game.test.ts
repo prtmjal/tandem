@@ -149,6 +149,14 @@ describe('sessions', () => {
 });
 
 describe('music and touches', () => {
+  it('apart, each phone may play its own music; back together, only one does', () => {
+    const r = newRoom();
+    r.act(0, { a: 'apart', on: true });
+    r.act(0, { a: 'music', on: true }); r.act(1, { a: 'music', on: true });
+    expect(r.view(0).music).toBe('both');
+    r.act(1, { a: 'apart', on: false });
+    expect(r.view(0).music).toBe('me'); expect(r.view(1).music).toBe('partner');
+  });
   it('only one phone plays music, and either can move it', () => {
     const r = newRoom();
     r.act(0, { a: 'music', on: true });
@@ -167,5 +175,35 @@ describe('music and touches', () => {
     expect(r.view(0).partnerAllowsTouch).toBe(true);
     expect(r.view(1).meAllowsTouch).toBe(true);
     expect(r.view(1).partnerAllowsTouch).toBe(false);
+  });
+});
+
+describe('apart mode', () => {
+  it('never deals hands-on or same-room cards, even at the highest levels', async () => {
+    const { worksApart, TOGETHER_TEXT } = await import('../shared/content');
+    for (let night = 0; night < 6; night++) {
+      const r = newRoom();
+      r.act(0, { a: 'apart', on: true });
+      startSession(r, [8, 8]);
+      expect(r.view(0).apart).toBe(true);
+      let guard = 0;
+      while (r.phase === 'card' && guard++ < 200) {
+        const v = r.view(0).session!.card!;
+        if (v.kind === 'twist') { expect(TOGETHER_TEXT.test(v.text)).toBe(false); r.act(0, { a: 'next', seq: v.seq }); continue; }
+        expect(v.gate).toBe(null); // no hands-on cards, so no private hands-on vote
+        if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
+        expect(worksApart(v.card!), v.card!.text).toBe(true);
+        r.act(0, { a: 'next', seq: v.seq });
+      }
+      expect(r.phase).toBe('close');
+      expect(TOGETHER_TEXT.test(r.view(0).close!.closer)).toBe(false);
+    }
+  });
+  it('the Long distance deck appears only when apart', () => {
+    const r = newRoom(); r.pass = true;
+    expect(r.deck(1).some(c => c.id.startsWith('p.distance.'))).toBe(false);
+    r.act(0, { a: 'apart', on: true });
+    expect(r.deck(1).some(c => c.id.startsWith('p.distance.'))).toBe(true);
+    for (let l = 1; l <= 8; l++) for (const c of r.deck(l)) if (!c.id.startsWith('p.distance.')) expect(['Do', 'Session', 'Scene']).not.toContain(c.type);
   });
 });

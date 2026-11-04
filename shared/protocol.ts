@@ -50,8 +50,10 @@ export interface View {
   phase: Phase;
   paused: boolean;
   dark: boolean;
-  /** Which phone plays music. Only one does, so the two never echo. */
-  music: 'me' | 'partner' | null;
+  /** Which phone plays music. Together only one does, so the two never echo; apart, both may. */
+  music: 'me' | 'partner' | 'both' | null;
+  /** Long-distance mode: apart, on a call. */
+  apart: boolean;
   /** Touches are opt-in for the receiver. Shown to the sender so the button only appears when welcome. */
   partnerAllowsTouch: boolean;
   meAllowsTouch: boolean;
@@ -95,6 +97,7 @@ export type Action =
   | { a: 'leave' }
   | { a: 'dark'; on: boolean }
   | { a: 'music'; on: boolean }
+  | { a: 'apart'; on: boolean }
   | { a: 'touch:allow'; on: boolean }
   | { a: 'open' }
   | { a: 'finish' };

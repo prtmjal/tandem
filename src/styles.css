@@ -269,3 +269,6 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
 .decklist { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
 .passcode { width: 100%; font: .8rem/1.4 ui-monospace, monospace; padding: 10px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); word-break: break-all; }
 .byo a { font-weight: 600; text-underline-offset: 3px; }
+.apart-help { gap: 8px; }
+.apart-chip { font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); }
+.seg.two { grid-template-columns: 1fr 1fr; }

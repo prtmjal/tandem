@@ -1,7 +1,7 @@
 // Server-authoritative game room. Private choices live only here and are never sent to the partner.
 import {
   DECK, LEVELS, CARD_BY_ID, TOTAL_CARDS, TWIST_UP, TWIST_DOWN, CLOSING, ENVELOPES,
-  isGated, SOFT_TYPES, type Card,
+  isGated, SOFT_TYPES, worksApart, TOGETHER_TEXT, type Card,
 } from '../shared/content';
 import {
   emptyProgress, type Action, type CardView, type Energy, type Phase, type Progress, type VibeId, type View, type Vote,
@@ -72,7 +72,10 @@ export class Room {
   phase: Phase = 'lobby';
   paused = false;
   dark = false;
-  music: Idx | null = null;
+  /** Who plays music. Together, only one phone does (no echo). Apart, each phone may play its own. */
+  music: [boolean, boolean] = [false, false];
+  /** Long-distance mode: the two of you are apart, on a call. Draws only cards that work over video. */
+  apart = false;
   /** Couple Pass: on when either partner brought a valid pass code. Adds the pass decks to every level. */
   pass = false;
   unlock: null | { l: number; samples: Card[]; votes: [boolean | null, boolean | null]; opened: boolean } = null;
@@ -116,11 +119,23 @@ export class Room {
 
   /* ---------------- deck engine ---------------- */
   /** The cards this room can draw at a level: the free deck, plus the pass decks when the pass is on. */
-  deck(l: number): Card[] { return this.pass && PASS_DECK[l]?.length ? DECK[l].concat(PASS_DECK[l]) : DECK[l]; }
+  deck(l: number): Card[] {
+    const extra = this.pass ? PASS_DECK[l] || [] : [];
+    // The Long distance deck is for nights apart; everything else in the pass works both ways.
+    const all = DECK[l].concat(extra.filter(c => this.apart || !c.id.startsWith('p.distance.')));
+    return this.apart ? all.filter(c => worksApart(c) || c.id.startsWith('p.distance.')) : all;
+  }
+  /** Drops twists, closers and envelopes that need one room when you're apart. */
+  private fit(list: string[]) { if (!this.apart) return list; const ok = list.filter(t => !TOGETHER_TEXT.test(t)); return ok.length ? ok : list; }
+  /** Apart, a level with too few video-friendly cards plays from the level below instead. */
+  private playable(l: number) { while (this.apart && l > 1 && this.deck(l).length < 6) l--; return l; }
   private bufK(l: number) { return Math.max(2, Math.round(this.deck(l).length * 0.15)); }
   private lvlFor(t: number) { let best = 1; for (const l of this.prog.unlocked) if (l <= t && l > best) best = l; return best; }
 
   draw(l: number, prefer?: (c: Card) => boolean): Card {
+    l = this.playable(l);
+    // Apart with the pass, lean on the Long distance deck now and then without draining it in one night.
+    if (this.apart && this.pass && !prefer && Math.random() < 0.35) prefer = c => c.id.startsWith('p.distance.');
     const s = this.sess!, k = String(l), now = Date.now();
     const seen = (this.prog.seen[k] ||= []), last = (this.prog.last[k] ||= []);
     const prevT = s.prev.slice(-2);
@@ -166,7 +181,7 @@ export class Room {
       if (gap >= 12 || coolStart || Math.random() < 0.28) {
         const down = s.idx >= s.N - 3 || Math.random() < 0.3;
         s.lastTw = s.idx; if (down) s.downDone = true;
-        s.cur = { kind: 'twist', seq: s.seq, text: rnd(down ? TWIST_DOWN : TWIST_UP), dir: down ? 'down' : 'up' };
+        s.cur = { kind: 'twist', seq: s.seq, text: rnd(this.fit(down ? TWIST_DOWN : TWIST_UP)), dir: down ? 'down' : 'up' };
         return;
       }
     }
@@ -189,7 +204,7 @@ export class Room {
 
   private startClose() {
     this.phase = 'close';
-    this.close = { stage: 0, closer: rnd(CLOSING), env: this.env, open: [false, false], countdownAt: null };
+    this.close = { stage: 0, closer: rnd(this.fit(CLOSING)), env: this.env, open: [false, false], countdownAt: null };
   }
 
   /* ---------------- actions ---------------- */
@@ -261,7 +276,7 @@ export class Room {
         ar.ready[me] = true;
         if (ar.ready[0] && ar.ready[1]) {
           ar.countdownAt = Date.now() + 3000;
-          this.env = rnd(ENVELOPES);
+          this.env = rnd(this.fit(ENVELOPES));
           this.sess = {
             c: ar.tonight, c0: ar.tonight, N: ar.energy === 'low' ? 12 : 16, idx: 0, seq: 0,
             prev: [], used: new Set(), kept: new Map(), lastTw: -3, downDone: false, cur: null,
@@ -308,7 +323,14 @@ export class Room {
       case 'pause': this.paused = true; break;
       case 'resume': this.paused = false; break;
       case 'dark': this.dark = !!x.on; break;
-      case 'music': if (x.on) this.music = me; else if (this.music === me) this.music = null; break;
+      case 'music':
+        if (x.on && !this.apart) this.music = [false, false];
+        this.music[me] = !!x.on;
+        break;
+      case 'apart':
+        this.apart = !!x.on;
+        if (!this.apart && this.music[0] && this.music[1]) this.music = [true, false]; // back together: one phone plays
+        break;
       case 'touch:allow': { const pl = this.players[me]; if (pl) pl.allowTouch = !!x.on; break; }
       case 'leave':
         if (this.phase === 'card' || this.phase === 'arrive' || this.phase === 'close') {
@@ -369,7 +391,8 @@ export class Room {
       phase: this.phase,
       paused: this.paused,
       dark: this.dark,
-      music: this.music === null ? null : this.music === me ? 'me' : 'partner',
+      music: this.music[me] && this.music[other] ? 'both' : this.music[me] ? 'me' : this.music[other] ? 'partner' : null,
+      apart: this.apart,
       partnerAllowsTouch: !!P[other]?.allowTouch,
       meAllowsTouch: !!P[me]?.allowTouch,
       unlocked: this.prog.unlocked.slice(),

@@ -74,6 +74,12 @@ await A.getByRole('button', { name: /Coral/ }).click();
 await B.getByRole('button', { name: /Rose/ }).click();
 await sleep(300);
 await shot(A, '08-arrive-dark'); await shot(B, '08-arrive-light');
+// Apart mode: A switches to apart, B sees the help, then B switches back to the same room.
+await A.getByRole('button', { name: 'Apart, on a call' }).click();
+await B.getByText('Start your video call first').waitFor();
+await shot(B, '08b-arrive-apart');
+await B.getByRole('button', { name: 'Same room' }).click();
+await A.getByText('Start your video call first').waitFor({ state: 'detached' });
 // Mood: A turns on sounds and music, B allows touches from the menu.
 await A.getByRole('button', { name: 'Sounds off' }).click();
 await A.getByRole('button', { name: 'Music off' }).click();

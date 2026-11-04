@@ -989,5 +989,14 @@ for (const l in PASS_DECK) for (const c of PASS_DECK[l]) CARD_BY_ID[c.id] = c;
 export const TOTAL_CARDS = Object.values(DECK).reduce((a, b) => a + b.length, 0);
 
 const GATED = new Set(['Do', 'Session', 'Scene']);
+
+/* ---------- apart mode (long distance, on a video call) ---------- */
+// Cards that need you in the same room: everything hands-on (gated types), plus a few talk cards that end in a
+// shared physical act (hide a note, a hug, a hand squeeze, a token left somewhere).
+const TOGETHER_TOPICS = new Set(['note', 'hugspot', 'handsignal', 'sixtyhug', 'token', 'chain1']);
+/** True when a card works with the two of you apart, on a call. */
+export const worksApart = (c: Card) => !GATED.has(c.type) && !TOGETHER_TOPICS.has(c.topic);
+/** Twists, closing cards and envelopes that need you in one room. */
+export const TOGETHER_TEXT = /swap seats|long hug|somewhere your partner will find/i;
 export const isGated = (c: Card) => c.l >= 4 && GATED.has(c.type);
 export const SOFT_TYPES = new Set(['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit']);

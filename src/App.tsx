@@ -243,7 +243,7 @@ function Room(p: RoomProps) {
   const nightOn = view.phase === 'arrive' || view.phase === 'card' || view.phase === 'close';
   const musicLevel = view.session?.card?.kind === 'card' ? view.session.card.level : view.session?.tonight ?? view.arrive?.tonight ?? 1;
   useEffect(() => {
-    if (view.music === 'me' && nightOn && !view.paused) startMusic(musicLevel); else stopMusic();
+    if ((view.music === 'me' || view.music === 'both') && nightOn && !view.paused) startMusic(musicLevel); else stopMusic();
   }, [view.music, nightOn, view.paused, musicLevel]);
   useEffect(() => () => { stopMusic(); stopHeartbeat(); }, []);
   let body: JSX.Element;
@@ -471,7 +471,18 @@ function Arrive(p: RoomProps & { partner: string }) {
   return (
     <>
       <div className="stack"><p className="eyebrow">Tonight</p><h1>{levelName(a.tonight)}</h1></div>
-      <Tip id="arrive">Pick a colour and an energy, then both tap “I’m ready”. The first card appears on both phones at the same moment.</Tip>
+      <Tip id="arrive">Say where you are, pick a colour and an energy, then both tap “I’m ready”. The first card appears on both phones at the same moment.</Tip>
+      <div className="stack">
+        <h3>Where are you tonight?</h3>
+        <div className="seg two">
+          <button className="ctrl" aria-pressed={!p.view.apart} onClick={() => { cue('tap'); net.act({ a: 'apart', on: false }); }}>Same room</button>
+          <button className="ctrl" aria-pressed={p.view.apart} onClick={() => { cue('tap'); net.act({ a: 'apart', on: true }); }}>Apart, on a call</button>
+        </div>
+        {p.view.apart && <div className="panel apart-help">
+          <p><b>Start your video call first</b>, then come back here. On iPhone, FaceTime shrinks to a small window when you switch apps. On Android, use split screen.</p>
+          <p className="tiny muted">Apart, the game skips hands-on cards and keeps the ones that work over video. Hold “touch” on a card to send a soft pulse, if {p.partner} allows it.</p>
+        </div>}
+      </div>
       <div className="stack">
         <h3>Pick your colour for tonight</h3>
         <div className="vibes">
@@ -525,6 +536,7 @@ function Play(p: RoomProps & { partner: string }) {
   const tip = cv.kind === 'twist' ? <Tip id="twist">A wildcard changes the pace for a moment. Do it together, or pass.</Tip>
     : cv.mystery && !cv.flipped ? <Tip id="mystery">This card is face down. It turns over when you both tap Flip.</Tip>
     : cv.gate ? <Tip id="gate">Answer on your own phone. If either of you says “not tonight”, the card quietly changes. Nobody sees who said what.</Tip>
+    : p.view.apart ? <Tip id="card-apart">You’re apart: read the card out loud on your call. Either of you taps Next when you’re done talking.</Tip>
     : <Tip id="card">Read it out loud and talk it through. When you’re ready, either of you taps Next. Pass works exactly the same way.</Tip>;
   if (cv.kind === 'twist') {
     main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'tw' + cv.seq} text={cap(cv.text.replace(/^Twist:\s*/, ''))} type="Twist" title="Wildcard" special="holo" />;
@@ -562,6 +574,7 @@ function Play(p: RoomProps & { partner: string }) {
       <div className="stack" style={{ gap: 8 }}>
         <div className="top">
           <span className="tiny muted">Tonight: {levelName(s.tonight)} · {Math.min(s.idx + 1, s.N)}/{s.N}</span>
+          {p.view.apart && <span className="chip apart-chip">Apart · on a call</span>}
         </div>
         <div className="prog"><i style={{ width: `${Math.round((s.idx / s.N) * 100)}%` }} /></div>
       </div>
@@ -689,19 +702,23 @@ const BYO = [
 function MoodControls({ view, partner, full }: { view: View; partner: string; full?: boolean }) {
   const [, force] = useState(0); const r = () => force(n => n + 1);
   const sfx = prefs.sfx, quiet = prefs.quiet;
+  const mine = view.music === 'me' || view.music === 'both';
   const music = () => {
-    if (view.music === 'me') net.act({ a: 'music', on: false });
+    if (mine) net.act({ a: 'music', on: false });
     else { unlockAudio(true); net.act({ a: 'music', on: true }); }
   };
   return (
     <div className="stack mood">
       <div className="row">
         <button className="ctrl" aria-pressed={sfx && !quiet} onClick={() => { prefs.sfx = !sfx; if (!sfx) { prefs.quiet = false; unlockAudio(); cue('reveal'); } r(); }}>{sfx && !quiet ? 'Sounds on' : 'Sounds off'}</button>
-        <button className="ctrl" aria-pressed={view.music === 'me'} onClick={() => { if (quiet) { prefs.quiet = false; r(); } music(); }}>
-          {view.music === 'me' ? 'Music: this phone' : view.music === 'partner' ? 'Play music here' : 'Music off'}
+        <button className="ctrl" aria-pressed={mine} onClick={() => { if (quiet) { prefs.quiet = false; r(); } music(); }}>
+          {mine ? 'Music: this phone' : view.music === 'partner' ? (view.apart ? 'Music here too' : 'Play music here') : 'Music off'}
         </button>
       </div>
-      <p className="tiny muted">{view.music === 'partner' ? `Music is playing on ${partner}’s phone. Only one phone plays it, so it never echoes.` : view.music === 'me' ? 'Slow and wordless, so it never competes with talking. Tap again to stop.' : 'Sounds are soft taps and flips. Music plays on one phone only.'}</p>
+      <p className="tiny muted">{view.apart
+        ? 'You’re apart, so each phone can play its own music. Keep it low so your call stays clear.'
+        : view.music === 'partner' ? `Music is playing on ${partner}’s phone. Only one phone plays it, so it never echoes.` : mine ? 'Slow and wordless, so it never competes with talking. Tap again to stop.' : 'Sounds are soft taps and flips. Music plays on one phone only.'}</p>
+      {!full && view.apart && <button className="ctrl" aria-pressed={view.meAllowsTouch} onClick={() => net.act({ a: 'touch:allow', on: !view.meAllowsTouch })}>{view.meAllowsTouch ? `${partner} can send you touches` : `Let ${partner} send you touches`}</button>}
       <p className="tiny byo">Prefer your own music? Search{' '}
         {BYO.map((b, i) => <span key={b.name}>{i > 0 && ' · '}<a href={b.url(BYO_QUERY)} target="_blank" rel="noopener noreferrer">{b.name}</a></span>)}
         {' '}for slow, wordless songs, and keep in-app music off.</p>
