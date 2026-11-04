@@ -17,6 +17,7 @@ A two-phone couples game. React (Vite) phone app plus one Node server with Socke
 6. **No hosting on serverless or shared Node hosting.** Rooms live in memory and need inbound WebSockets (Render, Railway, Fly, or a VPS).
 
 ## Layout
+- `index.html` + `src/landing.ts` + `src/landing.css` public landing page at `/` (no framework, keep JS tiny); `privacy.html` at `/privacy`; `play.html` is the game at `/play`. The landing page may show only real Level 1-3 cards (`tests/landing.test.ts`), never later-level text, and makes only privacy claims the code backs. Fonts are self-hosted (`@fontsource-variable/*`); add no third-party requests.
 - `shared/content.ts` cards and levels; `shared/protocol.ts` messages; `shared/theme.ts` palette
 - `server/game.ts` room engine (deck, session arc, votes); `server/index.ts` sockets, codes, rate limits, expiry
 - `src/App.tsx` screens; `src/ui.tsx` card, countdown, reactions; `src/art.tsx` generated card art; `src/net.ts` socket client and on-device storage

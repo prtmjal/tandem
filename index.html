@@ -2,12 +2,138 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Tandem After Dark</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Couples Question Game for Two Phones, No App | Tandem</title>
+    <meta name="description" content="A question game for couples, played on two phones. Start a game, send your partner the link, and choose together how far tonight goes. No download." />
+    <meta name="theme-color" content="#FAF2EC" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#130D12" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="The question game you play on two phones" />
+    <meta property="og:description" content="Two phones. One link. No app. Nothing unlocks until you both say yes." />
+    <meta property="og:image" content="/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"WebApplication","name":"Tandem After Dark","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","description":"A question game for couples, played on two phones. No download."}
+    </script>
   </head>
   <body>
-    <!-- Placeholder: the full landing page replaces this. -->
-    <main><h1>Tandem After Dark</h1><p><a href="/play">Play</a></p></main>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="bar">
+      <a class="logo" href="/" aria-label="Tandem After Dark, home"><span class="logo-mark" aria-hidden="true"></span>Tandem</a>
+      <a class="bar-link" href="#levels">See the levels</a>
+    </header>
+
+    <main id="main">
+      <!-- 1. Hero -->
+      <section class="hero" id="hero">
+        <h1>The question game you play on two&nbsp;phones.</h1>
+        <p class="sub">Two phones. One link. No app.</p>
+        <a class="btn" href="/play">Start a game</a>
+        <p class="micro">No download · No account · Your partner joins by link</p>
+        <div class="phones" aria-hidden="true">
+          <div class="phone p-a"><div class="mini l1"><span class="mini-lv">Sparks</span><p>What small thing reliably improves your day? Tell me, then ask me the same.</p></div></div>
+          <div class="phone p-b"><div class="mini l1"><span class="mini-lv">Sparks</span><p>What small thing reliably improves your day? Tell me, then ask me the same.</p></div></div>
+        </div>
+      </section>
+
+      <!-- 2. Try a card -->
+      <section class="try" aria-labelledby="try-h">
+        <h2 id="try-h">Try one. Out loud.</h2>
+        <p class="muted">These are real cards from the first two levels.</p>
+        <div class="deck" id="deck" aria-live="polite">
+          <ol class="cards" id="cards">
+            <li class="card l1" data-card><span class="card-lv">Level 1 · Sparks</span><p>Describe your first impression of me in three words. I'll go next.</p></li>
+            <li class="card l1" data-card hidden><span class="card-lv">Level 1 · Sparks</span><p>Guess the song I'd pick for a road trip. Reveal and compare.</p></li>
+            <li class="card l2" data-card hidden><span class="card-lv">Level 2 · Maps</span><p>Name one thing I do that makes you feel supported. Be specific.</p></li>
+            <li class="card l1" data-card hidden><span class="card-lv">Level 1 · Sparks</span><p>What's a tiny habit of mine you've secretly grown to like?</p></li>
+            <li class="card l2" data-card hidden><span class="card-lv">Level 2 · Maps</span><p>What has changed about you since we met that I might have missed?</p></li>
+          </ol>
+          <div class="ctrls">
+            <button class="ctrl" type="button" data-step="pass">Pass</button>
+            <button class="ctrl" type="button" data-step="next">Next</button>
+          </div>
+          <p class="deck-end" id="deck-end" hidden>That's the sample. The full game has 300 cards.</p>
+        </div>
+        <a class="link-cta" href="/play">Play this with them →</a>
+      </section>
+
+      <!-- 3. How it works -->
+      <section class="how" aria-labelledby="how-h">
+        <h2 id="how-h">How it works</h2>
+        <ol class="steps">
+          <li><span><b>Start a game.</b> One of you taps the button. That's it.</span></li>
+          <li><span><b>Send the link.</b> Your partner opens it on their phone. No app, no sign-up.</span></li>
+          <li><span><b>Choose together.</b> You each pick how far tonight goes, privately. You play the lower pick.</span></li>
+        </ol>
+        <ul class="promises">
+          <li>Nothing unlocks until you both say yes.</li>
+          <li>Pass anything. No explaining.</li>
+          <li>Your picks stay private. They only see what you both chose.</li>
+        </ul>
+      </section>
+
+      <!-- 4. The 8 levels -->
+      <section class="levels" id="levels" aria-labelledby="levels-h">
+        <h2 id="levels-h">Eight levels. You set the pace.</h2>
+        <p class="muted">Levels 1 and 2 are open. The rest open only when you both want them.</p>
+        <ol class="ladder">
+          <li class="rung l1"><span class="n">1</span><div><b>Sparks</b><small>Getting to know each other</small><p>“What small thing reliably improves your day?”</p></div></li>
+          <li class="rung l2"><span class="n">2</span><div><b>Maps</b><small>Going deeper</small><p>“What's something you're proud of that you rarely mention?”</p></div></li>
+          <li class="rung l3"><span class="n">3</span><div><b>Flirt</b><small>Playful, butterflies</small><p>“Send me a message later today that only I would understand.”</p></div></li>
+          <li class="rung l4 locked"><span class="n">4</span><div><b>Warmth</b><small>Unlocks when you both say yes</small></div></li>
+          <li class="rung l5 locked"><span class="n">5</span><div><b>Tension</b><small>Unlocks when you both say yes</small></div></li>
+          <li class="rung l6 locked"><span class="n">6</span><div><b>Velvet</b><small>Unlocks when you both say yes</small></div></li>
+          <li class="rung l7 locked"><span class="n">7</span><div><b>Masquerade</b><small>Unlocks when you both say yes</small></div></li>
+          <li class="rung l8 locked"><span class="n">8</span><div><b>Midnight</b><small>Unlocks when you both say yes</small></div></li>
+        </ol>
+      </section>
+
+      <!-- 5. Privacy -->
+      <section class="privacy" aria-labelledby="priv-h">
+        <h2 id="priv-h">Privacy, in plain words</h2>
+        <ul class="checks">
+          <li>No account needed to play.</li>
+          <li>Your private picks never reach your partner's phone.</li>
+          <li>Your progress stays on your own phone.</li>
+          <li>The server forgets your game when the night ends.</li>
+          <li>No ads and no ad trackers.</li>
+        </ul>
+        <a class="link-cta" href="/privacy">How privacy works →</a>
+      </section>
+
+      <!-- 6. FAQ -->
+      <section class="faq" aria-labelledby="faq-h">
+        <h2 id="faq-h">Questions</h2>
+        <details><summary>Is it free?</summary><p>Yes, while we're in early access.</p></details>
+        <details><summary>Do we both need to download anything?</summary><p>No. It runs in your phone's browser. One of you starts a game and sends the link; the other just opens it.</p></details>
+        <details><summary>What's in the later levels?</summary><p>Flirtier and more personal, never graphic. Each level opens only when you both privately say you're curious.</p></details>
+        <details><summary>Can we stop anytime?</summary><p>Yes. Pass any card, pause, or end the night with one tap. Nobody has to explain.</p></details>
+        <details><summary>Who is it for?</summary><p>Couples of any gender or orientation. You both need to be 18 or older.</p></details>
+        <details><summary>Does it work long-distance?</summary><p>It works anywhere you both have a connection, so you can play over a video call. It's designed for nights in the same room.</p></details>
+        <details><summary>Which languages?</summary><p>English for now.</p></details>
+      </section>
+
+      <!-- 7. Final CTA -->
+      <section class="final">
+        <h2>Tonight's a good night to ask.</h2>
+        <a class="btn" href="/play">Start a game</a>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>For two adults, 18+.</p>
+      <nav aria-label="Footer"><a href="/privacy">Privacy</a></nav>
+    </footer>
+
+    <div class="sticky" id="sticky" aria-hidden="true">
+      <a class="btn" href="/play" tabindex="-1">Start a game</a>
+    </div>
+
+    <script type="module" src="/src/landing.ts"></script>
   </body>
 </html>

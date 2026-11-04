@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>How privacy works | Tandem</title>
+    <meta name="description" content="What Tandem keeps, where, and for how long, in plain words." />
+    <meta name="theme-color" content="#FAF2EC" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#130D12" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="logo" href="/" aria-label="Tandem After Dark, home"><span class="logo-mark" aria-hidden="true"></span>Tandem</a>
+      <a class="bar-link" href="/play">Start a game</a>
+    </header>
+    <main id="main" class="doc">
+      <section>
+        <h1>How privacy works</h1>
+        <p class="muted">A plain-language summary of what the game keeps today. This is not yet a full legal privacy policy; one will be published before launch.</p>
+      </section>
+      <section>
+        <h2>On your phone</h2>
+        <p>Your nickname, colour, unlocked levels, cards you've already seen, cards you kept, and your own private “curious” taps are saved in your phone's browser storage. Clearing your browser data deletes them.</p>
+      </section>
+      <section>
+        <h2>On our server, only during a game</h2>
+        <p>While a game is open, the server holds both nicknames, the room code, and tonight's choices in memory so the two phones can stay in sync. Private choices (how far tonight, yes / maybe / not tonight, and “curious” taps) are used only to work out the shared result. They are never sent to your partner's phone.</p>
+        <p>A game closes after 30 minutes with nobody connected, or after 8 hours. When it closes, the server forgets it. Nothing about the game is written to a database.</p>
+        <p>To stop abuse, the server briefly counts how often a network starts or joins games. Those counts are kept in memory and cleared after an hour.</p>
+      </section>
+      <section>
+        <h2>What we don't do</h2>
+        <ul class="checks">
+          <li>No accounts, emails or phone numbers.</li>
+          <li>No ads and no ad trackers.</li>
+          <li>No analytics on game screens.</li>
+          <li>Fonts are served from our own server, not a third party.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>What your partner can work out</h2>
+        <p>Some things can be inferred even though they're never shown. If tonight plays at a lower level than you picked, you can tell your partner picked lower. If you tap “curious” and a level doesn't open, your partner hasn't tapped it yet.</p>
+      </section>
+    </main>
+    <footer class="foot"><p>For two adults, 18+.</p><nav aria-label="Footer"><a href="/">Home</a></nav></footer>
+    <script type="module" src="/src/page.ts"></script>
+  </body>
+</html>

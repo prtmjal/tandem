@@ -173,6 +173,7 @@ if (existsSync(path.join(dist, 'index.html'))) {
   app.use(express.static(dist, { maxAge: '1h', index: false }));
   // The game lives at /play; everything else gets the landing page. Old invite links (/?j=...) are sent to /play.
   app.get(['/play', '/play/*'], (_, res) => res.sendFile(path.join(dist, 'play.html')));
+  app.get('/privacy', (_, res) => res.sendFile(path.join(dist, 'privacy.html')));
   app.get('*', (req, res) => {
     if (typeof req.query.j === 'string') return res.redirect(302, '/play?j=' + encodeURIComponent(req.query.j));
     res.sendFile(path.join(dist, 'index.html'));

@@ -9,12 +9,12 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 in two browser windows (or one window plus your phone on the same Wi-Fi, using your computer's local IP, e.g. `http://192.168.1.20:5173`). Start a room in one, join with the code in the other.
+The landing page is at http://localhost:5173 and the game at http://localhost:5173/play. Open the game in two browser windows (or one window plus your phone on the same Wi-Fi, using your computer's local IP, e.g. `http://192.168.1.20:5173`). Start a room in one, join with the code in the other.
 
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (20 tests)
+npm test          # engine, privacy and palette contrast tests (23 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -39,6 +39,7 @@ Use HTTPS in production (both hosts do this for you). Vibration, wake lock and i
 | Game rules, session arc, no-repeat deck, private votes | `server/game.ts` |
 | Rooms, codes, rate limits, expiry | `server/index.ts` |
 | Phone app: screens, card art, motion | `src/App.tsx`, `src/ui.tsx`, `src/art.tsx` |
+| Landing page (`/`) and privacy summary (`/privacy`) | `index.html`, `privacy.html`, `src/landing.ts`, `src/landing.css` |
 
 **Rooms.** A room has a 6-character code and a 128-bit secret. The invite link and QR code carry the secret and work until the partner joins. A typed code alone only works for 15 minutes. Joins are rate-limited per network. A room holds exactly two people, closes after 30 minutes with nobody connected, and closes after 8 hours regardless. Nothing about a room is kept after it closes.
 
@@ -49,5 +50,4 @@ Use HTTPS in production (both hosts do this for you). Vibration, wake lock and i
 ## Before a public launch
 
 - Have an LGBTQ+ sex educator review the card text, and a lawyer confirm IT Act 67/67A and DPDP positioning.
-- Self-host the two Google Fonts if you want zero third-party requests.
 - Running more than one server instance needs a shared store (Redis adapter for Socket.IO) or a move to Supabase or Cloudflare Durable Objects. One instance comfortably handles a lot of couples.

@@ -5,8 +5,8 @@
   --accent: #ae2749; --on-accent: #fff; --gold: #8a6414;
   --ctrl-bg: #fcfcfc; --ctrl-fg: #161616; --ctrl-line: #bdbdbd;
   --glow-a: #f3c9cf; --glow-b: #f6d6c8;
-  --display: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
-  --body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
+  --body: 'Figtree Variable', 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --r: 18px;
   --t-color: 450ms;
 }
