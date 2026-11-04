@@ -6,8 +6,9 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Server, type Socket } from 'socket.io';
-import { Room, sanitizeProgress } from './game';
-import { claim, createCheckout, hasPass, priceFor, priceLabel, storeConfig } from './store';
+import { Room, mergeProgress, sanitizeProgress } from './game';
+import { newsConfig, subscribe, validEmail } from './news';
+import { claim, createCheckout, hasPass, priceFor, priceLabel, storeConfig, validPasses } from './store';
 import { ADULT_REQUIRED, REACTIONS, isAdultAttested, type Action } from '../shared/protocol';
 
 const PORT = Number(process.env.PORT || 3001);
@@ -50,6 +51,13 @@ function sendProgress(room: Room) {
   for (const idx of [0, 1] as const) io.to(`${room.code}:${idx}`).emit('progress', room.progressFor(idx));
 }
 
+/** Adds verified pass codes to a room and hands every code to both phones (a pass then lives on both). */
+function addPasses(room: Room, codes: unknown) {
+  const ok = validPasses(store, codes);
+  for (const c of ok) if (!room.passCodes.includes(c)) room.passCodes.push(c);
+  if (room.passCodes.length) { room.pass = true; io.to(`${room.code}:0`).to(`${room.code}:1`).emit('passcodes', room.passCodes.slice(0, 5)); }
+}
+
 function attach(socket: Socket, room: Room, idx: 0 | 1) {
   socket.data.code = room.code; socket.data.idx = idx;
   socket.join(`${room.code}:${idx}`);
@@ -71,7 +79,7 @@ io.on('connection', socket => {
     const room = new Room(newCode(), newSecret(), { token, name: cleanName(msg?.name) || 'Partner 1', connected: true, curious: {} }, sanitizeProgress(msg?.progress));
     room.prog.curious = {};
     room.players[0]!.curious = sanitizeProgress(msg?.progress).curious;
-    room.pass = hasPass(store, msg?.passes);
+    addPasses(room, msg?.passes);
     rooms.set(room.code, room);
     tokens.set(token, { code: room.code, idx: 0 });
     attach(socket, room, 0);
@@ -92,11 +100,11 @@ io.on('connection', socket => {
     const token = newSecret();
     const prog = sanitizeProgress(msg?.progress);
     room.join({ token, name: cleanName(msg?.name) || 'Partner 2', connected: true, curious: prog.curious }, prog);
-    if (hasPass(store, msg?.passes)) room.pass = true;
     tokens.set(token, { code: room.code, idx: 1 });
     attach(socket, room, 1);
     ack({ code: room.code, token });
     sendProgress(room);
+    addPasses(room, msg?.passes); // after attach, so both phones receive every code
   });
 
   socket.on('resume', (msg: { token?: string }, ack: (r: unknown) => void) => {
@@ -128,12 +136,23 @@ io.on('connection', socket => {
     io.to(`${room.code}:${idx === 0 ? 1 : 0}`).emit('react', r);
   });
 
+  // A backup restored on this phone while in a room: merge it into the room's shared progress (never curious taps).
+  socket.on('restore', (p: unknown) => {
+    const room = rooms.get(socket.data.code); const idx = socket.data.idx as 0 | 1 | undefined;
+    if (!room || idx === undefined) return;
+    if (limited('restore:' + socket.id, 5, 60 * 1000)) return;
+    room.prog = mergeProgress(room.prog, { ...sanitizeProgress(p), curious: {} });
+    broadcast(room); sendProgress(room);
+  });
+
   // A pass bought or restored mid-night turns the pass on for this room.
   socket.on('pass', (codes: unknown) => {
     const room = rooms.get(socket.data.code); const idx = socket.data.idx as 0 | 1 | undefined;
-    if (!room || idx === undefined || room.pass) return;
+    if (!room || idx === undefined) return;
     if (limited('pass:' + socket.id, 10, 60 * 1000)) return;
-    if (hasPass(store, codes)) { room.pass = true; broadcast(room); }
+    const had = room.pass;
+    addPasses(room, codes);
+    if (room.pass && !had) broadcast(room);
   });
 
   // "Send a touch": one pulse relayed to the partner, only if they have allowed touches. Never stored.
@@ -213,6 +232,18 @@ app.post('/api/claim', express.json({ limit: '2kb' }), async (req, res) => {
 app.post('/api/verify', express.json({ limit: '2kb' }), (req, res) => {
   if (limited('verify:' + reqIp(req), 30, 60 * 60 * 1000)) return res.status(429).json({ ok: false });
   res.json({ ok: hasPass(store, [req.body?.code]) });
+});
+
+/* ---------------- email list (off unless Klaviyo is configured) ---------------- */
+const news = newsConfig();
+app.get('/api/news', (_, res) => res.json({ enabled: !!news }));
+app.post('/api/news', express.json({ limit: '1kb' }), async (req, res) => {
+  if (!news) return res.status(404).json({ error: 'The email list isn’t open yet.' });
+  if (limited('news:' + reqIp(req), 5, 60 * 60 * 1000)) return res.status(429).json({ error: 'Too many tries. Try again later.' });
+  const email = req.body?.email;
+  if (!validEmail(email)) return res.status(400).json({ error: 'That email address doesn’t look right.' });
+  try { await subscribe(news, email); res.json({ ok: true }); }
+  catch { res.status(502).json({ error: 'Couldn’t sign you up just now. Try again in a moment.' }); }
 });
 
 app.get('/healthz', (_, res) => res.json({ ok: true, rooms: rooms.size }));

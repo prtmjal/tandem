@@ -41,3 +41,24 @@ if (sticky && hero && 'IntersectionObserver' in window) {
   new IntersectionObserver(([e]) => { heroGone = !e.isIntersecting && e.boundingClientRect.top < 0; sync(); }).observe(hero);
   if (final) new IntersectionObserver(([e]) => { finalSeen = e.isIntersecting; sync(); }).observe(final);
 }
+
+// Optional email list: appears only if the server has it set up. The address goes to our email service, nothing else.
+const news = document.getElementById('news');
+const form = document.getElementById('news-form') as HTMLFormElement | null;
+const msg = document.getElementById('news-msg');
+if (news && form && msg) {
+  fetch('/api/news').then(r => r.json()).then(j => { if (j.enabled) news.hidden = false; }).catch(() => {});
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const input = form.querySelector('input') as HTMLInputElement;
+    const btn = form.querySelector('button') as HTMLButtonElement;
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/news', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: input.value }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Something went wrong. Try again.');
+      form.hidden = true;
+      msg.textContent = 'Check your inbox for one email to confirm. That’s it.';
+    } catch (err) { msg.textContent = (err as Error).message; btn.disabled = false; }
+  });
+}

@@ -161,6 +161,24 @@ await shot(B, '18b-share-ready');
 await click(A, 'Done for tonight');
 await A.getByText('1 night together').waitFor({ timeout: 5000 });
 await shot(A, '19-home-after');
+// Backup: A makes a backup code in Settings; a fresh phone restores it and gets the same unlocked levels.
+if (await A.locator('.panel.install').count()) throw new Error('install prompt shown after only one night');
+await A.getByRole('button', { name: 'Settings' }).click();
+await click(A, 'Back up our progress');
+await A.locator('.qr').waitFor();
+await shot(A, '20-backup');
+const backupCode = await A.locator('textarea.passcode').inputValue();
+await A.getByRole('button', { name: 'Close' }).click();
+const C = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+C.on('pageerror', e => errors.push(`C: ${e.message}`));
+await C.goto(URL + '#backup=' + encodeURIComponent(backupCode));
+await C.check('#adult'); await click(C, 'let’s go'); await click(C, 'Skip');
+await C.getByRole('button', { name: 'Restore', exact: true }).click();
+await C.getByText('Progress restored').waitFor();
+const restored = await C.evaluate(() => JSON.parse(localStorage.getItem('tad.progress')));
+const original = await A.evaluate(() => JSON.parse(localStorage.getItem('tad.progress')));
+if (JSON.stringify(restored.unlocked) !== JSON.stringify(original.unlocked) || restored.sessions !== original.sessions) throw new Error('backup did not restore');
+if (Object.keys(restored.curious || {}).length) throw new Error('backup carried curious taps');
 
 // Leak checks on phone A's received frames
 const all = framesA.join('\n');

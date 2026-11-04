@@ -47,6 +47,9 @@ try {
   await A.getByText(/On for both of you/).waitFor();
   await B.getByText(/On for both of you/).waitFor();
   await B.locator('.panel.pass').scrollIntoViewIfNeeded(); await B.screenshot({ path: 'tests/shots/pass-on.png' });
+  // The pass code is now kept on the partner's phone as well.
+  const bHas = await B.evaluate(() => (JSON.parse(localStorage.getItem('tad.passes') || '[]')).length);
+  if (bHas < 1) throw new Error('pass code did not reach the partner phone');
   // The code works on a brand-new phone too.
   const passCode = await A.evaluate(() => JSON.parse(localStorage.getItem('tad.passes'))[0]);
   const C = await (await browser.newContext()).newPage();
@@ -54,5 +57,5 @@ try {
   const verify = await C.evaluate(async c => (await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: c }) })).json(), passCode);
   const forged = await C.evaluate(async c => (await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: c.slice(0, -2) + 'xx' }) })).json(), passCode);
   ok = verify.ok === true && forged.ok === false && errors.length === 0;
-  console.log(JSON.stringify({ passOnBothPhones: true, restoreWorks: verify.ok, forgedRejected: !forged.ok, errors }, null, 2));
+  console.log(JSON.stringify({ passOnBothPhones: true, codeOnPartnerPhone: true, restoreWorks: verify.ok, forgedRejected: !forged.ok, errors }, null, 2));
 } catch (e) { console.error(e); } finally { await browser.close(); srv.kill(); stripe.close(); process.exit(ok ? 0 : 1); }

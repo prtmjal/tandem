@@ -72,6 +72,8 @@ class Net {
     this.socket.on('react', (r: string) => this.onReact?.(r));
     this.socket.on('celebrate', (l: number[]) => this.onCelebrate?.(l));
     this.socket.on('touch', () => this.onTouch?.());
+    // The partner's pass code arrives here, so one purchase is kept on both phones.
+    this.socket.on('passcodes', (codes: unknown) => { if (Array.isArray(codes)) codes.forEach(c => { if (typeof c === 'string' && c.startsWith('TAD1.')) savePass(c); }); });
     this.socket.on('closed', () => this.forget());
     // Re-sync whenever the phone wakes up or comes back online.
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
@@ -132,6 +134,8 @@ class Net {
   act(x: Action) { this.socket.emit('act', x); }
   react(r: string) { this.socket.emit('react', r); }
   touch() { this.socket.emit('touch'); }
+  /** Restored progress: save it here, and if a game is open, merge it into the room for both phones. */
+  restoreProgress(p: Progress) { saveProgress(p); if (this.saved) this.socket.emit('restore', { ...p, curious: {} }); }
   sendPasses() { if (this.saved) this.socket.emit('pass', loadPasses()); }
   forget() { this.socket.emit('leaveRoom'); this.view = null; this.save(null); }
 }

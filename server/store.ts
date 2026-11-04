@@ -42,6 +42,12 @@ export function verifyLicense(secret: string, code: unknown): { sku: Sku; sid: s
   } catch { return null; }
 }
 
+/** The valid Couple Pass codes among those given (at most five are checked). */
+export function validPasses(cfg: StoreConfig | null, codes: unknown): string[] {
+  if (!cfg || !Array.isArray(codes)) return [];
+  return codes.slice(0, 5).filter((c): c is string => verifyLicense(cfg.secret, c)?.sku === 'pass').map(c => c.trim());
+}
+
 /** True when any of the given codes is a valid Couple Pass. */
 export function hasPass(cfg: StoreConfig | null, codes: unknown): boolean {
   if (!cfg || !Array.isArray(codes)) return false;

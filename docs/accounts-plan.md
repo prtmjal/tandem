@@ -13,7 +13,7 @@ Unlocked levels, cards seen and kept cards describe a couple's intimate life. Un
 
 Progress is already partly resilient: each phone keeps a copy, and the two copies merge whenever the couple joins a game. Data is lost only when both phones lose it. That can happen when browser data is cleared, when both partners get new phones, or, we believe, when iOS Safari removes storage for sites not visited for about 7 days unless the site was added to the home screen. Verify that last behaviour against current WebKit documentation before relying on it.
 
-## Phase A: build now (no database, no extra cost)
+## Phase A: built (no database, no extra cost)
 
 1. **The Couple Pass lives on both phones.** When a room's pass is on, the server sends the pass code to the partner's phone too, which stores it. A pass is then lost only if both phones are lost. The code proves a purchase and carries nothing intimate, so sharing it between partners is fine.
 2. **Add to home screen.** After a couple's second night, show a gentle one-time prompt that explains why: it keeps progress safe on iPhone and opens like an app. On Android Chrome, use the install prompt. On iOS, show the Share → Add to Home Screen steps. Never show it during a night, and never repeat it after "No thanks".
@@ -21,12 +21,12 @@ Progress is already partly resilient: each phone keeps a copy, and the two copie
 4. **Clear copy about where data lives,** on the privacy page and in Settings: "Your progress lives on your two phones. Back it up or add the game to your home screen to keep it safe."
 5. **Tests.** The pass reaches the partner's phone. A backup round-trips and merges. A backup never contains curious taps. The install prompt never appears during a night.
 
-## Email list: build now, separately
+## Email list: built, separately
 
 - An optional "Tell me about new decks" field on the landing page and the privacy page. One field (email), one button, no pop-up.
 - It sends the address to an email service, not to the game server's memory or any game data. It's never linked to rooms, progress or the Couple Pass.
 - Double opt-in (a confirmation email), an unsubscribe link in every email, and a line on the privacy page.
-- **Decision needed: which email service.** Klaviyo is already connected to this workspace, and Buttondown or Mailchimp would also work. The service must accept a couples/relationship product.
+- **Service: Klaviyo** (`server/news.ts`), off until `KLAVIYO_COMPANY_ID` and `KLAVIYO_LIST_ID` are set. Use a Klaviyo account dedicated to this product: the Klaviyo account connected during development belongs to another brand, so it was not used.
 
 ## Phase B: later, only if couples ask
 

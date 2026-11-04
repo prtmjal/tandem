@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (54 tests)
+npm test          # engine, privacy and palette contrast tests (60 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -33,6 +33,27 @@ Use HTTPS in production (both hosts do this for you). Vibration, wake lock and i
 ## Long distance
 
 On the night-setup screen, either partner can choose **Apart, on a call**. The game then deals only cards that work over video (no hands-on cards, so no hands-on votes), drops a level when too few such cards are left, skips same-room twists and envelopes, lets each phone play its own music, and puts "send a touch" up front. With the Couple Pass, the Long distance deck appears only on nights apart.
+
+## Keeping progress safe (no accounts)
+
+Progress lives on the two phones and merges whenever they join a game, so it's only lost if both phones lose it. To make that unlikely:
+
+- **The Couple Pass is kept on both phones.** When the pass is on in a game, the code is copied to the partner's phone.
+- **Add to home screen.** After a couple's second night, the map shows a one-time prompt (Android's install prompt, or Safari's Share > Add to Home Screen steps). It never appears during a night, and never again after "No thanks".
+- **Backup code.** Settings > Your progress > Back up our progress makes an encrypted code and QR. Scanning the QR opens the game and offers to restore, and the code can also be pasted under Restore. It never includes the private "curious" taps, and the server never sees it.
+
+Accounts with encrypted sync (passkeys) are planned for later; see `docs/accounts-plan.md`.
+
+## Email list (optional)
+
+The landing page shows a "Tell me about new decks" sign-up only when these are set:
+
+| Variable | What it is |
+|---|---|
+| `KLAVIYO_COMPANY_ID` | Your Klaviyo public API key (site ID). Use a Klaviyo account for this product, not another brand's |
+| `KLAVIYO_LIST_ID` | The list to add people to. Set the list's opt-in process to double opt-in |
+
+Only the email address is sent, straight to Klaviyo. The game never stores it or links it to anything.
 
 ## Share cards
 

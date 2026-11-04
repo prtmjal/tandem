@@ -4,11 +4,12 @@ import QRCode from 'qrcode';
 import { DECK } from '../shared/content';
 import { AGE_OK, REACTIONS, type VibeId, type View } from '../shared/protocol';
 import { VIBES, VIBE_IDS, cardColors, chipColor, hueDistance, blendHue, themeTokens, type Mode } from '../shared/theme';
-import { keys, loadPasses, net, shop, store, useCountdown, useNet, useWakeLock } from './net';
+import { keys, loadPasses, loadProgress, net, shop, store, useCountdown, useNet, useWakeLock } from './net';
 import { DECKS, DECK_IDS, PASS_CARD_COUNT } from '../shared/decks';
 import { canVibrate, cue, prefs, startHeartbeat, startMusic, stopHeartbeat, stopMusic, unlockAudio, type HapticLevel } from './feel';
 import { Intro, Tip, introSeen, resetTips } from './guide';
 import { drawShareCard, shareImage } from './share';
+import { makeBackup, mergeBackup, readBackup } from './backup';
 import { Avatar, Countdown, Floaters, I, Icon, MiniArt, PlayCard, Waiting, levelName, useToast } from './ui';
 import { LevelGlyph } from './art';
 
@@ -82,6 +83,9 @@ export default function App() {
     net.onTouch = () => { cue('touch'); setTouchAt(Date.now()); };
   }, [addFloat]);
   useWakeLock(view?.phase === 'card' || view?.phase === 'close' || view?.phase === 'arrive');
+  // A scanned backup QR opens /play#backup=...; the code stays in the address fragment, so it never reaches the server.
+  const [pendingBackup, setPendingBackup] = useState<string | null>(() => { const m = /[#&]backup=([^&]+)/.exec(location.hash); return m ? decodeURIComponent(m[1]) : null; });
+  useEffect(() => { if (pendingBackup) history.replaceState(null, '', location.pathname + location.search); }, []);
   // Back from Stripe Checkout: swap the paid session for a pass code, then tidy the address bar.
   useEffect(() => {
     const sid = new URLSearchParams(location.search).get('paid');
@@ -104,6 +108,7 @@ export default function App() {
       <MotionConfig reducedMotion="user">
         <InAppBanner />
         {screen}
+        {pendingBackup && age && !(intro && !saved) && <RestoreDialog code={pendingBackup} done={msg => { setPendingBackup(null); if (msg) showToast(msg); }} />}
         <Floaters items={floaters} />
         {touchAt > 0 && <TouchPulse key={touchAt} name={view ? view.names[view.me === 0 ? 1 : 0] : ''} />}
         <AnimatePresence>{toast && <m.div className="toast" role="status" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>{toast}</m.div>}</AnimatePresence>
@@ -293,6 +298,7 @@ function Menu(p: RoomProps & { close: () => void; partner: string }) {
           <p className="tiny muted">After 10 pm at level 5 and up, the app shifts into a deeper, dimmer late-night look.</p>
           <p className="eyebrow">Sound and touch</p>
           <MoodControls view={p.view} partner={p.partner} full />
+          <ProgressSettings toast={p.toast} />
           <PassSettings view={p.view} toast={p.toast} />
           <p className="eyebrow">Help</p>
           <div className="row">
@@ -375,6 +381,7 @@ function Home(p: RoomProps) {
         </div>
         <p className="tiny muted" style={{ textAlign: 'center' }}>{view.totalCards} cards in this version</p>
       </div>
+      <InstallPrompt sessions={view.sessions} />
       <PassPanel view={view} />
     </>
   );
@@ -677,6 +684,85 @@ function ShareOffer({ view, theme, toast }: { view: View; theme: RoomProps['them
         <button className="ctrl" onClick={() => net.act({ a: 'share', on: false })}>Not now</button>
       </div>
       <p className="tiny muted">Either of you can tap Not now to take it away for both of you.</p>
+    </div>
+  );
+}
+
+/** After a couple's second night, once: why adding the game to the home screen keeps progress safe. */
+function InstallPrompt({ sessions }: { sessions: number }) {
+  const standalone = typeof matchMedia !== 'undefined' && (matchMedia('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true);
+  const [hidden, setHidden] = useState(() => standalone || store.get('tad.a2hs') === 'no');
+  if (hidden || sessions < 2) return null;
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const deferred = (window as unknown as { __tadInstall?: Event & { prompt: () => Promise<void> } }).__tadInstall;
+  const close = () => { store.set('tad.a2hs', 'no'); setHidden(true); };
+  return (
+    <div className="panel install">
+      <p className="eyebrow">Keep your progress safe</p>
+      <p>Add the game to your home screen. It opens like an app, and {ios ? 'iPhone keeps your progress instead of clearing it after a quiet week' : 'your progress stays put'}.</p>
+      {deferred
+        ? <button className="btn" onClick={async () => { try { await deferred.prompt(); } catch { /* dismissed */ } close(); }}>Add to home screen</button>
+        : <p className="tiny">{ios ? <>In Safari, tap <b>Share</b> (the square with an arrow), then <b>Add to Home Screen</b>.</> : <>Open your browser menu (<b>⋮</b>) and choose <b>Add to Home screen</b> or <b>Install app</b>.</>}</p>}
+      <button className="linkbtn" onClick={close}>No thanks</button>
+    </div>
+  );
+}
+
+/** Settings: where progress lives, plus back up and restore. */
+function ProgressSettings({ toast }: { toast: (s: string) => void }) {
+  const [code, setCode] = useState<string | null>(null);
+  const [qr, setQr] = useState('');
+  const [restoring, setRestoring] = useState(false);
+  const [entry, setEntry] = useState('');
+  const [err, setErr] = useState('');
+  const backup = async () => {
+    setErr('');
+    try {
+      const c = await makeBackup(loadProgress()); setCode(c);
+      const link = `${location.origin}/play#backup=${encodeURIComponent(c)}`;
+      if (link.length <= 2300) QRCode.toDataURL(link, { margin: 1, width: 360, errorCorrectionLevel: 'L', color: { dark: '#1b0b0e', light: '#ffffff' } }).then(setQr).catch(() => setQr(''));
+      else setQr('');
+    } catch { setErr('This browser can’t make a backup code. Try Chrome or Safari.'); }
+  };
+  const save = () => { if (!code) return; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([code], { type: 'text/plain' })); a.download = 'tandem-backup.txt'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  return (
+    <div className="stack">
+      <p className="eyebrow">Your progress</p>
+      <p className="tiny muted">Your progress lives on your two phones, not on our server. Each game merges both copies, so it’s only lost if both phones lose it. To be safe, add the game to your home screen or keep a backup code.</p>
+      {!code
+        ? <div className="row"><button className="ctrl" onClick={backup}>Back up our progress</button><button className="ctrl" onClick={() => setRestoring(r => !r)}>Restore a backup</button></div>
+        : <>
+          {qr && <img className="qr" src={qr} alt="Backup QR code: scan it with the new phone's camera" />}
+          <textarea className="passcode" readOnly value={code} rows={3} onFocus={e => e.currentTarget.select()} />
+          <div className="row">
+            <button className="ctrl" onClick={async () => { try { await navigator.clipboard.writeText(code); toast('Backup code copied'); } catch { /* select the text instead */ } }}>Copy</button>
+            <button className="ctrl" onClick={save}>Save as file</button>
+          </div>
+          <p className="tiny muted">{qr ? 'Scan the QR with the new phone’s camera, or paste the code there under Restore. ' : 'Paste this code on the new phone under Restore. '}It holds levels and cards, never your private “curious” taps. Anyone with the code can restore it, so keep it somewhere private.</p>
+        </>}
+      {restoring && !code && <>
+        <textarea className="passcode" rows={3} placeholder="TADB1.…" value={entry} onChange={e => setEntry(e.target.value)} aria-label="Backup code" spellCheck={false} />
+        <button className="ctrl" disabled={entry.trim().length < 20} onClick={async () => { setErr(''); try { net.restoreProgress(mergeBackup(loadProgress(), await readBackup(entry))); setEntry(''); setRestoring(false); toast('Progress restored'); } catch (e) { setErr((e as Error).message); } }}>Restore</button>
+      </>}
+      {err && <p role="alert" className="alert"><span aria-hidden="true">⚠</span> {err}</p>}
+    </div>
+  );
+}
+
+/** Confirm before merging a backup opened from a scanned QR code. */
+function RestoreDialog({ code, done }: { code: string; done: (msg?: string) => void }) {
+  const [err, setErr] = useState('');
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-label="Restore progress">
+      <div className="panel">
+        <h3>Restore your progress?</h3>
+        <p className="muted">This adds the levels and cards from your backup to this phone. Nothing on this phone is removed.</p>
+        {err && <p role="alert" className="alert"><span aria-hidden="true">⚠</span> {err}</p>}
+        <div className="row">
+          <button className="ctrl" onClick={() => done()}>Not now</button>
+          <button className="ctrl" onClick={async () => { try { net.restoreProgress(mergeBackup(loadProgress(), await readBackup(code))); done('Progress restored'); } catch (e) { setErr((e as Error).message); } }}>Restore</button>
+        </div>
+      </div>
     </div>
   );
 }

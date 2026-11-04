@@ -118,6 +118,18 @@
         <details><summary>Which languages?</summary><p>English for now.</p></details>
       </section>
 
+      <!-- Optional email list (shown only when it's set up on the server) -->
+      <section class="news" id="news" aria-labelledby="news-h" hidden>
+        <h2 id="news-h">New decks, now and then</h2>
+        <p class="muted">Optional. Only news about new cards and decks. Kept separate from the game, and never linked to your nights.</p>
+        <form id="news-form" class="news-form" novalidate>
+          <label class="sr-only" for="news-email">Email address</label>
+          <input id="news-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required />
+          <button class="btn" type="submit">Tell me about new decks</button>
+        </form>
+        <p class="micro" id="news-msg" role="status">You'll get one email to confirm. Unsubscribe anytime.</p>
+      </section>
+
       <!-- 7. Final CTA -->
       <section class="final">
         <h2>Tonight's a good night to ask.</h2>
