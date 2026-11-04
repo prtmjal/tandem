@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (52 tests)
+npm test          # engine, privacy and palette contrast tests (54 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -33,6 +33,10 @@ Use HTTPS in production (both hosts do this for you). Vibration, wake lock and i
 ## Long distance
 
 On the night-setup screen, either partner can choose **Apart, on a call**. The game then deals only cards that work over video (no hands-on cards, so no hands-on votes), drops a level when too few such cards are left, skips same-room twists and envelopes, lets each phone play its own music, and puts "send a touch" up front. With the Couple Pass, the Long distance deck appears only on nights apart.
+
+## Share cards
+
+At the end of a night, each partner can privately say they'd be happy to share a card about it. Only if both say yes does a story-sized image appear on both phones: one question you played tonight from Levels 1-3, how many nights you've played, and the game's name and address. No names and nothing private. It's drawn on the phone and shared through the phone's own share sheet (or saved, where sharing files isn't supported). Either partner can take it away again with "Not now".
 
 ## Couple Pass (optional payments)
 

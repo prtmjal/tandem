@@ -149,6 +149,15 @@ await click(A, 'Open the envelope');
 await click(B, 'Open it');
 await sleep(4300);
 await shot(A, '18-envelope-dark'); await shot(B, '18-envelope-light');
+// Share card: A opts in alone (nothing appears for B), then B opts in and both get the same card.
+await click(A, 'I’d be happy to share a card');
+await A.getByText('If you both say yes, it appears here').waitFor();
+if (await B.locator('.share-img').count()) throw new Error('share card appeared before both said yes');
+await click(B, 'I’d be happy to share a card');
+await A.locator('.share-img').waitFor(); await B.locator('.share-img').waitFor();
+const png = await A.evaluate(async () => { const r = await fetch(document.querySelector('.share-img').src); const b = new Uint8Array(await r.arrayBuffer()); let s = ''; for (const x of b) s += String.fromCharCode(x); return btoa(s); });
+(await import('node:fs')).writeFileSync(OUT + '/share-card.png', Buffer.from(png, 'base64'));
+await shot(B, '18b-share-ready');
 await click(A, 'Done for tonight');
 await A.getByText('1 night together').waitFor({ timeout: 5000 });
 await shot(A, '19-home-after');

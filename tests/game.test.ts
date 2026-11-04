@@ -207,3 +207,36 @@ describe('apart mode', () => {
     for (let l = 1; l <= 8; l++) for (const c of r.deck(l)) if (!c.id.startsWith('p.distance.')) expect(['Do', 'Session', 'Scene']).not.toContain(c.type);
   });
 });
+
+describe('share cards', () => {
+  const toEnvelope = () => {
+    const p = emptyProgress(); p.unlocked = [1, 2, 3, 4, 5, 6, 7, 8];
+    const r = new Room('ABCDEF', 's', { token: 't0', name: 'Asha', connected: true, curious: {} }, p);
+    r.join({ token: 't1', name: 'Sam', connected: true, curious: {} }, emptyProgress());
+    startSession(r, [8, 8]); play(r);
+    both(r, { a: 'open' });
+    return r;
+  };
+  it('the opt-in is private and the card appears only when both say yes', () => {
+    const r = toEnvelope();
+    r.act(0, { a: 'share', on: true });
+    expect(JSON.stringify(r.view(1))).not.toContain('"myShare":true'); // Sam can't see Asha's yes
+    expect(r.view(0).close!.myShare).toBe(true);
+    expect(r.view(0).close!.shareCard).toBe(null);
+    expect(r.view(1).close!.shareCard).toBe(null);
+    r.act(1, { a: 'share', on: true });
+    const a = r.view(0).close!.shareCard, b = r.view(1).close!.shareCard;
+    expect(a).not.toBe(null); expect(a).toEqual(b);
+    r.act(1, { a: 'share', on: false }); // changing your mind removes it for both
+    expect(r.view(0).close!.shareCard).toBe(null);
+  });
+  it('share cards only ever quote a talk card from Levels 1-3', async () => {
+    const { DECK } = await import('../shared/content');
+    const safe = new Set([1, 2, 3].flatMap(l => DECK[l].filter(c => ['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit'].includes(c.type)).map(c => c.text)));
+    for (let i = 0; i < 8; i++) {
+      const r = toEnvelope();
+      both(r, { a: 'share', on: true });
+      expect(safe.has(r.view(0).close!.shareCard!.question)).toBe(true);
+    }
+  });
+});

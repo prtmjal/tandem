@@ -72,6 +72,10 @@ export interface View {
   close: null | {
     stage: 0 | 1; closer: string; env: string; kept: string[];
     myOpen: boolean; partnerOpen: boolean; countdownAt: number | null;
+    /** My own private share opt-in. The partner's is never sent. */
+    myShare: boolean;
+    /** Present only when both opted in: a safe-for-work card to share. */
+    shareCard: null | { question: string; nights: number };
   };
 }
 
@@ -98,6 +102,7 @@ export type Action =
   | { a: 'dark'; on: boolean }
   | { a: 'music'; on: boolean }
   | { a: 'apart'; on: boolean }
+  | { a: 'share'; on: boolean }
   | { a: 'touch:allow'; on: boolean }
   | { a: 'open' }
   | { a: 'finish' };

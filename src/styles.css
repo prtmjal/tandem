@@ -272,3 +272,4 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
 .apart-help { gap: 8px; }
 .apart-chip { font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); }
 .seg.two { grid-template-columns: 1fr 1fr; }
+.share-img { width: 100%; max-width: 300px; aspect-ratio: 9 / 16; border-radius: 18px; align-self: center; box-shadow: 0 18px 40px -24px rgba(0,0,0,.5); }

@@ -82,7 +82,11 @@ export class Room {
   ceiling: null | { picks: [number | null, number | null]; confirm: [boolean, boolean]; done: [boolean, boolean] } = null;
   arrive: null | { tonight: number; energy: Energy; vibes: [VibeId | null, VibeId | null]; memory: string | null; ready: [boolean, boolean]; countdownAt: number | null } = null;
   sess: Session | null = null;
-  close: null | { stage: 0 | 1; closer: string; env: string; open: [boolean, boolean]; countdownAt: number | null } = null;
+  close: null | {
+    stage: 0 | 1; closer: string; env: string; open: [boolean, boolean]; countdownAt: number | null;
+    /** Private: each partner's own "happy to share a card about tonight". Never sent to the other phone. */
+    share: [boolean, boolean]; shareQ: string | null;
+  } = null;
   env = '';
 
   constructor(code: string, secret: string, creator: Player, progress: Progress) {
@@ -124,6 +128,16 @@ export class Room {
     // The Long distance deck is for nights apart; everything else in the pass works both ways.
     const all = DECK[l].concat(extra.filter(c => this.apart || !c.id.startsWith('p.distance.')));
     return this.apart ? all.filter(c => worksApart(c) || c.id.startsWith('p.distance.')) : all;
+  }
+  /** The question on a share card: one you actually played tonight from Levels 1-3 (kept ones first), never later
+   *  levels, never pass-deck hands-on text. Falls back to a Level 1 card. Only talk cards, so it is safe to post. */
+  shareQuestion(): string {
+    const s = this.sess;
+    const safe = (id: string) => { const c = CARD_BY_ID[id]; return !!c && c.l <= 3 && SOFT_TYPES.has(c.type); };
+    const kept = s ? Array.from(s.kept.keys()).filter(safe) : [];
+    const played = s ? Array.from(s.used).filter(safe) : [];
+    const pick = kept.length ? rnd(kept) : played.length ? rnd(played) : null;
+    return pick ? CARD_BY_ID[pick].text : rnd(DECK[1].filter(c => SOFT_TYPES.has(c.type))).text;
   }
   /** Drops twists, closers and envelopes that need one room when you're apart. */
   private fit(list: string[]) { if (!this.apart) return list; const ok = list.filter(t => !TOGETHER_TEXT.test(t)); return ok.length ? ok : list; }
@@ -204,7 +218,7 @@ export class Room {
 
   private startClose() {
     this.phase = 'close';
-    this.close = { stage: 0, closer: rnd(this.fit(CLOSING)), env: this.env, open: [false, false], countdownAt: null };
+    this.close = { stage: 0, closer: rnd(this.fit(CLOSING)), env: this.env, open: [false, false], countdownAt: null, share: [false, false], shareQ: null };
   }
 
   /* ---------------- actions ---------------- */
@@ -344,6 +358,12 @@ export class Room {
         if (cl.open[0] && cl.open[1] && cl.stage === 0) { cl.stage = 1; cl.countdownAt = Date.now() + 3000; }
         break;
       }
+      case 'share': {
+        const cl = this.close; if (this.phase !== 'close' || !cl || cl.stage !== 1) break;
+        cl.share[me] = !!x.on;
+        if (cl.share[0] && cl.share[1]) cl.shareQ ??= this.shareQuestion();
+        break;
+      }
       case 'finish': {
         if (this.phase !== 'close' || !s) break;
         const items = Array.from(s.kept.values());
@@ -415,6 +435,9 @@ export class Room {
       close: this.close ? {
         stage: this.close.stage, closer: this.close.closer, env: this.close.stage === 1 ? this.close.env : '',
         kept: s ? Array.from(s.kept.values()) : [], myOpen: this.close.open[me], partnerOpen: this.close.open[other], countdownAt: this.close.countdownAt,
+        myShare: this.close.share[me],
+        // Only the outcome: a card exists when both said yes. Nobody learns whether the other declined.
+        shareCard: this.close.share[0] && this.close.share[1] && this.close.shareQ ? { question: this.close.shareQ, nights: this.prog.sessions + 1 } : null,
       } : null,
     };
   }

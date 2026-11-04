@@ -8,6 +8,7 @@ import { keys, loadPasses, net, shop, store, useCountdown, useNet, useWakeLock }
 import { DECKS, DECK_IDS, PASS_CARD_COUNT } from '../shared/decks';
 import { canVibrate, cue, prefs, startHeartbeat, startMusic, stopHeartbeat, stopMusic, unlockAudio, type HapticLevel } from './feel';
 import { Intro, Tip, introSeen, resetTips } from './guide';
+import { drawShareCard, shareImage } from './share';
 import { Avatar, Countdown, Floaters, I, Icon, MiniArt, PlayCard, Waiting, levelName, useToast } from './ui';
 import { LevelGlyph } from './art';
 
@@ -643,6 +644,43 @@ function TouchPulse({ name }: { name: string }) {
   return <div className="touchpulse" role="status"><span className="ring" aria-hidden="true" /><span className="lbl">{name ? `${name} sent a touch` : 'A touch'}</span></div>;
 }
 
+/** End of night: each partner privately opts in to a share card. It appears only if both said yes. */
+function ShareOffer({ view, theme, toast }: { view: View; theme: RoomProps['theme']; toast: (s: string) => void }) {
+  const c = view.close!;
+  const card = c.shareCard;
+  const [url, setUrl] = useState<string | null>(null);
+  const blob = useRef<Blob | null>(null);
+  useEffect(() => {
+    if (!card) { setUrl(null); return; }
+    let live = true, made = '';
+    drawShareCard({ question: card.question, nights: card.nights, vibes: [theme.myVibe, theme.partnerVibe ?? theme.myVibe], host: location.host })
+      .then(b => { if (!live) return; blob.current = b; made = URL.createObjectURL(b); setUrl(made); })
+      .catch(() => {});
+    return () => { live = false; if (made) URL.revokeObjectURL(made); };
+  }, [card?.question, card?.nights, theme.myVibe, theme.partnerVibe]);
+  if (!card) return (
+    <div className="panel share">
+      <p className="eyebrow">Share a card? · optional</p>
+      <p>A picture with one question you played tonight and how many nights you’ve played. No names, nothing private.</p>
+      <button className="ctrl" aria-pressed={c.myShare} onClick={() => { cue('tap'); net.act({ a: 'share', on: !c.myShare }); }}>
+        {c.myShare ? '✓ I’m happy to share' : 'I’d be happy to share a card'}
+      </button>
+      <p className="tiny muted">{c.myShare ? 'If you both say yes, it appears here. If not, nothing happens and nobody sees who said no.' : 'It only appears if you both say yes, privately on your own phones.'}</p>
+    </div>
+  );
+  return (
+    <div className="panel share">
+      <p className="eyebrow">You both said yes</p>
+      {url ? <img className="share-img" src={url} alt={`Share card: “${card.question}”`} /> : <Waiting>Making your card</Waiting>}
+      <div className="row">
+        <button className="ctrl" disabled={!url} onClick={async () => { if (!blob.current) return; const r = await shareImage(blob.current); if (r === 'saved') toast('Saved to your downloads'); }}>Share</button>
+        <button className="ctrl" onClick={() => net.act({ a: 'share', on: false })}>Not now</button>
+      </div>
+      <p className="tiny muted">Either of you can tap Not now to take it away for both of you.</p>
+    </div>
+  );
+}
+
 /** The Couple Pass offer on the map screen. Never shown during a night, never with pressure. */
 function PassPanel({ view }: { view: View }) {
   const [info, setInfo] = useState<{ enabled: boolean; price?: string | null } | null>(null);
@@ -793,6 +831,7 @@ function Close(p: RoomProps & { partner: string }) {
           <m.div className="panel" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35 }} style={{ boxShadow: '0 0 0 2px var(--gold)' }}>
             <p className="prompt m">{c.env}</p>
           </m.div>
+          <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div><p className="tiny muted">Saved on both phones. One may come back at the start of a future night.</p></div>}
           <div className="bottom"><button className="btn" onClick={() => net.act({ a: 'finish' })}>Done for tonight</button></div>
         </>
