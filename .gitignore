@@ -1,0 +1,5 @@
+node_modules
+dist
+dist-server
+tests/shots
+.env

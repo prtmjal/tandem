@@ -1,0 +1,12 @@
+# One-click deploy on Render: New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: tandem-after-dark
+    runtime: node
+    plan: free            # free sleeps after 15 idle minutes; switch to starter for always-on
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
