@@ -19,7 +19,8 @@ A two-phone couples game. React (Vite) phone app plus one Node server with Socke
 7. **The Couple Pass adds depth, never access.** Paid decks live in `shared/decks.ts` and mix into levels a couple can already play; a purchase never opens a level, skips a vote or changes a ceiling. Offer it only on the map screen, never during a night, with no countdowns or guilt copy. One purchase covers both partners. Payments stay off unless Stripe env vars are set (`server/store.ts`).
 8. **Share cards reveal nothing private.** Each partner opts in privately at the end of the night (`share` action); the partner's answer is never sent, and the card exists only when both said yes. The card (`src/share.ts`, drawn on the phone, never uploaded) shows only a Level 1-3 talk card played tonight (`Room.shareQuestion`) and the night count: no names, no level names, nothing from later levels.
 9. **Progress stays on the phones.** No accounts and no game database (see `docs/accounts-plan.md`). Backup codes (`src/backup.ts`) and room restores never carry "curious" taps. The email list (`server/news.ts`, Klaviyo) is never linked to rooms, progress, partners or purchases, and the game itself never asks for an email.
-10. **No hosting on serverless or shared Node hosting.** Rooms live in memory and need inbound WebSockets (Render, Railway, Fly, or a VPS).
+10. **Usage counts are totals only.** `server/stats.ts` counts daily totals of funnel events (visits, games started, partners joined, nights started and finished, shares, purchases). Never add per-person data, IDs, IPs, room codes, or anything about levels, votes, ceilings or cards. Totals are kept 120 days and shown at `/stats` only with `STATS_TOKEN`.
+11. **No hosting on serverless or shared Node hosting.** Rooms live in memory and need inbound WebSockets (Render, Railway, Fly, or a VPS).
 
 ## Layout
 - `index.html` + `src/landing.ts` + `src/landing.css` public landing page at `/` (no framework, keep JS tiny); `privacy.html` at `/privacy`; `play.html` is the game at `/play`. The landing page may show only real Level 1-3 cards (`tests/landing.test.ts`), never later-level text, and makes only privacy claims the code backs. Fonts are self-hosted (`@fontsource-variable/*`); add no third-party requests.
@@ -27,6 +28,7 @@ A two-phone couples game. React (Vite) phone app plus one Node server with Socke
 - `shared/decks.ts` Couple Pass decks; `server/store.ts` Stripe Checkout and signed pass codes (no database)
 - `server/game.ts` room engine (deck, session arc, votes); `server/index.ts` sockets, codes, rate limits, expiry
 - `shared/progress.ts` progress merge and sanitizing (server and phone); `src/backup.ts` backup codes; `server/news.ts` optional Klaviyo email list
+- `server/stats.ts` daily usage totals and the private `/stats` page
 - `src/share.ts` share card image and share sheet
 - `src/feel.ts` synthesized sounds, music loop, haptics and their settings; `src/guide.tsx` the How it works intro and one-time tips
 - `src/App.tsx` screens; `src/ui.tsx` card, countdown, reactions; `src/art.tsx` generated card art; `src/net.ts` socket client and on-device storage

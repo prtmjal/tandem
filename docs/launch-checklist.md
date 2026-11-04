@@ -5,7 +5,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 ## 1. Private test launch (can happen now)
 
 - ✅ Game, landing page, privacy page, payments (off), email list (off), backups, share cards and apart mode are built.
-- ✅ 60 unit tests, the two-phone browser test and the purchase test pass. npm audit reports 0 vulnerabilities.
+- ✅ 64 unit tests, the two-phone browser test and the purchase test pass. npm audit reports 0 vulnerabilities.
 - ✅ A production build from a clean install serves every page and API.
 - 🟡 Deploy to Railway (Deploy from GitHub repo; it uses the `Dockerfile`), then Settings → Networking → Generate Domain. No variables needed.
 - 🟡 Play several real nights on two real phones. Use one iPhone and one Android if you can, and include:
@@ -39,7 +39,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
   - [ ] change the "Is it free?" answer in `index.html`
 - 🟡 **Email list:** a Klaviyo account for this product, a double opt-in list, then `KLAVIYO_COMPANY_ID` and `KLAVIYO_LIST_ID`.
 - ⬜ **Uptime alert** on `/healthz` (for example UptimeRobot or Better Stack, free tier).
-- ⬜ **Privacy-friendly counts.** Rooms started, partners joined and nights finished, as server-side totals only. Without these you can't see whether the landing page works. Not built yet.
+- ✅ **Privacy-friendly counts** are built (`/stats`). 🟡 Set `STATS_TOKEN`, and add a Railway volume with `STATS_FILE=/data/stats.json` so totals survive deploys.
 
 ## 3. Known limits
 

@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (60 tests)
+npm test          # engine, privacy and palette contrast tests (64 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -54,6 +54,17 @@ The landing page shows a "Tell me about new decks" sign-up only when these are s
 | `KLAVIYO_LIST_ID` | The list to add people to. Set the list's opt-in process to double opt-in |
 
 Only the email address is sent, straight to Klaviyo. The game never stores it or links it to anything.
+
+## Usage counts
+
+The server keeps daily totals so you can see whether the game works: landing visits, games started, partners joined (and how many by link), nights started and finished, nights apart, share cards, Couple Pass checkouts and purchases, and email sign-ups. No cookies, IDs, IP addresses or room codes, and nothing about levels, votes or cards. Totals are kept for 120 days.
+
+| Variable | What it is |
+|---|---|
+| `STATS_TOKEN` | Any secret of 16+ characters. Open `/stats` and enter it to see the numbers. Without it, `/stats` doesn't exist |
+| `STATS_FILE` | Optional, e.g. `/data/stats.json` on a Railway volume, so totals survive restarts. Without it they reset on each deploy, but each day's totals are still printed to the server log |
+
+The two numbers that matter most are shown at the top: **Partner joined** (of games started, how many got a partner, which is the real conversion) and **Nights finished**.
 
 ## Share cards
 

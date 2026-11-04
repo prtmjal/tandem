@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { Server, type Socket } from 'socket.io';
 import { Room, mergeProgress, sanitizeProgress } from './game';
 import { newsConfig, subscribe, validEmail } from './news';
+import { STATS_PAGE, Stats } from './stats';
 import { claim, createCheckout, hasPass, priceFor, priceLabel, storeConfig, validPasses } from './store';
 import { ADULT_REQUIRED, REACTIONS, isAdultAttested, type Action } from '../shared/protocol';
 
@@ -83,6 +84,7 @@ io.on('connection', socket => {
     rooms.set(room.code, room);
     tokens.set(token, { code: room.code, idx: 0 });
     attach(socket, room, 0);
+    stats.count('created');
     ack({ code: room.code, secret: room.secret, token });
   });
 
@@ -102,6 +104,7 @@ io.on('connection', socket => {
     room.join({ token, name: cleanName(msg?.name) || 'Partner 2', connected: true, curious: prog.curious }, prog);
     tokens.set(token, { code: room.code, idx: 1 });
     attach(socket, room, 1);
+    stats.count('joined'); if (viaLink) stats.count('joinedLink');
     ack({ code: room.code, token });
     sendProgress(room);
     addPasses(room, msg?.passes); // after attach, so both phones receive every code
@@ -121,8 +124,11 @@ io.on('connection', socket => {
     const room = rooms.get(socket.data.code); const idx = socket.data.idx as 0 | 1 | undefined;
     if (!room || idx === undefined || !x || typeof x.a !== 'string') return;
     if (limited('act:' + socket.id, 40, 10 * 1000)) return;
-    const before = room.prog.sessions, unlockedBefore = room.prog.unlocked.length;
+    const before = room.prog.sessions, unlockedBefore = room.prog.unlocked.length, phaseBefore = room.phase, sharedBefore = !!room.close?.shareQ && !!room.view(idx).close?.shareCard;
     const out = room.act(idx, x);
+    if (phaseBefore !== 'card' && room.phase === 'card') { stats.count('nights'); if (room.apart) stats.count('nightsApart'); }
+    if (room.prog.sessions > before) stats.count('finished');
+    if (x.a === 'share' && !sharedBefore && room.view(idx).close?.shareCard) stats.count('shared');
     broadcast(room);
     if (out.celebrate?.length) io.to(`${room.code}:0`).to(`${room.code}:1`).emit('celebrate', out.celebrate);
     if (room.prog.sessions !== before || room.prog.unlocked.length !== unlockedBefore || x.a === 'unlock:vote' || x.a === 'gate') sendProgress(room);
@@ -206,6 +212,30 @@ app.use((_, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   next();
 });
+/* ---------------- usage counts (totals only, see server/stats.ts) ---------------- */
+const stats = new Stats(process.env.STATS_FILE);
+let lastLogged = new Date().toISOString().slice(0, 10);
+setInterval(() => {
+  stats.save();
+  const today = new Date().toISOString().slice(0, 10);
+  if (today !== lastLogged) { console.log(stats.logLine(lastLogged)); lastLogged = today; }
+}, 60_000).unref();
+for (const sig of ['SIGTERM', 'SIGINT'] as const) process.on(sig, () => { stats.save(); console.log(stats.logLine()); process.exit(0); });
+const statsToken = process.env.STATS_TOKEN && process.env.STATS_TOKEN.length >= 16 ? process.env.STATS_TOKEN : null;
+app.get('/api/stats', (req, res) => {
+  if (!statsToken) return res.status(404).end();
+  const auth = String(req.headers.authorization || '');
+  const a = Buffer.from(auth), b = Buffer.from('Bearer ' + statsToken);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return res.status(401).json({ error: 'Wrong token' });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(stats.report(Math.min(120, Math.max(1, Number(req.query.days) || 30))));
+});
+app.get('/stats', (_, res) => {
+  if (!statsToken) return res.status(404).end();
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('html').send(STATS_PAGE);
+});
+
 /* ---------------- Couple Pass (off unless Stripe is configured) ---------------- */
 const store = storeConfig();
 const countryOf = (h: Record<string, unknown>) => String(h['cf-ipcountry'] || h['x-vercel-ip-country'] || h['fly-client-ip-country'] || '').slice(0, 2) || undefined;
@@ -217,7 +247,7 @@ app.get('/api/store', async (req, res) => {
 app.post('/api/checkout', express.json({ limit: '2kb' }), async (req, res) => {
   if (!store) return res.status(404).json({ error: 'Payments are not set up.' });
   if (limited('checkout:' + reqIp(req), 10, 60 * 60 * 1000)) return res.status(429).json({ error: 'Too many tries. Try again later.' });
-  try { res.json({ url: await createCheckout(store, process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`, countryOf(req.headers)) }); }
+  try { stats.count('checkout'); res.json({ url: await createCheckout(store, process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`, countryOf(req.headers)) }); }
   catch { res.status(502).json({ error: 'Couldn’t reach the payment page. Try again in a moment.' }); }
 });
 app.post('/api/claim', express.json({ limit: '2kb' }), async (req, res) => {
@@ -226,6 +256,7 @@ app.post('/api/claim', express.json({ limit: '2kb' }), async (req, res) => {
   try {
     const code = await claim(store, req.body?.session);
     if (!code) return res.status(402).json({ error: 'That payment isn’t complete yet.' });
+    stats.count('purchased');
     res.json({ code });
   } catch { res.status(502).json({ error: 'Couldn’t confirm the payment. Try again in a moment.' }); }
 });
@@ -242,7 +273,7 @@ app.post('/api/news', express.json({ limit: '1kb' }), async (req, res) => {
   if (limited('news:' + reqIp(req), 5, 60 * 60 * 1000)) return res.status(429).json({ error: 'Too many tries. Try again later.' });
   const email = req.body?.email;
   if (!validEmail(email)) return res.status(400).json({ error: 'That email address doesn’t look right.' });
-  try { await subscribe(news, email); res.json({ ok: true }); }
+  try { await subscribe(news, email); stats.count('newsSignup'); res.json({ ok: true }); }
   catch { res.status(502).json({ error: 'Couldn’t sign you up just now. Try again in a moment.' }); }
 });
 
@@ -253,10 +284,11 @@ const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist
 if (existsSync(path.join(dist, 'index.html'))) {
   app.use(express.static(dist, { maxAge: '1h', index: false }));
   // The game lives at /play; everything else gets the landing page. Old invite links (/?j=...) are sent to /play.
-  app.get(['/play', '/play/*'], (_, res) => res.sendFile(path.join(dist, 'play.html')));
+  app.get(['/play', '/play/*'], (_, res) => { stats.count('play'); res.sendFile(path.join(dist, 'play.html')); });
   app.get('/privacy', (_, res) => res.sendFile(path.join(dist, 'privacy.html')));
   app.get('*', (req, res) => {
     if (typeof req.query.j === 'string') return res.redirect(302, '/play?j=' + encodeURIComponent(req.query.j));
+    if (req.path === '/') stats.count('landing');
     res.sendFile(path.join(dist, 'index.html'));
   });
 }
