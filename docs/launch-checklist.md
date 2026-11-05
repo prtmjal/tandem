@@ -30,7 +30,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
   - [ ] the 18+ approach, and Brazil (ECA Digital may not accept a self-declared age)
   - [ ] India IT Act 67/67A and the DPDP Act
   - [ ] EU accessibility and consumer law, if selling in the EU
-- 🟡 **Content review** of all 410 cards (370 free, 40 Couple Pass) by an LGBTQ+ sex educator.
+- 🟡 **Content review** of all 418 cards (378 free, 40 Couple Pass) by an LGBTQ+ sex educator.
 - 🟡 **Payments**, if you want them at launch:
   - [ ] get Stripe's written approval (describe it as a couples' relationship and conversation game)
   - [ ] create the one-time price, plus optional regional prices

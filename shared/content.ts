@@ -118,20 +118,28 @@ const HEAT: Record<number, Raw[]> = {
 ["One of you can't move for two minutes. The other kisses anywhere above the waist that's welcome.","Do","stillkiss",120],
 ["Breathe slowly against your partner's neck for thirty seconds without touching. Then one slow kiss.","Do","breathneck",30]],
 6: [
-["Take off one piece of your partner's clothing, slowly, kissing the skin you uncover. They can say 'stop' at any piece.","Session","undress1"],
-["Slow back massage with warm oil or lotion, from neck to lower back. The receiver sets the pressure.","Session","oilback",300],
-["Blindfold your partner. Kiss three places they don't expect. Before each one, they guess where you'll go.","Session","blindkiss"],
+["Take off your partner's clothes one piece at a time, slowly, kissing the skin you uncover. Keep going as far as you both want; 'stop' ends it at any piece.","Session","undress1"],
+["Shirt off, warm oil: slow back massage from the neck to the base of the spine. The receiver sets the pressure and says when to go lower.","Session","oilback",300],
+["Blindfold your partner. Kiss five places they don't expect, each a little bolder. Before each one, they guess where you'll go.","Session","blindkiss"],
 ["Trace an ice cube along your partner's neck and collarbone, then warm the same path with your lips.","Session","icewarm"],
-["Lie together skin to skin, as much as feels right, for five minutes. Just breathe and notice.","Session","skin",300],
-["Run your fingertips down your partner's spine and back up. Ten times, each one slower than the last.","Session","spine"],
-["Kiss your way down your partner's back, slowly. They say 'stay' wherever they want you to linger.","Session","backkisses"],
-["Shower or bathe together. Take turns washing each other's shoulders and back, slowly, saying nothing.","Session","shower"],
-["Hold your partner from behind. Let your hands move slowly over their waist and stomach. They guide your hands.","Session","spoonhands"],
+["Lie together skin to skin, as bare as feels right, for five minutes. Let your hands wander and your breathing speed up.","Session","skin",300],
+["Run your fingertips down your partner's bare spine and back up, ten times, each slower and lower than the last.","Session","spine"],
+["Kiss your way down your partner's bare back, slowly. They say 'stay' wherever they want you to linger, and 'lower' when they're ready.","Session","backkisses"],
+["Shower together. Take turns soaping each other slowly, everywhere you're both comfortable, saying nothing.","Session","shower"],
+["Hold your partner from behind. Let your hands move slowly over their waist, stomach and hips, under their clothes. They guide your hands.","Session","spoonhands"],
 ["Three minutes of fingertip touch each, eyes closed. The receiver can answer only with sounds, no words.","Session","soundsonly",180],
-["Feather-light kisses on your partner's inner arm and the back of their knee. Ask which they liked more.","Session","feather"],
-["Slow-dance in as little clothing as you're both comfortable with. One song, lights low.","Session","barelydance"],
-["Massage your partner's calves and thighs for three minutes, over or under clothes, their choice.","Session","legs",180],
-["Lie face to face, legs tangled, and kiss slowly for five minutes. Nothing has to happen next.","Session","tangled",300]],
+["Feather-light kisses on your partner's inner arm, the back of their knee and their inner thigh. Ask which they liked most.","Session","feather"],
+["Slow-dance in as little as you're both comfortable with. One song, lights low, bodies pressed close.","Session","barelydance"],
+["Massage your partner's calves and thighs for three minutes, under clothes, working slowly upward. They say when to stop.","Session","legs",180],
+["Lie face to face, legs tangled, and kiss slowly for five minutes. Hands may roam. Nothing has to happen next.","Session","tangled",300],
+["Kiss the back of your partner's neck while your hands slowly undo one button, zip or tie. Then stop, and wait to be asked for more.","Session","neckundo"],
+["Lie on your front while your partner draws slow circles of warm oil on your back, and lower, if you say yes.","Session","oilcircles"],
+["Take turns whispering one place you'd love to be kissed tonight. The other kisses it, slowly, then asks for the next.","Session","kissrequest"],
+["Sit between your partner's knees, back to their chest. They kiss your neck and shoulders; their hands rest wherever you place them.","Session","betweenknees"],
+["Undress each other to your underwear, slowly, taking turns. Then lie together for five minutes without taking anything else off.","Session","underwear",300],
+["Put on a blindfold. Your partner guides your hands over them for two minutes, wherever they choose to take them.","Session","guidedhands",120],
+["A slow full-body hug lying down, as bare as you like, for three minutes. Whoever moves first has to kiss the other.","Session","bodyhug",180],
+["Warm a towel and slowly dry your partner after a shower, every inch they offer, kissing as you go.","Session","towel"]],
 7: [
 ["Scene: 'Room Service.' One of you orders, the other delivers, then lingers: they won't leave until the guest says exactly what else they'd like.","Scene","sc-roomservice"],
 ["Scene: 'The Private Massage.' One of you is a therapist with very good hands and very few rules. The client sets every limit and says when the session ends.","Scene","sc-massage"],
@@ -724,7 +732,7 @@ const EXTRA: Record<number, Raw[]> = {
 ],
 "6": [
 [
-"Spend five minutes feeling the texture of one object together: silk, wool, a smooth stone. Take turns describing what you notice.",
+"Run a silk scarf slowly over your partner's bare shoulders, neck and back. They close their eyes and say 'again' wherever they want it.",
 "Session",
 "textures",
 300
@@ -736,7 +744,7 @@ const EXTRA: Record<number, Raw[]> = {
 300
 ],
 [
-"Choose a scent and let your partner guess it with eyes closed. Describe the memory it brings back.",
+"Dab a scent you love on your partner's neck or wrist. Find it again with your lips, eyes closed.",
 "Session",
 "scentgame",
 180
@@ -752,7 +760,7 @@ const EXTRA: Record<number, Raw[]> = {
 "unhurried2"
 ],
 [
-"Lie side by side for five minutes and listen to the same song with eyes closed. Share what you noticed.",
+"Lie side by side with one song playing. For its whole length, only fingertips may move, and only under clothing.",
 "Session",
 "lie",
 300
@@ -774,7 +782,7 @@ const EXTRA: Record<number, Raw[]> = {
 "temperature"
 ],
 [
-"Trace a slow figure eight on your partner's palm with a fingertip. They say 'slower', 'lighter' or 'more'.",
+"Trace slow figure eights on your partner's inner wrist, then their neck, then their lower back. They say 'slower', 'lighter' or 'more'.",
 "Session",
 "figure8",
 120
@@ -791,7 +799,7 @@ const EXTRA: Record<number, Raw[]> = {
 600
 ],
 [
-"Light a candle or soft light and sit facing each other. Take turns saying one thing you're thankful for.",
+"Light one candle. Sit facing each other, knees touching, and take turns removing one thing the other is wearing. Stop whenever either of you wants.",
 "Session",
 "candlethanks",
 300
@@ -802,7 +810,7 @@ const EXTRA: Record<number, Raw[]> = {
 "ease"
 ],
 [
-"Lead your partner, eyes closed, to a spot in the room. Offer a soft sensation and ask them to name it.",
+"Lead your partner, eyes closed, to the bed. Offer three slow sensations: breath, fingertips, lips. They guess each one.",
 "Session",
 "blindfold2",
 300
@@ -829,7 +837,7 @@ const EXTRA: Record<number, Raw[]> = {
 "texturepick"
 ],
 [
-"Close your eyes and let your partner guide your hand along a surface for one minute. Say what you notice.",
+"Close your eyes and let your partner guide your hand slowly over their arms, neck and back. Say what you notice.",
 "Session",
 "guided",
 60
@@ -846,7 +854,7 @@ const EXTRA: Record<number, Raw[]> = {
 300
 ],
 [
-"Take turns giving a slow arm-and-shoulder stroke for three minutes. The receiver keeps the pace.",
+"Slow strokes from the shoulders down to the lower back, under their shirt, for three minutes. The receiver keeps the pace.",
 "Session",
 "armshoulder",
 180
@@ -862,7 +870,7 @@ const EXTRA: Record<number, Raw[]> = {
 "signals2"
 ],
 [
-"Warm lotion in your hands and give two minutes of hand care. The receiver says how the pressure feels.",
+"Warm lotion in your hands and massage your partner's neck, shoulders and chest. The receiver says how the pressure feels.",
 "Session",
 "handcare",
 120
@@ -878,7 +886,7 @@ const EXTRA: Record<number, Raw[]> = {
 "heardbody"
 ],
 [
-"Take turns guiding each other on a slow walk around the room, with the follower's eyes closed.",
+"Undo your partner's top slowly while they keep their eyes closed. Then kiss their shoulders until they open them.",
 "Session",
 "slowwalk",
 180
@@ -889,7 +897,7 @@ const EXTRA: Record<number, Raw[]> = {
 "lovetouch"
 ],
 [
-"Spend ten quiet minutes wrapped in a blanket together. Whoever wants to speak can; whoever doesn't, doesn't.",
+"Ten minutes under one blanket, as bare as you both like. No talking. Hands may wander, slowly.",
 "Session",
 "wrapped",
 600
@@ -928,7 +936,7 @@ const EXTRA: Record<number, Raw[]> = {
 300
 ],
 [
-"Take five minutes to stretch together, side by side. Share what feels good in your body.",
+"Stretch out on the bed and let your partner massage whatever aches, as slowly as they like. Then swap.",
 "Session",
 "stretch",
 300
@@ -944,7 +952,7 @@ const EXTRA: Record<number, Raw[]> = {
 "closeword"
 ],
 [
-"Trace the outline of your partner's hand on paper. Talk about how it feels while you draw.",
+"Trace your partner's silhouette with one fingertip, head to hip, as they lie still. Then do it again with your lips.",
 "Session",
 "outline",
 240
@@ -955,7 +963,7 @@ const EXTRA: Record<number, Raw[]> = {
 "clothing"
 ],
 [
-"Trade slow, goal-free touch on the arms and upper back for four minutes each. Nothing needs to lead anywhere.",
+"Trade slow touch on bare backs and sides for four minutes each. Nothing needs to lead anywhere, but it may.",
 "Session",
 "goalfree",
 240
@@ -976,7 +984,7 @@ const EXTRA: Record<number, Raw[]> = {
 "tiredtouch"
 ],
 [
-"Turn off the lights and light one candle. Take turns describing the room as you see it.",
+"Turn off the lights and light one candle. In its glow, undress each other down to whatever feels comfortable, slowly.",
 "Session",
 "candleroom",
 180
@@ -987,13 +995,13 @@ const EXTRA: Record<number, Raw[]> = {
 "textsound"
 ],
 [
-"Take turns guiding the other's hand across a soft surface and naming one feeling it brings up.",
+"Guide your partner's hand to where you'd like to be touched next, above the waist. They stay there until you move it.",
 "Session",
 "softsurface",
 180
 ],
 [
-"Spend three minutes simply holding hands and noticing what changes in your breathing.",
+"Sit in your partner's lap, facing them, foreheads touching. Breathe together for three minutes while their hands explore your back.",
 "Session",
 "holdnotice",
 180
@@ -1004,7 +1012,7 @@ const EXTRA: Record<number, Raw[]> = {
 "easewith"
 ],
 [
-"Offer a long, slow hug and see how long you can both stay in it before anyone wants to let go.",
+"A long, slow hug with shirts off. See how long you can both stay in it before someone has to kiss the other.",
 "Session",
 "longhug",
 180
