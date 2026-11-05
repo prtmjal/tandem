@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { KIT, NO_SHOP, RETAILERS, TOPIC_KIT, affiliateUrl, kitFor, retailersFor } from '../shared/shop';
-import { DECK } from '../shared/content';
+import { APART_DECK, DECK } from '../shared/content';
 import { PASS_DECK } from '../shared/decks';
 import { Room } from '../server/game';
 import { emptyProgress } from '../shared/protocol';
@@ -24,7 +24,7 @@ describe('shop rules', () => {
     expect(awin).toBe('https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued=' + encodeURIComponent('https://www.lovehoney.co.uk/'));
   });
   it('kit topics are real card topics, and toy-box-only items never appear in the kit', () => {
-    const topics = new Set([...Object.values(DECK).flat(), ...Object.values(PASS_DECK).flat()].map(c => c.topic));
+    const topics = new Set([...Object.values(DECK).flat(), ...Object.values(PASS_DECK).flat(), ...Object.values(APART_DECK).flat()].map(c => c.topic));
     for (const t of Object.keys(TOPIC_KIT)) expect(topics.has(t), t).toBe(true);
     for (const k of kitFor(Object.keys(TOPIC_KIT))) expect(KIT[k].toyBoxOnly).toBeFalsy();
     expect(kitFor(['blindkiss', 'oilback']).length).toBeLessThanOrEqual(3);

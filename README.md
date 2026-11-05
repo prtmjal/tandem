@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (77 tests)
+npm test          # engine, privacy and palette contrast tests (79 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -32,7 +32,7 @@ Use HTTPS in production (both hosts do this for you). Vibration, wake lock and i
 
 ## Long distance
 
-On the night-setup screen, either partner can choose **Apart, on a call**. The game then deals only cards that work over video (no hands-on cards, so no hands-on votes), drops a level when too few such cards are left, skips same-room twists and envelopes, lets each phone play its own music, and puts "send a touch" up front. With the Couple Pass, the Long distance deck appears only on nights apart.
+On the night-setup screen, either partner can choose **Apart, on a call**. The game then deals only cards that work over video, plus a free Long distance deck of 43 cards made for a call (from a room tour at Level 1 to a guided, camera-on Midnight, with a 'no screenshots, no recording' card at Level 6) (no hands-on cards, so no hands-on votes), drops a level when too few such cards are left, skips same-room twists and envelopes, lets each phone play its own music, and puts "send a touch" up front. With the Couple Pass, the Long distance deck appears only on nights apart.
 
 ## Keeping progress safe (no accounts)
 

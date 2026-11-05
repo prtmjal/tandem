@@ -1,7 +1,7 @@
 // Server-authoritative game room. Private choices live only here and are never sent to the partner.
 import {
   DECK, LEVELS, CARD_BY_ID, TOTAL_CARDS, TWIST_UP, TWIST_DOWN, CLOSING, ENVELOPES,
-  isGated, SOFT_TYPES, worksApart, TOGETHER_TEXT, type Card,
+  isGated, SOFT_TYPES, worksApart, TOGETHER_TEXT, APART_DECK, APART_CARDS, type Card,
 } from '../shared/content';
 import {
   emptyProgress, type Action, type CardView, type Energy, type Phase, type Progress, type VibeId, type View, type Vote,
@@ -114,7 +114,8 @@ export class Room {
     const extra = this.pass ? PASS_DECK[l] || [] : [];
     // The Long distance deck is for nights apart; everything else in the pass works both ways.
     const all = DECK[l].concat(extra.filter(c => this.apart || !c.id.startsWith('p.distance.')));
-    return this.apart ? all.filter(c => worksApart(c) || c.id.startsWith('p.distance.')) : all;
+    // Apart: video-friendly cards plus the free Long distance deck (and the pass's, when on).
+    return this.apart ? all.filter(c => worksApart(c) || c.id.startsWith('p.distance.')).concat(APART_DECK[l] || []) : all;
   }
   private pushChat(from: Idx, text: string, seq: number | null, sealed: boolean) {
     this.chat.push({ id: ++this.chatId, from, text, seq, sealed, at: Date.now() });
@@ -431,7 +432,7 @@ export class Room {
       meAllowsTouch: !!P[me]?.allowTouch,
       unlocked: this.prog.unlocked.slice(),
       sessions: this.prog.sessions,
-      totalCards: TOTAL_CARDS + (this.pass ? PASS_CARD_COUNT : 0),
+      totalCards: TOTAL_CARDS + APART_CARDS + (this.pass ? PASS_CARD_COUNT : 0),
       pass: this.pass,
       unlock: this.unlock ? {
         l: this.unlock.l, samples: this.unlock.samples, myVote: this.unlock.votes[me],

@@ -50,7 +50,6 @@ export function PlayCard(p: PlayCardProps) {
           <div className={'face front' + (p.special ? ' ' + p.special : '')} aria-hidden={p.faceDown}>
             <div className="head">
               <span className="chip">{type === 'Twist' ? <>✦ {p.title}</> : <><LevelGlyph level={p.level} /> {p.level} · {p.title ?? levelName(p.level)}</>}</span>
-              <span className="chip"><TypeIcon type={type} size={14} /> {type}</span>
             </div>
             <div className="art ghost" aria-hidden="true"><Motif level={p.level} seed={p.seed + 'g'} color="currentColor" /></div>
             <div className="art">
@@ -58,7 +57,7 @@ export function PlayCard(p: PlayCardProps) {
               {text && <div className="art-theme"><ThemeArt theme={themeFor(text)} seed={p.seed} c="currentColor" /></div>}
             </div>
             <div className="body"><h2 className="sr-only">{type === 'Twist' ? 'Wildcard' : `Level ${p.level}, ${levelName(p.level)}`}</h2><p className={'prompt ' + size}>{text}</p></div>
-            <div className="foot"><span>{HINTS[type] || ''}</span><span>Pass anytime</span></div>
+            <div className="foot"><span>{HINTS[type] || ''}</span></div>
           </div>
           <div className={'face back' + (p.special === 'gold' ? ' gold' : '')} aria-hidden={!p.faceDown}>
             <div className="art"><Motif level={p.level} seed={p.seed + 'b'} color="currentColor" /></div>

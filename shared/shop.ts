@@ -22,7 +22,7 @@ export const TOPIC_KIT: Record<string, KitId[]> = {
   handmassage: ['massage-oil'], handcare: ['massage-oil'], oilback: ['massage-oil', 'massage-candle'], headtoe: ['massage-oil', 'massage-candle'],
   'sl-warm': ['massage-oil'], massage: ['massage-oil'],
   candle: ['massage-candle'], candleroom: ['massage-candle'], candlethanks: ['massage-candle'],
-  scarf: ['silk-tie'], feather: ['feather'], oilcircles: ['massage-oil'], guidedhands: ['blindfold'],
+  scarf: ['silk-tie'], feather: ['feather'], oilcircles: ['massage-oil'], guidedhands: ['blindfold'], 'ap-blind': ['blindfold'],
 };
 
 /** Up to three kit items for tonight, from the topics of cards that were actually shown. */

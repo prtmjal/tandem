@@ -1127,7 +1127,67 @@ export const CARD_BY_ID: Record<string, Card> = {};
 for (const l in DECK) for (const c of DECK[l]) CARD_BY_ID[c.id] = c;
 // Couple Pass cards are known ids too, so progress (seen, parked) round-trips for them.
 for (const l in PASS_DECK) for (const c of PASS_DECK[l]) CARD_BY_ID[c.id] = c;
+/* ---------- Long distance (free): cards made for a video call, dealt only on nights apart ---------- */
+// Ids are "a.<level>.<n>". Hands-on types at Level 4+ still get the private yes / maybe / not tonight first.
+const APART: Record<number, Raw[]> = {
+1: [
+["Give me a thirty-second tour of the room you're in. Then I guess one thing you didn't show me.","Share","ap-tour",30],
+["Show me the mug or glass you're drinking from and tell me its story.","Share","ap-mug"],
+["Grab a snack and eat it on camera. We rate each other's pick out of ten.","Share","ap-snack"],
+["Guess three things in my fridge right now. One point each.","Guess","ap-fridge"],
+["Point your camera out of the window. Describe what I'd hear if I were there.","Share","ap-window"]],
+2: [
+["What's the hardest part of being apart right now, and what helps most?","Ask","ap-hard"],
+["Plan our next visit: first meal, one place, one thing we skip, one surprise.","Plan","ap-visit"],
+["Tell me about a moment today you wished I'd been there for.","Share","ap-moment"],
+["What's one small thing we could do every day apart to make it feel less far?","Ask","ap-daily"],
+["Count the days until we're in the same place. Say what you're looking forward to most.","Share","ap-countdown"]],
+3: [
+["Send me a selfie right now. No retakes. I'll send one back.","Note","ap-selfie"],
+["Leave me a voice note I'm only allowed to play when I wake up.","Note","ap-voicenote"],
+["Review what you're wearing like a fashion critic. I score it out of ten.","Share","ap-review"],
+["Look into the camera for twenty seconds without laughing, then say what you'd do if I were there.","Share","ap-stare",20],
+["Plan what you'll wear the next time we see each other. Show me one piece now.","Plan","ap-outfit"]],
+4: [
+["Lie down with the phone beside you and talk until one of us yawns.","Do","ap-liedown"],
+["Hug a pillow like it's me and tell me exactly how you'd want to be held.","Do","ap-pillow"],
+["Close your eyes. I'll describe, slowly, how I'd brush your hair back. Then swap.","Do","ap-hair"],
+["Press play on the same song at the same moment and sway, wherever you are.","Do","ap-sway"],
+["Rest your hand on the screen and I'll rest mine on mine. Stay for a minute and just breathe.","Do","ap-hands",60]],
+5: [
+["Tell me, slowly and in detail, how you'd kiss me if you walked in right now.","Do","ap-kiss"],
+["Look straight into the camera and say one thing you miss about my mouth.","Do","ap-mouth"],
+["Whisper into the microphone something you'd never say out loud in a café.","Do","ap-whisper"],
+["Undo one button, slowly, without looking away from the camera. That's all, for now.","Do","ap-button"],
+["Kiss the camera. Yes, really. Then tell me what you were thinking.","Do","ap-camkiss"],
+["Describe the first ten seconds of our next hello. I'll stop you if it gets too good.","Do","ap-hello"]],
+6: [
+["Before anything else: no screenshots, no recording. Say it out loud to each other, then carry on.","Share","ap-norecord"],
+["Trace your own collarbone slowly while telling me how you'd want me to do it.","Session","ap-collarbone"],
+["Lights low, camera on. Take off one thing while I tell you where I'd kiss first.","Session","ap-onething"],
+["Describe a slow massage you'd give me, minute by minute. I close my eyes and listen.","Session","ap-massage"],
+["Put on something soft and show me. Tell me why you chose it.","Session","ap-soft"],
+["Lie back and let me talk you through the next five minutes. You set the pace with 'slower' or 'more'.","Session","ap-talkthrough",300]],
+7: [
+["Scene: 'The Late-Night Call.' Strangers who matched online finally hear each other's voices. Keep it flirty; the cue word ends the scene.","Scene","ap-sc-call"],
+["Scene: 'The Hotel Room Call.' One of you is away and can't sleep. The other knows exactly how to help.","Scene","ap-sc-hotel"],
+["Scene: 'Room Service by Video.' One of you takes the other's order and describes, in detail, what's coming.","Scene","ap-sc-service"],
+["Scene: 'The Secret Admirer.' Three voice notes from someone who's been watching across a room. Reveal yourself on the third.","Scene","ap-sc-admirer"],
+["Scene: 'First Video Date.' Strangers on camera. Before it ends, one of you has to ask for something bold.","Scene","ap-sc-date"]],
+8: [
+["Camera on, lights low. Undress slowly for each other, as far as you both want, without saying a word.","Session","ap-undress"],
+["Whisper exactly what you'd do to me tonight if you were here, in order. I can only say 'yes' or 'slower'.","Do","ap-inorder"],
+["Ten minutes where one of you gives soft instructions and the other follows on camera, or says no.","Session","ap-instruct",600],
+["Put on a blindfold and keep the call going. Your partner talks you through what they'd do next.","Session","ap-blind"],
+["Say goodnight in the most tempting way you can, then hang up first. No calling back for five minutes.","Do","ap-tempt"],
+["Hold the phone close, both quiet, until one of you whispers goodnight.","Do","ap-goodnight"]],
+};
+export const APART_DECK: Record<number, Card[]> = {};
+for (let l = 1; l <= 8; l++) APART_DECK[l] = (APART[l] || []).map((c, i) =>
+  ({ id: `a.${l}.${i}`, l, text: String(c[0]), type: String(c[1]), topic: String(c[2]), t: Number(c[3] || 0) }));
+for (const l in APART_DECK) for (const c of APART_DECK[l]) CARD_BY_ID[c.id] = c;
 export const TOTAL_CARDS = Object.values(DECK).reduce((a, b) => a + b.length, 0);
+export const APART_CARDS = Object.values(APART_DECK).reduce((a, b) => a + b.length, 0);
 
 const GATED = new Set(['Do', 'Session', 'Scene']);
 

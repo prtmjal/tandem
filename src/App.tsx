@@ -191,7 +191,6 @@ function AgeGate({ onYes, mode, hue }: { onYes: () => void; mode: Mode; hue: num
       <div className="bottom">
         <button className="btn" disabled={!sure} onClick={onYes}>I’m 18+, let’s go</button>
         <button className="btn ghost" onClick={() => setUnder(true)}>I’m under 18</button>
-        <p className="tiny muted center" style={{ textAlign: 'center' }}>Progress stays on your phones. The server only holds tonight’s room, then forgets it.</p>
       </div>
     </main>
   );
@@ -297,7 +296,6 @@ function Menu(p: RoomProps & { close: () => void; partner: string }) {
           <div className="vibes">{VIBE_IDS.map(v => <VibeBtn key={v} v={v} on={p.myVibe === v} mode={p.theme.mode} onClick={() => p.pickVibe(v)} />)}</div>
           <p className="eyebrow">Light or dark</p>
           <div className="seg">{(['auto', 'light', 'dark'] as ModePref[]).map(m => <button key={m} className="ctrl small" aria-pressed={p.pref === m} onClick={() => p.setPref(m)}>{m === 'auto' ? 'Match phone' : m === 'light' ? 'Light' : 'Dark'}</button>)}</div>
-          <p className="tiny muted">After 10 pm at level 5 and up, the app shifts into a deeper, dimmer late-night look.</p>
           <p className="eyebrow">Sound and touch</p>
           <MoodControls view={p.view} partner={p.partner} full />
           <ProgressSettings toast={p.toast} />
@@ -310,7 +308,6 @@ function Menu(p: RoomProps & { close: () => void; partner: string }) {
           </div>
           <button className="ctrl" aria-pressed={plain} onClick={() => { const n = !plain; setPlain(n); store.set(keys.plain, n ? '1' : '0'); document.documentElement.classList.toggle('plain', n); }}>Larger text, plain cards {plain ? 'on' : 'off'}</button>
         </div>
-        <p className="tiny muted">Room {p.view.code}</p>
         {sure
           ? <div className="row"><button className="ctrl" onClick={() => { net.forget(); p.close(); }}>Leave room</button><button className="ctrl" onClick={() => setSure(false)}>Stay</button></div>
           : <button className="btn ghost" onClick={() => setSure(true)}>Leave this room</button>}
@@ -367,7 +364,7 @@ function Home(p: RoomProps) {
       <Tip id="home">Tap “Start tonight’s session” to begin. Curious about a locked level? Tap it to peek at sample cards, then each of you answers privately.</Tip>
       <button className="btn" onClick={() => { cue('tap'); net.act({ a: 'tonight' }); }}>Start tonight’s session</button>
       <div className="stack">
-        <div><h3>The map</h3><p className="tiny muted">Tap an open level to play tonight, as far as that level. Levels 3 and up open when you both choose them, privately.</p></div>
+        <div><h3>The map</h3><p className="tiny muted">Tap a level to play up to it. Locked levels open when you both say you’re curious.</p></div>
         <div className="map">
           {[1, 2, 3, 4, 5, 6, 7, 8].map(l => {
             const isOpen = open.has(l);
@@ -378,12 +375,11 @@ function Home(p: RoomProps) {
                 aria-label={`${l}, ${levelName(l)}, ${isOpen ? 'open. Tap to play tonight, up to this level' : 'locked. Tap to see sample cards'}`}>
                 <MiniArt level={l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} seed={'tile' + l} />
                 {!isOpen && <span className="lock chip"><Icon d={I.lock} size={14} /> Curious?</span>}
-                <span className="lbl"><b><LevelGlyph level={l} /> {l} · {levelName(l)}</b><span>{isOpen ? 'Tap to play' : 'Tap to peek'}</span></span>
+                <span className="lbl"><b><LevelGlyph level={l} /> {l} · {levelName(l)}</b></span>
               </button>
             );
           })}
         </div>
-        <p className="tiny muted" style={{ textAlign: 'center' }}>{view.totalCards} cards in this version</p>
       </div>
       <InstallPrompt sessions={view.sessions} />
       <PassPanel view={view} />
@@ -445,13 +441,12 @@ function Ceiling(p: RoomProps & { partner: string }) {
       <div className="stack center"><p className="eyebrow">Locked in</p><h2>Your choice is private</h2>
         {c.partnerDone ? <p className="muted">Starting…</p> : <Waiting>Waiting for {p.partner}</Waiting>}</div>
       <div className="grow" />
-      <p className="tiny muted" style={{ textAlign: 'center' }}>Tonight plays at the lower of your two choices.</p>
     </>
   );
   return (
     <>
       <div className="stack"><p className="eyebrow">Private. Only on your phone.</p><h2>How far tonight?</h2>
-        <p className="muted">{c.partnerDone ? `${p.partner} has chosen. ` : ''}Tonight plays at the lower of your two choices, and the app only shows “Tonight: level”.</p></div>
+        <p className="muted">{c.partnerDone ? `${p.partner} has chosen. ` : ''}Tonight plays at the lower of your two choices. {p.partner} never sees yours.</p></div>
       <div className="choices">
         {p.view.unlocked.map(l => {
           const st = cardColors(l, p.theme.cardHue, p.theme.mode, p.theme.cardVibe);
@@ -484,7 +479,7 @@ function Arrive(p: RoomProps & { partner: string }) {
   return (
     <>
       <div className="stack"><p className="eyebrow">Tonight</p><h1>{levelName(a.tonight)}</h1></div>
-      <Tip id="arrive">Say where you are, pick a colour and an energy, then both tap “I’m ready”. The first card appears on both phones at the same moment.</Tip>
+      <Tip id="arrive">Say where you are, pick a colour and a length, then both tap “I’m ready”. The first card appears on both phones at the same moment.</Tip>
       <div className="stack">
         <h3>Where are you tonight?</h3>
         <div className="seg two">
@@ -502,29 +497,23 @@ function Arrive(p: RoomProps & { partner: string }) {
           {VIBE_IDS.map(v => <VibeBtn key={v} v={v} mode={p.theme.mode} on={a.myVibe === v} onClick={() => { cue('tap'); p.pickVibe(v); }}
             marks={[...(a.myVibe === v ? [meI.toUpperCase()] : []), ...(a.partnerVibe === v ? [themI.toUpperCase()] : [])]} />)}
         </div>
-        <p className="tiny muted">If you pick different colours, the cards take turns between them.</p>
       </div>
       <div className="stack">
-        <h3>Energy</h3>
-        <div className="seg">
-          {([['low', 'Low', '12 cards'], ['mid', 'Medium', '16 cards'], ['high', 'Good', '16 cards']] as const).map(([k, t, s]) =>
-            <button key={k} className="ctrl" aria-pressed={a.energy === k} onClick={() => net.act({ a: 'energy', v: k })} style={{ flexDirection: 'column', gap: 0 }}><span>{t}</span><span className="tiny" style={{ fontWeight: 500 }}>{s}</span></button>)}
+        <h3>How long?</h3>
+        <div className="seg two">
+          {([['low', 'Short', '12 cards'], ['mid', 'Full', '16 cards']] as const).map(([k, t, n]) =>
+            <button key={k} className="ctrl" aria-pressed={a.energy === k || (k === 'mid' && a.energy === 'high')} onClick={() => net.act({ a: 'energy', v: k })} style={{ flexDirection: 'column', gap: 0 }}><span>{t}</span><span className="tiny" style={{ fontWeight: 500 }}>{n}</span></button>)}
         </div>
       </div>
       <div className="stack">
-        <h3>Set the mood <span className="tiny muted" style={{ fontWeight: 500 }}>optional</span></h3>
+        <h3>Set the mood</h3>
         <MoodControls view={p.view} partner={p.partner} />
       </div>
       {a.memory && <div className="panel"><p className="eyebrow">A memory you kept</p><p>{a.memory}</p></div>}
-      <div className="envelope" style={{ ['--env' as string]: cardColors(7, p.theme.cardHue, 'dark').field }}>
-        <div className="body" /><div className="flap" /><div className="seal">T</div>
-      </div>
-      <p className="tiny muted" style={{ textAlign: 'center' }}>A sealed envelope opens at the end of tonight.</p>
       <div className="bottom">
         {a.myReady
           ? <div className="center" style={{ display: 'flex', justifyContent: 'center', minHeight: 52, alignItems: 'center' }}>{a.partnerReady ? <span className="muted">Here we go</span> : <Waiting>Waiting for {p.partner}</Waiting>}</div>
           : <button className="btn" onClick={() => { cue('ready'); net.act({ a: 'ready' }); }}>{a.partnerReady ? `${p.partner} is ready. Begin` : 'I’m ready'}</button>}
-        <p className="tiny muted" style={{ textAlign: 'center' }}>Either of you can pass any card, tap Softer, or pause at any time.</p>
       </div>
       <Countdown at={a.countdownAt} onDone={onDone} />
     </>
@@ -587,11 +576,7 @@ function Play(p: RoomProps & { partner: string }) {
   return (
     <>
       <div className="stack" style={{ gap: 8 }}>
-        <div className="top">
-          <span className="tiny muted">Tonight: {levelName(s.tonight)} · {Math.min(s.idx + 1, s.N)}/{s.N}</span>
-          {p.view.apart && <span className="chip apart-chip">Apart · on a call</span>}
-        </div>
-        <div className="prog"><i style={{ width: `${Math.round((s.idx / s.N) * 100)}%` }} /></div>
+        <div className="prog" role="progressbar" aria-label={`Card ${Math.min(s.idx + 1, s.N)} of ${s.N}`} aria-valuenow={Math.min(s.idx + 1, s.N)} aria-valuemin={1} aria-valuemax={s.N}><i style={{ width: `${Math.round((s.idx / s.N) * 100)}%` }} /></div>
       </div>
       {tip}
       <div className={'grow cardstage' + (glow ? ' glow' : '')} key={'g' + glow} style={{ display: 'grid', placeItems: 'center' }}>{pre > 0 ? null : main}</div>
@@ -760,7 +745,7 @@ function ShareOffer({ view, theme, toast }: { view: View; theme: RoomProps['them
   if (!card) return (
     <div className="panel share">
       <p className="eyebrow">Share a card? · optional</p>
-      <p>A picture with one question you played tonight and how many nights you’ve played. No names, nothing private.</p>
+      <p>One question from tonight and your night count. No names.</p>
       <button className="ctrl" aria-pressed={c.myShare} onClick={() => { cue('tap'); net.act({ a: 'share', on: !c.myShare }); }}>
         {c.myShare ? '✓ I’m happy to share' : 'I’d be happy to share a card'}
       </button>
@@ -984,13 +969,11 @@ function MoodControls({ view, partner, full }: { view: View; partner: string; fu
           {mine ? 'Music: this phone' : view.music === 'partner' ? (view.apart ? 'Music here too' : 'Play music here') : 'Music off'}
         </button>
       </div>
-      <p className="tiny muted">{view.apart
-        ? 'You’re apart, so each phone can play its own music. Keep it low so your call stays clear.'
-        : view.music === 'partner' ? `Music is playing on ${partner}’s phone. Only one phone plays it, so it never echoes.` : mine ? 'Slow and wordless, so it never competes with talking. Tap again to stop.' : 'Sounds are soft taps and flips. Music plays on one phone only.'}</p>
+      {!view.apart && view.music === 'partner' && <p className="tiny muted">Music is playing on {partner}’s phone.</p>}
       {!full && view.apart && <button className="ctrl" aria-pressed={view.meAllowsTouch} onClick={() => net.act({ a: 'touch:allow', on: !view.meAllowsTouch })}>{view.meAllowsTouch ? `${partner} can send you touches` : `Let ${partner} send you touches`}</button>}
-      <p className="tiny byo">Prefer your own music? Search{' '}
+      {full && <p className="tiny byo">Prefer your own music? Search{' '}
         {BYO.map((b, i) => <span key={b.name}>{i > 0 && ' · '}<a href={b.url(BYO_QUERY)} target="_blank" rel="noopener noreferrer">{b.name}</a></span>)}
-        {' '}for slow, wordless songs, and keep in-app music off.</p>
+        {' '}for slow, wordless songs.</p>}
       {full && <>
         {canVibrate && <>
           <p className="tiny" style={{ fontWeight: 600 }}>Vibration</p>
@@ -1069,7 +1052,7 @@ function Close(p: RoomProps & { partner: string }) {
           {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} /></div>}
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
           <ShopLinks kind="kit" items={kitFor(c.kitTopics || [])} />
-          {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div><p className="tiny muted">Saved on both phones. One may come back at the start of a future night.</p></div>}
+          {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div></div>}
           <div className="bottom"><button className="btn" onClick={() => net.act({ a: 'finish' })}>Done for tonight</button></div>
         </>
       )}

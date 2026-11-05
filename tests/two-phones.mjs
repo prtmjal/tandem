@@ -112,7 +112,7 @@ for (let guard = 0; guard < 120; guard++) {
     await sleep(900); await shot(B, '11b-mystery-flipped');
     continue;
   }
-  if (await A.locator('.chip', { hasText: 'Twist' }).first().isVisible().catch(() => false)) {
+  if (await A.locator('.chip', { hasText: 'Wildcard' }).first().isVisible().catch(() => false)) {
     twists++;
     if (twists === 1) await shot(A, '13-twist');
     await A.getByRole('button', { name: 'Done', exact: true }).click(); await sleep(450); continue;

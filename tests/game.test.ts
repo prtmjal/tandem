@@ -190,9 +190,14 @@ describe('apart mode', () => {
       while (r.phase === 'card' && guard++ < 200) {
         const v = r.view(0).session!.card!;
         if (v.kind === 'twist') { expect(TOGETHER_TEXT.test(v.text)).toBe(false); r.act(0, { a: 'next', seq: v.seq }); continue; }
-        expect(v.gate).toBe(null); // no hands-on cards, so no private hands-on vote
+        if (v.gate && (!v.mystery || v.flipped)) { // only the video-call deck has hands-on cards apart, and they still get the private vote
+          both(r, { a: 'gate', seq: v.seq, v: 'y' });
+          const c = r.view(0).session!.card!;
+          if (c.kind === 'card') expect(c.card!.id.startsWith('a.') || c.card!.id.startsWith('p.distance.'), c.card!.text).toBe(true);
+          continue;
+        }
         if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
-        expect(worksApart(v.card!), v.card!.text).toBe(true);
+        expect(worksApart(v.card!) || v.card!.id.startsWith('a.'), v.card!.text).toBe(true);
         r.act(0, { a: 'next', seq: v.seq });
       }
       expect(r.phase).toBe('close');
@@ -204,7 +209,7 @@ describe('apart mode', () => {
     expect(r.deck(1).some(c => c.id.startsWith('p.distance.'))).toBe(false);
     r.act(0, { a: 'apart', on: true });
     expect(r.deck(1).some(c => c.id.startsWith('p.distance.'))).toBe(true);
-    for (let l = 1; l <= 8; l++) for (const c of r.deck(l)) if (!c.id.startsWith('p.distance.')) expect(['Do', 'Session', 'Scene']).not.toContain(c.type);
+    for (let l = 1; l <= 8; l++) for (const c of r.deck(l)) if (!c.id.startsWith('p.distance.') && !c.id.startsWith('a.')) expect(['Do', 'Session', 'Scene']).not.toContain(c.type);
   });
 });
 
@@ -298,5 +303,18 @@ describe('chat and sealed answers', () => {
     const r = newRoom();
     r.act(0, { a: 'chat', text: 'hello' });
     expect(r.view(1).chat).toEqual([]);
+  });
+});
+
+describe('free long distance deck', () => {
+  it('is dealt only on nights apart, at every level', () => {
+    const r = newRoom();
+    for (let l = 1; l <= 8; l++) expect(r.deck(l).some(c => c.id.startsWith('a.'))).toBe(false);
+    r.act(0, { a: 'apart', on: true });
+    for (let l = 1; l <= 8; l++) expect(r.deck(l).some(c => c.id.startsWith('a.')), 'level ' + l).toBe(true);
+  });
+  it('keeps the private vote for hands-on video cards at Level 4 and up', async () => {
+    const { APART_DECK, isGated } = await import('../shared/content');
+    for (let l = 4; l <= 8; l++) expect(APART_DECK[l].filter(isGated).length, 'level ' + l).toBeGreaterThan(2);
   });
 });
