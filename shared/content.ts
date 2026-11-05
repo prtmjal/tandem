@@ -49,9 +49,9 @@ const RAW: Record<number, Raw[]> = {
 ["Take turns: three minutes of a hand or shoulder massage. The receiver guides with only 'more', 'less', or 'there'. Then swap.","Do","massage",180],
 ["Slow-dance in the kitchen to one song. No talking until it ends.","Do","dance"],
 ["Finish the sentence: 'The kind of touch that helps me unwind after a hard day is...'","Share","words"],
-["Sit back to back and breathe together for one minute. Then share one thing you're grateful for.","Do","breathe",60],
+["Sit back to back, then slowly lean your full weight into each other. Stay until one of you turns around for a kiss.","Do","breathe",60],
 ["Run your fingers through your partner's hair for two minutes while they tell you about their day.","Do","hair",120],
-["Hold hands for a minute and trace slow circles on each other's palms. Say what you notice.","Do","hands",60],
+["Trace slow circles on your partner's palm, then their inner wrist, then up the inside of their arm. Stop at the elbow, for now.","Do","hands",60],
 ["Ask for one thing that would feel good right now. Your partner can say yes, offer a smaller version, or say not tonight.","Ask","ask-for"],
 ["Wrap each other in a long hug. Whoever lets go first says one thing they love about the other.","Do","hug"],
 ["Describe a comfort ritual you'd like us to have: a tea, a blanket, a song.","Share","ritual"],
@@ -104,6 +104,13 @@ const RAW: Record<number, Raw[]> = {
 // before it is shown. Suggestive and sensual, never graphic: no explicit acts, no anatomy named beyond neck, back,
 // waist, thighs. Appended after EXTRA so existing card ids stay the same.
 const HEAT: Record<number, Raw[]> = {
+4: [
+["Sit in your partner's lap, facing them, foreheads resting together. Tell each other about your day in a whisper.","Do","lapwhisper"],
+["Give your partner a slow neck massage, then kiss the spot you just rubbed, once.","Do","neckonce"],
+["Lie on the couch, one behind the other, and trace lazy patterns on your partner's stomach over their shirt.","Do","spoontrace"],
+["Pull your partner in by the hand and hold them for one song. One kiss is allowed, but only on the last line.","Do","onesongkiss"],
+["Take turns naming where you'd like to be touched more often: neck, back, hair, hands. Then give each other a minute of it.","Do","moreoften",120],
+["Warm your hands and ask if you can rest them under the back of your partner's top while you talk. Leave them there.","Do","warmhands"]],
 5: [
 ["Kiss your partner's neck, slowly, from just below the ear down to the collarbone. They say 'more' or 'stay'.","Do","neckkiss"],
 ["Hold your partner's wrists gently against the wall and kiss them for one minute. Either of you can say 'pause'.","Do","wristwall",60],
@@ -216,7 +223,7 @@ const EXTRA: Record<number, Raw[]> = {
 120
 ],
 [
-"Share one way you love being greeted when you walk in the door. Then try it for real.",
+"Show your partner how you'd love to be greeted at the door tonight: pulled close, held long, one kiss.",
 "Do",
 "greeting"
 ],
@@ -231,7 +238,7 @@ const EXTRA: Record<number, Raw[]> = {
 "safe"
 ],
 [
-"Stand forehead to forehead for one minute, breathing in sync. No talking.",
+"Stand forehead to forehead for one minute, close enough to almost kiss. Don't, yet.",
 "Do",
 "forehead",
 60
@@ -242,7 +249,7 @@ const EXTRA: Record<number, Raw[]> = {
 "initials"
 ],
 [
-"Share a blanket on the couch for ten minutes. One of you picks the show, the other picks the snack.",
+"Share a blanket on the couch, legs tangled, for ten minutes. Hands can wander, but only above the waist.",
 "Do",
 "blanket",
 600
@@ -275,7 +282,7 @@ const EXTRA: Record<number, Raw[]> = {
 120
 ],
 [
-"Share a song that makes you feel held. Play it and sit close for the whole thing.",
+"Play a song that makes you feel held. Sit in your partner's lap for the whole thing, arms around their neck.",
 "Do",
 "song"
 ],
@@ -301,7 +308,7 @@ const EXTRA: Record<number, Raw[]> = {
 "cozyplan"
 ],
 [
-"Give a slow forearm massage for two minutes. Notice what the receiver's breathing does.",
+"Give a slow forearm massage, then keep going up to the shoulder and neck. Notice what the receiver's breathing does.",
 "Do",
 "forearm",
 120
@@ -312,7 +319,7 @@ const EXTRA: Record<number, Raw[]> = {
 "threewords"
 ],
 [
-"Dim the lights and spend five minutes just sitting close. No agenda.",
+"Dim the lights. Sit close enough that your legs touch, and trace slow lines on your partner's knee while you talk.",
 "Do",
 "dim",
 300
@@ -360,7 +367,7 @@ const EXTRA: Record<number, Raw[]> = {
 "easiest"
 ],
 [
-"Take turns saying 'I'm glad you're mine' in a different tone each time: playful, soft, serious.",
+"Whisper 'I'm glad you're mine' into your partner's neck, three times, each softer than the last.",
 "Do",
 "tone"
 ],
@@ -376,7 +383,7 @@ const EXTRA: Record<number, Raw[]> = {
 "endofday"
 ],
 [
-"Pick the coziest spot in your home and spend ten minutes there together.",
+"Find the coziest spot in your home and curl up together, as close as your clothes allow, for ten minutes.",
 "Do",
 "spot",
 600
@@ -387,7 +394,7 @@ const EXTRA: Record<number, Raw[]> = {
 "goodnight"
 ],
 [
-"Hold each other and sway for two minutes, with or without music.",
+"Hold each other close and sway for two minutes, your face in their neck. Breathe them in.",
 "Do",
 "sway",
 120
@@ -404,7 +411,7 @@ const EXTRA: Record<number, Raw[]> = {
 120
 ],
 [
-"Give your partner a long hug from behind while they look out a window or at the sky.",
+"Hug your partner from behind while they look out a window. Rest your lips on their shoulder and stay.",
 "Do",
 "behind"
 ],
@@ -414,7 +421,7 @@ const EXTRA: Record<number, Raw[]> = {
 "surprise"
 ],
 [
-"Whisper something kind into your partner's ear. They can answer with a smile or a word.",
+"Whisper something kind into your partner's ear, close enough that they feel it. Then one soft kiss on the cheek.",
 "Do",
 "whisperkind"
 ],
@@ -424,7 +431,7 @@ const EXTRA: Record<number, Raw[]> = {
 "hugspot"
 ],
 [
-"Teach each other your go-to calming breath, then try your partner's for three minutes.",
+"Lie on your partner's chest and match your breathing to theirs. When they stroke your back, breathe a little slower.",
 "Do",
 "breath2",
 180
@@ -446,7 +453,7 @@ const EXTRA: Record<number, Raw[]> = {
 "rainy"
 ],
 [
-"Hold hands while you each describe your favorite sound in the world. Then listen to one together.",
+"Hold hands, close your eyes, and say your partner's name the way you'd say it if no one else could hear.",
 "Do",
 "sound"
 ],
@@ -456,7 +463,7 @@ const EXTRA: Record<number, Raw[]> = {
 "photo"
 ],
 [
-"Take turns tucking a blanket around each other and saying one thing you're grateful for.",
+"Tuck a blanket around your partner, then climb in with them. Say one thing you've wanted to tell them all day.",
 "Do",
 "tuckin"
 ],
