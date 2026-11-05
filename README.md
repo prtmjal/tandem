@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (73 tests)
+npm test          # engine, privacy and palette contrast tests (77 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -80,6 +80,10 @@ Each retailer is off until you set its affiliate link template. In a template, `
 | `SHOP_DAME`, `SHOP_LELO`, `SHOP_AMORELIE`, `SHOP_EIS`, `SHOP_PASSAGE`, `SHOP_SINFUL` | as named | your network deep link with `{url}` |
 
 Taps go through `/go/<shop>/<item>`, which counts one daily total (shown on `/stats`) and redirects with nothing about the person attached. See `reports/Sexual wellness affiliate programs.md` for programmes, rates (all unverified) and the sign-up order.
+
+## Answers and messages
+
+During a night, either partner can open **Answer** on a card to send a message or **seal** an answer. A sealed answer stays hidden from the partner (they only see that you've answered) and both open together once both have answered; if the card moves on first, it's discarded unopened. On nights apart the box sits under the card; in the same room it's behind the Answer button so the phone can step back. Messages exist only in the server's memory for that night and are deleted when it ends.
 
 ## Share cards
 

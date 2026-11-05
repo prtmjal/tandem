@@ -5,7 +5,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 ## 1. Private test launch (can happen now)
 
 - ✅ Game, landing page, privacy page, payments (off), email list (off), backups, share cards and apart mode are built.
-- ✅ 73 unit tests, the two-phone browser test and the purchase test pass. npm audit reports 0 vulnerabilities.
+- ✅ 77 unit tests, the two-phone browser test and the purchase test pass. npm audit reports 0 vulnerabilities.
 - ✅ A production build from a clean install serves every page and API.
 - ✅ Deployed to Railway at https://tandem-after-dark-production.up.railway.app
 - 🟡 Finish the Railway setup: variables `STATS_TOKEN` and `PUBLIC_URL`, a volume at `/data` with `STATS_FILE=/data/stats.json`, and Healthcheck path `/healthz`.
@@ -18,6 +18,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
   - [ ] a share card posted to Instagram Stories
   - [ ] a backup made on one phone and restored on another
   - [ ] Add to Home Screen, then play from the icon
+  - [ ] sealed answers and messages, together and apart
 - 🟡 Invite 5–10 couples you trust and ask what confused them.
 
 ## 2. Before a public launch

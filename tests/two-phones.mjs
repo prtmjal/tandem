@@ -126,6 +126,24 @@ for (let guard = 0; guard < 120; guard++) {
       await sleep(350); await shot(B, '14-reaction-received');
       await A.getByRole('button', { name: /Keep this one/ }).click();
     }
+    if (cards === 2) {
+      // Sealed answers: A seals first (B sees only that A answered), then B seals and both open together.
+      await A.getByRole('button', { name: /^Answer/ }).click();
+      await A.getByLabel('Your answer or message').fill('Pineapple pizza, no regrets');
+      await A.getByRole('button', { name: 'Seal', exact: true }).click();
+      await A.getByRole('button', { name: 'Close' }).click();
+      await B.getByRole('button', { name: /^Answer/ }).click();
+      await B.getByText('has answered').waitFor();
+      if (await B.getByText('Pineapple pizza').count()) throw new Error('sealed answer leaked before both answered');
+      await B.getByLabel('Your answer or message').fill('Mango, obviously');
+      await B.getByRole('button', { name: 'Seal', exact: true }).click();
+      await B.getByText('Pineapple pizza, no regrets').waitFor();
+      await shot(B, '10b-answers-opened');
+      await B.getByRole('button', { name: 'Close' }).click();
+      await A.getByRole('button', { name: /^Answer/ }).click();
+      await A.getByText('Mango, obviously').waitFor();
+      await A.getByRole('button', { name: 'Close' }).click();
+    }
     if (cards === 5 && !offlineDone) {
       offlineDone = true;
       await ctxB.setOffline(true); await sleep(17000);

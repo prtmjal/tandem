@@ -57,6 +57,10 @@ export interface View {
   /** Touches are opt-in for the receiver. Shown to the sender so the button only appears when welcome. */
   partnerAllowsTouch: boolean;
   meAllowsTouch: boolean;
+  /** Tonight's messages (memory only, cleared when the night ends). `sealed` marks answers opened together. */
+  chat: { id: number; mine: boolean; text: string; seq: number | null; sealed: boolean }[];
+  /** This card's sealed answers: my own text, and only whether my partner has answered. */
+  sealed: null | { seq: number; mine: string | null; partnerSealed: boolean };
   /** Couple Pass is on for this room (either partner bought it). */
   pass: boolean;
   unlocked: number[];
@@ -106,6 +110,8 @@ export type Action =
   | { a: 'music'; on: boolean }
   | { a: 'apart'; on: boolean }
   | { a: 'share'; on: boolean }
+  /** A message, or with `seal` an answer kept private until both partners have answered this card. */
+  | { a: 'chat'; text: string; seal?: boolean }
   | { a: 'touch:allow'; on: boolean }
   | { a: 'open' }
   | { a: 'finish' };

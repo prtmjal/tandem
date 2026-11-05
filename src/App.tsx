@@ -542,6 +542,7 @@ function Play(p: RoomProps & { partner: string }) {
   const showDark = cv.kind === 'card' && cv.card && cv.card.l === 8 && ['Whisper', 'Chain', 'Choose'].includes(cv.card.type);
   const [mysteryShown, setMysteryShown] = useState(false);
   const eyesUp = useEyesUp(cv.seq);
+  const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => { if (cv.kind === 'card' && cv.mystery && cv.flipped && !mysteryShown) setMysteryShown(true); }, [cv, mysteryShown]);
   const glow = useRevealCue(cv, p.view.me);
 
@@ -576,6 +577,7 @@ function Play(p: RoomProps & { partner: string }) {
         <PassNext onPass={next} onNext={next} />
         <div className="row">
           <button className="ctrl small" aria-pressed={kept} onClick={() => { cue('tap'); net.act({ a: 'keep', seq: cv.seq }); }}><Icon d={I.star} size={16} /> {kept ? 'Kept' : 'Keep this one'}</button>
+          {!p.view.apart && <AnswerButton view={p.view} onOpen={() => setChatOpen(true)} />}
           {showDark && <button className="ctrl small" onClick={() => net.act({ a: 'dark', on: true })}><Icon d={I.moon} size={16} /> Go dark</button>}
         </div>
       </>
@@ -602,8 +604,93 @@ function Play(p: RoomProps & { partner: string }) {
         </div>
         <div className="reacts" aria-label="Send a reaction">{REACTIONS.map(r => <button key={r} aria-label={'Send ' + r} onClick={() => p.react(r)}>{r}</button>)}</div>
       </div>
+      {p.view.apart && cv.kind === 'card' && !cv.gate && (!cv.mystery || cv.flipped) && <ChatPanel view={p.view} partner={p.partner} compact onExpand={() => setChatOpen(true)} />}
+      {chatOpen && <ChatSheet view={p.view} partner={p.partner} close={() => setChatOpen(false)} />}
       <Countdown at={arriveAt} />
     </>
+  );
+}
+
+/* ---------------- answers and messages ----------------
+   Seal an answer to open both together once you've both answered, or just send a message. Memory only on the server,
+   gone when the night ends. In the same room it sits behind a button so the phone can step back; apart, it's inline. */
+function useChatCues(view: View, on = true) {
+  const last = useRef(view.chat.length ? view.chat[view.chat.length - 1].id : 0);
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    const fresh = view.chat.filter(m => m.id > last.current);
+    if (!fresh.length) return;
+    last.current = fresh[fresh.length - 1].id;
+    if (!on) return;
+    if (fresh.some(m => m.sealed)) cue('reveal');
+    else if (fresh.some(m => !m.mine)) cue('ready');
+    setUnread(n => n + fresh.filter(m => !m.mine || m.sealed).length);
+  }, [view.chat, on]);
+  return [unread, () => setUnread(0)] as const;
+}
+
+function AnswerButton({ view, onOpen }: { view: View; onOpen: () => void }) {
+  const [unread, clear] = useChatCues(view);
+  const waiting = view.sealed?.partnerSealed && !view.sealed.mine;
+  return (
+    <button className="ctrl small" onClick={() => { clear(); onOpen(); }} aria-label={`Answer${unread ? `, ${unread} new` : ''}`}>
+      <span aria-hidden="true">💬</span> Answer{unread > 0 && <b className="badge">{unread}</b>}{waiting && <b className="badge dot" aria-hidden="true" />}
+    </button>
+  );
+}
+
+function ChatSheet({ view, partner, close }: { view: View; partner: string; close: () => void }) {
+  return (
+    <div className="overlay sheet" role="dialog" aria-modal="true" aria-label="Answers and messages" onClick={e => { if (e.target === e.currentTarget) close(); }}>
+      <div className="panel">
+        <div className="top"><h3>Answers</h3><button className="iconbtn" aria-label="Close" onClick={close}><Icon d={I.close} /></button></div>
+        <ChatPanel view={view} partner={partner} autoFocus />
+      </div>
+    </div>
+  );
+}
+
+function ChatPanel({ view, partner, compact, autoFocus, onExpand }: { view: View; partner: string; compact?: boolean; autoFocus?: boolean; onExpand?: () => void }) {
+  const card = view.session?.card;
+  const seq = view.phase === 'card' && card ? card.seq : null;
+  const [text, setText] = useState('');
+  const [seal, setSeal] = useState(true);
+  const list = useRef<HTMLDivElement>(null);
+  const sl = view.sealed && view.sealed.seq === seq ? view.sealed : null;
+  const canSeal = seq !== null && !sl?.mine;
+  const shown = compact ? view.chat.filter(m => m.seq === seq).slice(-3) : view.chat;
+  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [view.chat.length]);
+  useChatCues(view, !!compact); // apart, the inline panel plays the cues (there is no Answer button)
+  const send = () => {
+    const t = text.trim(); if (!t) return;
+    cue('tap');
+    net.act({ a: 'chat', text: t, seal: seal && canSeal });
+    setText('');
+  };
+  return (
+    <div className={'chat' + (compact ? ' compact' : '')}>
+      {shown.length > 0 && <div className="msgs" ref={list} aria-live="polite">
+        {shown.map((m, i) => (
+          <div key={m.id} className={'msg' + (m.mine ? ' mine' : '')}>
+            {!compact && m.seq !== null && (i === 0 || shown[i - 1].seq !== m.seq) && <span className="msg-card">{m.seq === seq ? 'On this card' : 'Earlier card'}</span>}
+            <p>{m.sealed && <span className="seal-mark" title="Opened together">✉︎ </span>}{m.text}</p>
+          </div>
+        ))}
+      </div>}
+      {sl && (sl.mine
+        ? <p className="tiny muted">{sl.partnerSealed ? 'Opening…' : <>Your answer is sealed. It opens when {partner} answers too.</>}</p>
+        : sl.partnerSealed && <p className="tiny"><b>{partner} has answered.</b> Write yours to open both.</p>)}
+      <div className="composer">
+        <textarea rows={compact ? 1 : 2} maxLength={500} value={text} autoFocus={autoFocus} placeholder={seal && canSeal ? 'Your answer…' : 'Message…'}
+          aria-label="Your answer or message" onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
+        <button className="ctrl" disabled={!text.trim()} onClick={send}>{seal && canSeal ? 'Seal' : 'Send'}</button>
+      </div>
+      <div className="chat-foot">
+        {seq !== null && <label className="seal-toggle"><input type="checkbox" checked={seal} disabled={!canSeal} onChange={e => setSeal(e.target.checked)} /> Seal until we've both answered</label>}
+        {compact && onExpand && <button className="linkbtn" onClick={onExpand}>All messages</button>}
+      </div>
+    </div>
   );
 }
 
@@ -979,6 +1066,7 @@ function Close(p: RoomProps & { partner: string }) {
             </m.div>
             <div className="pocket" aria-hidden="true"><span className="seal">T</span></div>
           </div>
+          {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} /></div>}
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
           <ShopLinks kind="kit" items={kitFor(c.kitTopics || [])} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div><p className="tiny muted">Saved on both phones. One may come back at the start of a future night.</p></div>}

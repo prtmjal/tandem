@@ -256,3 +256,47 @@ describe('map shortcut', () => {
     expect(r.view(0).ceiling!.myPick).toBe(null);
   });
 });
+
+describe('chat and sealed answers', () => {
+  const inCard = () => { const r = newRoom(); startSession(r, [2, 2]); return r; };
+  it('a sealed answer stays private until both have answered, then both open together', () => {
+    const r = inCard();
+    r.act(0, { a: 'chat', text: 'My secret answer', seal: true });
+    expect(JSON.stringify(r.view(1))).not.toContain('My secret answer');
+    expect(r.view(1).sealed!.partnerSealed).toBe(true);
+    expect(r.view(1).sealed!.mine).toBe(null);
+    expect(r.view(0).sealed!.mine).toBe('My secret answer');
+    expect(r.view(0).chat.length).toBe(0);
+    r.act(1, { a: 'chat', text: 'Mine too', seal: true });
+    const a = r.view(0).chat, b = r.view(1).chat;
+    expect(a.map(m => m.text)).toEqual(['My secret answer', 'Mine too']);
+    expect(b.map(m => m.text)).toEqual(['My secret answer', 'Mine too']);
+    expect(a[0].mine).toBe(true); expect(b[0].mine).toBe(false);
+    expect(r.view(0).sealed).toBe(null);
+  });
+  it('an unopened sealed answer is discarded when the card moves on, never shown', () => {
+    const r = inCard();
+    r.act(0, { a: 'chat', text: 'Never shown', seal: true });
+    const v = r.view(0).session!.card!;
+    r.act(1, { a: 'next', seq: v.seq });
+    r.act(1, { a: 'chat', text: 'hello' });
+    expect(JSON.stringify(r.view(1))).not.toContain('Never shown');
+    expect(JSON.stringify(r.view(0))).not.toContain('Never shown');
+  });
+  it('plain messages reach both phones, are cleaned, and are forgotten when the night ends', () => {
+    const r = inCard();
+    r.act(0, { a: 'chat', text: '  hi\u0000 there ‮ ' });
+    expect(r.view(1).chat[0].text).toBe('hi there');
+    r.act(0, { a: 'chat', text: 'x'.repeat(900) });
+    expect(r.view(1).chat[1].text.length).toBe(500);
+    play(r);
+    both(r, { a: 'open' });
+    r.act(0, { a: 'finish' });
+    expect(r.view(0).chat).toEqual([]);
+  });
+  it('no chat outside a night', () => {
+    const r = newRoom();
+    r.act(0, { a: 'chat', text: 'hello' });
+    expect(r.view(1).chat).toEqual([]);
+  });
+});

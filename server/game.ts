@@ -36,6 +36,12 @@ interface Session {
 // Progress merge and sanitizing live in shared/progress.ts so the phone can merge backups the same way.
 export { mergeProgress, sanitizeProgress };
 
+/** Plain text only: no control characters, at most 500 characters. */
+export function cleanText(t: unknown): string {
+  if (typeof t !== 'string') return '';
+  return t.replace(/[\u0000-\u0009\u000B-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 500);
+}
+
 export class Room {
   code: string;
   secret: string;
@@ -54,6 +60,11 @@ export class Room {
   pass = false;
   /** Verified pass codes brought into this room. Shared with both phones so a pass survives losing one phone. */
   passCodes: string[] = [];
+  /** Tonight's messages. Memory only, at most 60, cleared when the night ends; never written anywhere. */
+  chat: { id: number; from: Idx; text: string; seq: number | null; sealed: boolean; at: number }[] = [];
+  private chatId = 0;
+  /** Private until both answer: sealed answers for the current card. Never in the partner's view. */
+  sealed: { seq: number; text: [string | null, string | null] } | null = null;
   unlock: null | { l: number; samples: Card[]; votes: [boolean | null, boolean | null]; opened: boolean } = null;
   ceiling: null | { picks: [number | null, number | null]; confirm: [boolean, boolean]; done: [boolean, boolean] } = null;
   arrive: null | { tonight: number; energy: Energy; vibes: [VibeId | null, VibeId | null]; memory: string | null; ready: [boolean, boolean]; countdownAt: number | null } = null;
@@ -104,6 +115,10 @@ export class Room {
     // The Long distance deck is for nights apart; everything else in the pass works both ways.
     const all = DECK[l].concat(extra.filter(c => this.apart || !c.id.startsWith('p.distance.')));
     return this.apart ? all.filter(c => worksApart(c) || c.id.startsWith('p.distance.')) : all;
+  }
+  private pushChat(from: Idx, text: string, seq: number | null, sealed: boolean) {
+    this.chat.push({ id: ++this.chatId, from, text, seq, sealed, at: Date.now() });
+    if (this.chat.length > 60) this.chat.splice(0, this.chat.length - 60);
   }
   /** The question on a share card: one you actually played tonight from Levels 1-3 (kept ones first), never later
    *  levels, never pass-deck hands-on text. Falls back to a Level 1 card. Only talk cards, so it is safe to post. */
@@ -204,7 +219,25 @@ export class Room {
     const other: Idx = me === 0 ? 1 : 0;
     const s = this.sess;
     if (!this.full && x.a !== 'home') return {};
+    // A sealed answer belongs to one card. Once the card has moved on, it is discarded unopened.
+    if (this.sealed && (s?.cur?.seq ?? -1) !== this.sealed.seq) this.sealed = null;
     switch (x.a) {
+      case 'chat': {
+        const text = cleanText(x.text);
+        if (!text || !s || (this.phase !== 'card' && this.phase !== 'close')) break;
+        const seq = this.phase === 'card' && s.cur ? s.cur.seq : null;
+        if (x.seal && seq !== null) {
+          const sl = (this.sealed ??= { seq, text: [null, null] });
+          if (sl.text[me] !== null) break; // one sealed answer each per card
+          sl.text[me] = text;
+          if (sl.text[0] !== null && sl.text[1] !== null) {
+            // Both answered: open them together, in seat order so both phones show the same thing.
+            for (const i of [0, 1] as const) this.pushChat(i, sl.text[i]!, seq, true);
+            this.sealed = null;
+          }
+        } else this.pushChat(me, text, seq, false);
+        break;
+      }
       case 'home':
         if (this.phase === 'unlock' || this.phase === 'ceiling') { this.phase = 'home'; this.unlock = null; this.ceiling = null; }
         break;
@@ -328,6 +361,7 @@ export class Room {
       case 'leave':
         if (this.phase === 'card' || this.phase === 'arrive' || this.phase === 'close') {
           this.sess = null; this.arrive = null; this.close = null; this.paused = false; this.dark = false; this.phase = 'home';
+          this.chat = []; this.sealed = null;
         }
         break;
 
@@ -349,6 +383,7 @@ export class Room {
         this.prog.sessions++;
         if (items.length) { this.prog.capsule.push({ d: Date.now(), items }); this.prog.capsule = this.prog.capsule.slice(-50); }
         this.sess = null; this.arrive = null; this.close = null; this.dark = false; this.phase = 'home';
+        this.chat = []; this.sealed = null;
         break;
       }
     }
@@ -411,6 +446,10 @@ export class Room {
         memory: this.arrive.memory, myReady: this.arrive.ready[me], partnerReady: this.arrive.ready[other], countdownAt: this.arrive.countdownAt,
       } : null,
       session: s ? { idx: s.idx, N: s.N, tonight: s.c0, card, keptIds: Array.from(s.kept.keys()) } : null,
+      chat: this.chat.map(m => ({ id: m.id, mine: m.from === me, text: m.text, seq: m.seq, sealed: m.sealed })),
+      // Only whether the partner has sealed an answer for this card, never what it says.
+      sealed: this.sealed && s?.cur?.seq === this.sealed.seq
+        ? { seq: this.sealed.seq, mine: this.sealed.text[me], partnerSealed: this.sealed.text[other] !== null } : null,
       close: this.close ? {
         stage: this.close.stage, closer: this.close.closer, env: this.close.stage === 1 ? this.close.env : '',
         kept: s ? Array.from(s.kept.values()) : [], myOpen: this.close.open[me], partnerOpen: this.close.open[other], countdownAt: this.close.countdownAt,
