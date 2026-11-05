@@ -4,7 +4,7 @@ import { AnimatePresence, m } from 'motion/react';
 import { LEVELS, type Card } from '../shared/content';
 import { cardColors, chipColor, type Mode } from '../shared/theme';
 import type { VibeId } from '../shared/protocol';
-import { GRAIN, LevelGlyph, Motif, TypeIcon } from './art';
+import { GRAIN, LevelGlyph, Motif, ThemeArt, TypeIcon, themeFor } from './art';
 import { useCountdown } from './net';
 
 export const levelName = (l: number) => LEVELS[l]?.n || '';
@@ -53,7 +53,10 @@ export function PlayCard(p: PlayCardProps) {
               <span className="chip"><TypeIcon type={type} size={14} /> {type}</span>
             </div>
             <div className="art ghost" aria-hidden="true"><Motif level={p.level} seed={p.seed + 'g'} color="currentColor" /></div>
-            <div className="art"><Motif level={p.level} seed={p.seed} color="currentColor" /></div>
+            <div className="art">
+              <div className="art-bg"><Motif level={p.level} seed={p.seed} color="currentColor" /></div>
+              {text && <div className="art-theme"><ThemeArt theme={themeFor(text)} seed={p.seed} c="currentColor" /></div>}
+            </div>
             <div className="body"><h2 className="sr-only">{type === 'Twist' ? 'Wildcard' : `Level ${p.level}, ${levelName(p.level)}`}</h2><p className={'prompt ' + size}>{text}</p></div>
             <div className="foot"><span>{HINTS[type] || ''}</span><span>Pass anytime</span></div>
           </div>

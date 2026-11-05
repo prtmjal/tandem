@@ -33,4 +33,4 @@ A two-phone couples game. React (Vite) phone app plus one Node server with Socke
 - `server/stats.ts` daily usage totals and the private `/stats` page
 - `src/share.ts` share card image and share sheet
 - `src/feel.ts` synthesized sounds, music loop, haptics and their settings; `src/guide.tsx` the How it works intro and one-time tips
-- `src/App.tsx` screens; `src/ui.tsx` card, countdown, reactions; `src/art.tsx` generated card art; `src/net.ts` socket client and on-device storage
+- `src/App.tsx` screens; `src/ui.tsx` card, countdown, reactions; `src/art.tsx` generated card art (level pattern plus a picture matched to the card's text by `themeFor`: abstract objects and shapes only, never bodies, faces, hands or anatomy; face-down and gated cards never get a picture); `src/net.ts` socket client and on-device storage
