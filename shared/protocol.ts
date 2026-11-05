@@ -76,6 +76,8 @@ export interface View {
     myShare: boolean;
     /** Present only when both opted in: a safe-for-work card to share. */
     shareCard: null | { question: string; nights: number };
+    /** Topics of cards shown tonight (both saw them), for matching shop suggestions after the night. */
+    kitTopics: string[];
   };
 }
 

@@ -9,6 +9,7 @@ import { Server, type Socket } from 'socket.io';
 import { Room, mergeProgress, sanitizeProgress } from './game';
 import { newsConfig, subscribe, validEmail } from './news';
 import { STATS_PAGE, Stats } from './stats';
+import { KIT, RETAILERS, affiliateUrl, type KitId } from '../shared/shop';
 import { claim, createCheckout, hasPass, priceFor, priceLabel, storeConfig, validPasses } from './store';
 import { ADULT_REQUIRED, REACTIONS, isAdultAttested, type Action } from '../shared/protocol';
 
@@ -263,6 +264,22 @@ app.post('/api/claim', express.json({ limit: '2kb' }), async (req, res) => {
 app.post('/api/verify', express.json({ limit: '2kb' }), (req, res) => {
   if (limited('verify:' + reqIp(req), 30, 60 * 60 * 1000)) return res.status(429).json({ ok: false });
   res.json({ ok: hasPass(store, [req.body?.code]) });
+});
+
+/* ---------------- shop links (affiliate; each retailer off unless its template is set) ---------------- */
+const shopOn = () => Object.values(RETAILERS).filter(r => affiliateUrl(r, process.env[r.env]));
+// Which retailers are switched on. The phone decides the country itself; we never look up who is asking.
+app.get('/api/shop', (_, res) => res.json({ retailers: shopOn().map(r => r.id) }));
+// The outbound redirect: counts one daily total, adds nothing about the person, and leaves with no referrer.
+app.get('/go/:retailer/:item?', (req, res) => {
+  const r = RETAILERS[req.params.retailer];
+  const item = req.params.item && req.params.item in KIT ? (req.params.item as KitId) : undefined;
+  const url = r ? affiliateUrl(r, process.env[r.env], item) : null;
+  if (!url) return res.status(404).send('This link isn’t available.');
+  if (!limited('go:' + reqIp(req), 60, 60 * 1000)) stats.count('shopClick');
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.redirect(302, url);
 });
 
 /* ---------------- email list (off unless Klaviyo is configured) ---------------- */

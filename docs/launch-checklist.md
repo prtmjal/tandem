@@ -5,7 +5,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 ## 1. Private test launch (can happen now)
 
 - ✅ Game, landing page, privacy page, payments (off), email list (off), backups, share cards and apart mode are built.
-- ✅ 64 unit tests, the two-phone browser test and the purchase test pass. npm audit reports 0 vulnerabilities.
+- ✅ 71 unit tests, the two-phone browser test and the purchase test pass. npm audit reports 0 vulnerabilities.
 - ✅ A production build from a clean install serves every page and API.
 - 🟡 Deploy to Railway (Deploy from GitHub repo; it uses the `Dockerfile`), then Settings → Networking → Generate Domain. No variables needed.
 - 🟡 Play several real nights on two real phones. Use one iPhone and one Android if you can, and include:
@@ -38,6 +38,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
   - [ ] set a discreet statement descriptor in Stripe
   - [ ] change the "Is it free?" answer in `index.html`
 - 🟡 **Email list:** a Klaviyo account for this product, a double opt-in list, then `KLAVIYO_COMPANY_ID` and `KLAVIYO_LIST_ID`.
+- 🟡 **Shop links (affiliate):** built and off. After the domain: follow the sign-up order in `reports/Sexual wellness affiliate programs.md` (bank account and accountant first, then W-8BEN, Awin, Impact, Commission Factory, Indian networks). Check each rate in the network dashboard, then set the `SHOP_*` templates. Ask the lawyer about Brazil, Singapore and the Philippines before adding them.
 - ⬜ **Uptime alert** on `/healthz` (for example UptimeRobot or Better Stack, free tier).
 - ✅ **Privacy-friendly counts** are built (`/stats`). 🟡 Set `STATS_TOKEN`, and add a Railway volume with `STATS_FILE=/data/stats.json` so totals survive deploys.
 

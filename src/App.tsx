@@ -10,6 +10,8 @@ import { canVibrate, cue, prefs, startHeartbeat, startMusic, stopHeartbeat, stop
 import { Intro, Tip, introSeen, resetTips } from './guide';
 import { drawShareCard, shareImage } from './share';
 import { makeBackup, mergeBackup, readBackup } from './backup';
+import { BY_COUNTRY, KIT, KIT_IDS, RETAILERS, kitFor, retailersFor, type KitId } from '../shared/shop';
+import { guessCountry, setShopCountry, shopCountry } from './region';
 import { Avatar, Countdown, Floaters, I, Icon, MiniArt, PlayCard, Waiting, levelName, useToast } from './ui';
 import { LevelGlyph } from './art';
 
@@ -300,6 +302,7 @@ function Menu(p: RoomProps & { close: () => void; partner: string }) {
           <MoodControls view={p.view} partner={p.partner} full />
           <ProgressSettings toast={p.toast} />
           <PassSettings view={p.view} toast={p.toast} />
+          <ShopSettings />
           <p className="eyebrow">Help</p>
           <div className="row">
             <button className="ctrl" onClick={() => setHow(true)}>How to play</button>
@@ -384,6 +387,7 @@ function Home(p: RoomProps) {
       </div>
       <InstallPrompt sessions={view.sessions} />
       <PassPanel view={view} />
+      <ShopLinks kind="toybox" items={KIT_IDS} />
     </>
   );
 }
@@ -768,6 +772,59 @@ function RestoreDialog({ code, done }: { code: string; done: (msg?: string) => v
   );
 }
 
+/* ---------------- shop links (affiliate, clearly labelled, never during a night) ---------------- */
+let shopInfo: Promise<string[]> | null = null;
+const enabledRetailers = () => (shopInfo ??= fetch('/api/shop').then(r => r.json()).then(j => (Array.isArray(j.retailers) ? j.retailers : [])).catch(() => []));
+function useShop(): string[] {
+  const [on, setOn] = useState<string[]>([]);
+  useEffect(() => { let live = true; enabledRetailers().then(ids => { if (!live) return; const c = shopCountry(); setOn(c === 'off' ? [] : retailersFor(c).filter(id => ids.includes(id))); }); return () => { live = false; }; }, []);
+  return on;
+}
+
+/** "Tonight's kit" (after the night, matched to cards you both saw) or the "Toy box" on the map. */
+function ShopLinks({ kind, items }: { kind: 'kit' | 'toybox'; items: KitId[] }) {
+  const retailers = useShop();
+  const [open, setOpen] = useState(kind === 'kit');
+  const [hidden, setHidden] = useState(false);
+  const list = kind === 'kit' ? items.filter(k => !KIT[k].toyBoxOnly) : items;
+  if (hidden || !retailers.length || !list.length) return null;
+  const link = (rid: string, k?: KitId) => <a key={rid} className="ctrl small shoplink" href={`/go/${rid}${k ? '/' + k : ''}`} target="_blank" rel="sponsored noopener noreferrer" referrerPolicy="no-referrer">{RETAILERS[rid].name} ↗</a>;
+  return (
+    <div className="panel shop">
+      <p className="eyebrow">Ad · Paid links</p>
+      <h3>{kind === 'kit' ? 'Tonight’s kit' : 'Toy box'}</h3>
+      <p className="tiny muted">{kind === 'kit' ? 'For next time, based on cards you both saw tonight. ' : 'Things that make some cards easier. '}If you buy through these links, Tandem earns a commission. Your price stays the same. We picked these ourselves, and the shop never learns what you played.</p>
+      {kind === 'toybox' && !open
+        ? <button className="ctrl" onClick={() => setOpen(true)}>Open the toy box</button>
+        : <ul className="kitlist">{list.map(k => (
+          <li key={k}><div><b>{KIT[k].label}</b><span className="tiny muted">{KIT[k].blurb}</span></div><div className="shops">{retailers.slice(0, 2).map(rid => link(rid, k))}</div></li>
+        ))}</ul>}
+      <button className="linkbtn" onClick={() => { setShopCountry('off'); setHidden(true); }}>Hide shop suggestions</button>
+    </div>
+  );
+}
+
+/** Settings: shop suggestions on or off, and which country's shops (guessed on the phone, never sent anywhere). */
+function ShopSettings() {
+  const [, force] = useState(0);
+  const c = shopCountry();
+  const guess = guessCountry();
+  const name = (cc: string | null) => { if (!cc) return 'not sure'; try { return new Intl.DisplayNames(['en'], { type: 'region' }).of(cc) || cc; } catch { return cc; } };
+  return (
+    <div className="stack">
+      <p className="eyebrow">Shop suggestions</p>
+      <p className="tiny muted">After a night and on the map, clearly marked as ads. {c === 'off' ? 'Turned off.' : `Shops for ${name(c)}.`} Your country is guessed on this phone from its time zone and is never sent to us.</p>
+      <div className="row">
+        <button className="ctrl" aria-pressed={c !== 'off'} onClick={() => { setShopCountry(c === 'off' ? 'auto' : 'off'); force(n => n + 1); }}>{c === 'off' ? 'Turn on' : 'Turn off'}</button>
+        {c !== 'off' && <select className="ctrl" aria-label="Country for shop suggestions" value={store.get('tad.shop') || 'auto'} onChange={e => { setShopCountry(e.target.value as 'auto'); force(n => n + 1); }}>
+          <option value="auto">Auto ({name(guess)})</option>
+          {Object.keys(BY_COUNTRY).map(cc => <option key={cc} value={cc}>{name(cc)}</option>)}
+        </select>}
+      </div>
+    </div>
+  );
+}
+
 /** The Couple Pass offer on the map screen. Never shown during a night, never with pressure. */
 function PassPanel({ view }: { view: View }) {
   const [info, setInfo] = useState<{ enabled: boolean; price?: string | null } | null>(null);
@@ -923,6 +980,7 @@ function Close(p: RoomProps & { partner: string }) {
             <div className="pocket" aria-hidden="true"><span className="seal">T</span></div>
           </div>
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
+          <ShopLinks kind="kit" items={kitFor(c.kitTopics || [])} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div><p className="tiny muted">Saved on both phones. One may come back at the start of a future night.</p></div>}
           <div className="bottom"><button className="btn" onClick={() => net.act({ a: 'finish' })}>Done for tonight</button></div>
         </>

@@ -28,6 +28,8 @@ interface CurTwist { kind: 'twist'; seq: number; text: string; dir: 'up' | 'down
 interface Session {
   c: number; c0: number; N: number; idx: number; seq: number;
   prev: string[]; used: Set<string>; kept: Map<string, string>;
+  /** Cards actually shown face up tonight (never ones swapped away after a private 'not tonight'). */
+  shown?: string[];
   lastTw: number; downDone: boolean; cur: CurCard | CurTwist | null;
 }
 
@@ -293,6 +295,7 @@ export class Room {
       }
       case 'next': {
         const cur = s?.cur; if (this.phase !== 'card' || !s || !cur || cur.seq !== x.seq) break;
+        if (cur.kind === 'card' && !cur.gate && (!cur.mystery || (cur.flips[0] && cur.flips[1]))) (s.shown ||= []).push(cur.card.id);
         if (cur.kind === 'card') s.idx++;
         this.advance();
         break;
@@ -412,6 +415,8 @@ export class Room {
         stage: this.close.stage, closer: this.close.closer, env: this.close.stage === 1 ? this.close.env : '',
         kept: s ? Array.from(s.kept.values()) : [], myOpen: this.close.open[me], partnerOpen: this.close.open[other], countdownAt: this.close.countdownAt,
         myShare: this.close.share[me],
+        // Topics of cards both partners saw tonight, so 'Tonight's kit' can match them. Never swapped-away cards.
+        kitTopics: Array.from(new Set((s?.shown || []).map(id => CARD_BY_ID[id]?.topic).filter((t): t is string => !!t))),
         // Only the outcome: a card exists when both said yes. Nobody learns whether the other declined.
         shareCard: this.close.share[0] && this.close.share[1] && this.close.shareQ ? { question: this.close.shareQ, nights: this.prog.sessions + 1 } : null,
       } : null,

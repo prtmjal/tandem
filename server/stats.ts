@@ -17,6 +17,7 @@ export const EVENTS = {
   checkout: 'Couple Pass checkouts opened',
   purchased: 'Couple Pass purchases confirmed',
   newsSignup: 'Email list sign-ups',
+  shopClick: 'Shop link taps (affiliate)',
 } as const;
 export type StatEvent = keyof typeof EVENTS;
 

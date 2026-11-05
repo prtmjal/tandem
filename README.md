@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (64 tests)
+npm test          # engine, privacy and palette contrast tests (71 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -65,6 +65,21 @@ The server keeps daily totals so you can see whether the game works: landing vis
 | `STATS_FILE` | Optional, e.g. `/data/stats.json` on a Railway volume, so totals survive restarts. Without it they reset on each deploy, but each day's totals are still printed to the server log |
 
 The two numbers that matter most are shown at the top: **Partner joined** (of games started, how many got a partner, which is the real conversion) and **Nights finished**.
+
+## Shop suggestions (affiliate links)
+
+After the envelope opens, "Tonight's kit" can suggest up to three things that match cards you both saw (a blindfold after a blindfold card, massage oil after an oil card). The map has an optional "Toy box". Both are labelled "Ad · Paid links", never appear during a night, and can be turned off in Settings. The country is guessed on the phone (time zone and language) and never sent to the server. Links show only in approved countries (`BY_COUNTRY` in `shared/shop.ts`), and never in countries where these products are restricted or when the country is unknown.
+
+Each retailer is off until you set its affiliate link template. In a template, `{url}` is the URL-encoded shop address and `{rawurl}` the plain one:
+
+| Variable | Shop | Example template |
+|---|---|---|
+| `SHOP_MYMUSE` | MyMuse (India) | your vCommission or FlexOffers deep link with `{url}` |
+| `SHOP_AMAZON_IN` | Amazon.in | `{rawurl}&tag=yourtag-21` |
+| `SHOP_LOVEHONEY_US`, `_CA`, `_UK`, `_AU` | Lovehoney | your network deep link with `{url}` |
+| `SHOP_DAME`, `SHOP_LELO`, `SHOP_AMORELIE`, `SHOP_EIS`, `SHOP_PASSAGE`, `SHOP_SINFUL` | as named | your network deep link with `{url}` |
+
+Taps go through `/go/<shop>/<item>`, which counts one daily total (shown on `/stats`) and redirects with nothing about the person attached. See `reports/Sexual wellness affiliate programs.md` for programmes, rates (all unverified) and the sign-up order.
 
 ## Share cards
 
