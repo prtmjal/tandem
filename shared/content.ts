@@ -64,8 +64,8 @@ const RAW: Record<number, Raw[]> = {
 ["Each write a daytime teaser you'd enjoy getting (a look, a note, a song) on a scrap of paper. Swap and pick one for this week.","Tease","teaser"],
 ["Tell me about the best kiss we've had. What made it work?","Ask","kiss-memory"],
 ["Pick one for tonight: slow, playful or intense. Your partner picks the music to match.","Choose","mood"],
-["Whisper something you're looking forward to this weekend. Your partner answers with one word.","Share","whisper"],
-["Trade three compliments, each about a different part of how we are together: laughter, closeness, chemistry.","Share","compliment"],
+["Whisper something you'd love your partner to do to you this weekend. They answer with one word.","Share","whisper"],
+["Trade three compliments, each about something your partner does that turns you on: a look, a voice, a move.","Share","compliment"],
 ["Each write one thing that would make tonight feel charged. Swap and read. Do either, both, or neither.","Choose","charged"]],
 6:[
 ["No-goal touch, ten minutes each way. The receiver says only 'more', 'less', or 'stay'. Nothing has to lead anywhere, and stopping early is welcome.","Session","touch",600],
@@ -116,7 +116,13 @@ const HEAT: Record<number, Raw[]> = {
 ["Back your partner gently against a wall and kiss them. They decide when it ends.","Do","wallkiss"],
 ["Kiss your partner's wrist, then the inside of their elbow, then their shoulder. Ask before each one.","Do","armpath"],
 ["One of you can't move for two minutes. The other kisses anywhere above the waist that's welcome.","Do","stillkiss",120],
-["Breathe slowly against your partner's neck for thirty seconds without touching. Then one slow kiss.","Do","breathneck",30]],
+["Breathe slowly against your partner's neck for thirty seconds without touching. Then one slow kiss.","Do","breathneck",30],
+["Kiss your partner against the nearest wall, hands in their hair. Stop just before either of you wants to, and walk away.","Do","wallleave"],
+["Pull your partner close by the waistband and kiss them for one minute. They decide where their hands go.","Do","waistband",60],
+["Kiss your partner's earlobe, then whisper one thing you can't stop thinking about doing to them.","Do","earwhisper"],
+["Trade kisses that each last one second longer than the last, starting at one. See how far you get before you lose count.","Do","longerkiss"],
+["Slide one hand under the back of your partner's shirt while you kiss. Leave it there, warm, for a full minute.","Do","handunder",60],
+["Kiss as slowly as you possibly can for one minute, then as hungrily as you can for ten seconds.","Do","slowfast",70]],
 6: [
 ["Take off your partner's clothes one piece at a time, slowly, kissing the skin you uncover. Keep going as far as you both want; 'stop' ends it at any piece.","Session","undress1"],
 ["Shirt off, warm oil: slow back massage from the neck to the base of the spine. The receiver sets the pressure and says when to go lower.","Session","oilback",300],
@@ -462,7 +468,7 @@ const EXTRA: Record<number, Raw[]> = {
 ],
 "5": [
 [
-"Share a kiss that's slow and quiet for thirty seconds. Then say how it felt in one word.",
+"Share a slow, deep kiss for thirty seconds. Say how it felt in one word, then go again.",
 "Do",
 "slowkiss",
 30
@@ -494,12 +500,12 @@ const EXTRA: Record<number, Raw[]> = {
 120
 ],
 [
-"Whisper one thing you're looking forward to this weekend. Your partner answers with one word.",
+"Whisper the last thought you had about your partner that made you blush. Don't explain it.",
 "Share",
 "weekend"
 ],
 [
-"Play a song that makes you feel charged. Sit close without talking until it ends.",
+"Play a song that makes you feel charged. Sit in each other's laps and kiss through the whole thing.",
 "Do",
 "chargedsong"
 ],
@@ -529,7 +535,7 @@ const EXTRA: Record<number, Raw[]> = {
 "moodword"
 ],
 [
-"Dance close in the living room for one song. Take turns choosing the next move.",
+"Dance close for one song, hips pressed together. On the last chorus, kiss your partner like the song is about them.",
 "Do",
 "closedance"
 ],
@@ -539,7 +545,7 @@ const EXTRA: Record<number, Raw[]> = {
 "surprisekiss"
 ],
 [
-"Spend a minute guessing what each other is thinking right now. Reveal the real answer afterward.",
+"Guess what your partner wants right now, then do it, slowly. They answer only 'warmer' or 'colder' as you go.",
 "Do",
 "guess1",
 60
@@ -550,13 +556,13 @@ const EXTRA: Record<number, Raw[]> = {
 "fragrance"
 ],
 [
-"Hold each other's gaze for 30 seconds, then say one thing you're craving tonight: a hug, a snack, a quiet room.",
+"Hold each other's gaze for 30 seconds, then say out loud one thing you're craving from them tonight. Seal it with a kiss.",
 "Do",
 "gazecrave",
 30
 ],
 [
-"Tell your partner about a moment you wished a day would slow down because of them.",
+"Tell your partner about a moment this week when you wanted them badly. Where were you, and what stopped you?",
 "Share",
 "slowdown"
 ],
@@ -587,7 +593,7 @@ const EXTRA: Record<number, Raw[]> = {
 "leanin"
 ],
 [
-"Describe your partner's laugh as if it were a scent, a color or a song.",
+"Describe your partner's kiss as if it were a scent, a color or a song. Be specific.",
 "Share",
 "laugh"
 ],
@@ -607,7 +613,7 @@ const EXTRA: Record<number, Raw[]> = {
 "wordsyes"
 ],
 [
-"Kiss for one minute with your eyes closed. Afterward, say what you noticed.",
+"Kiss for one minute with your eyes closed and your hands in each other's hair. Then say what you noticed.",
 "Do",
 "eyesclosed",
 60
@@ -618,12 +624,12 @@ const EXTRA: Record<number, Raw[]> = {
 "hear"
 ],
 [
-"Tell your partner one thing you'd like to do more of in public: hold hands, hug, a quick kiss.",
+"Tell your partner one thing they do in public that makes you want to get them alone.",
 "Share",
 "public"
 ],
 [
-"Take turns drawing a heart on each other's palm with a fingertip. Say what you'd like it to mean.",
+"Trace one slow line with a fingertip from your partner's lips, down their neck, to their collarbone. Then follow it with your mouth.",
 "Do",
 "heartpalm"
 ],
@@ -648,17 +654,17 @@ const EXTRA: Record<number, Raw[]> = {
 "bestcompliment"
 ],
 [
-"Put on a slow song and sway without speaking. Whoever wants to change the pace says 'faster' or 'slower'.",
+"Put on a slow song and sway pressed together. Every time the chorus comes, one of you kisses the other's neck.",
 "Do",
 "slowsong"
 ],
 [
-"Share one thing you'd like to do slowly together: a walk, a meal, a kiss.",
+"Name one thing you'd like your partner to do to you very, very slowly.",
 "Share",
 "slowthing"
 ],
 [
-"Plan a short getaway for the two of you: where, when, and one detail that would feel romantic.",
+"Plan a getaway for two, then describe the first hour after the hotel door closes. Tease; the details can wait.",
 "Choose",
 "getaway"
 ],
@@ -668,7 +674,7 @@ const EXTRA: Record<number, Raw[]> = {
 "publicaff"
 ],
 [
-"Hold eye contact for 45 seconds and smile. Laughing is part of the game.",
+"Hold eye contact for 45 seconds, close enough to feel each other's breath. Whoever kisses first wins.",
 "Do",
 "smile45",
 45
@@ -704,7 +710,7 @@ const EXTRA: Record<number, Raw[]> = {
 "curious"
 ],
 [
-"Pick a movie scene that feels romantic and describe why it works for you.",
+"Pick a steamy scene from a film or book that stayed with you. Describe what made it work.",
 "Share",
 "moviescene"
 ],
@@ -724,7 +730,7 @@ const EXTRA: Record<number, Raw[]> = {
 "gentle"
 ],
 [
-"Spend two minutes gently holding your partner's face and tell them what you see.",
+"Hold your partner's face, kiss them slowly, then whisper what you'd like to do next. Don't do it yet.",
 "Do",
 "holdface",
 120

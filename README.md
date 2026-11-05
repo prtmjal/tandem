@@ -105,7 +105,7 @@ Before going live, ask Stripe to approve the business in writing (describe it as
 
 | Part | Where |
 |---|---|
-| Cards (378), levels, twists, envelopes | `shared/content.ts` |
+| Cards (384), levels, twists, envelopes | `shared/content.ts` |
 | Palette: vibe sets hue, level sets depth; every theme contrast-checked | `shared/theme.ts`, `tests/theme.test.ts` |
 | Game rules, session arc, no-repeat deck, private votes | `server/game.ts` |
 | Rooms, codes, rate limits, expiry | `server/index.ts` |
