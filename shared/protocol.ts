@@ -83,7 +83,8 @@ export type Action =
   | { a: 'unlock:open'; l: number }
   | { a: 'unlock:vote'; yes: boolean }
   | { a: 'home' }
-  | { a: 'tonight' }
+  /** Start setting up tonight. `l` pre-selects this player's own (private) pick from the map. */
+  | { a: 'tonight'; l?: number }
   | { a: 'ceiling:pick'; l: number }
   | { a: 'ceiling:confirm'; on: boolean }
   | { a: 'ceiling:done' }

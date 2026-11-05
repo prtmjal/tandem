@@ -364,17 +364,18 @@ function Home(p: RoomProps) {
       <Tip id="home">Tap “Start tonight’s session” to begin. Curious about a locked level? Tap it to peek at sample cards, then each of you answers privately.</Tip>
       <button className="btn" onClick={() => { cue('tap'); net.act({ a: 'tonight' }); }}>Start tonight’s session</button>
       <div className="stack">
-        <div><h3>The map</h3><p className="tiny muted">Move up or down freely. Levels 3 and up open when you both choose them, privately.</p></div>
+        <div><h3>The map</h3><p className="tiny muted">Tap an open level to play tonight, as far as that level. Levels 3 and up open when you both choose them, privately.</p></div>
         <div className="map">
           {[1, 2, 3, 4, 5, 6, 7, 8].map(l => {
             const isOpen = open.has(l);
             const st = cardColors(l, p.theme.cardHue, p.theme.mode, p.theme.cardVibe);
             return (
               <button key={l} className={'tile' + (isOpen ? '' : ' locked')} style={{ ['--field' as string]: st.field, ['--ink' as string]: st.ink, ['--motif' as string]: st.motif }}
-                onClick={() => { if (!isOpen) net.act({ a: 'unlock:open', l }); }} aria-label={`${l}, ${levelName(l)}, ${isOpen ? 'open' : 'locked. Tap to see sample cards'}`}>
+                onClick={() => { cue('tap'); net.act(isOpen ? { a: 'tonight', l } : { a: 'unlock:open', l }); }}
+                aria-label={`${l}, ${levelName(l)}, ${isOpen ? 'open. Tap to play tonight, up to this level' : 'locked. Tap to see sample cards'}`}>
                 <MiniArt level={l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} seed={'tile' + l} />
                 {!isOpen && <span className="lock chip"><Icon d={I.lock} size={14} /> Curious?</span>}
-                <span className="lbl"><b><LevelGlyph level={l} /> {l} · {levelName(l)}</b><span>{isOpen ? 'Open' : 'Tap to peek'}</span></span>
+                <span className="lbl"><b><LevelGlyph level={l} /> {l} · {levelName(l)}</b><span>{isOpen ? 'Tap to play' : 'Tap to peek'}</span></span>
               </button>
             );
           })}
@@ -913,10 +914,14 @@ function Close(p: RoomProps & { partner: string }) {
         </>
       ) : (
         <>
-          <div className="envelope open" style={{ ['--env' as string]: cardColors(7, hue, 'dark').field }}><div className="body" /><div className="flap" /><div className="seal">T</div></div>
-          <m.div className="panel" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35 }} style={{ boxShadow: '0 0 0 2px var(--gold)' }}>
-            <p className="prompt m">{c.env}</p>
-          </m.div>
+          {/* The opened envelope: the letter rises out of the pocket, so the message is the thing you see. */}
+          <div className="opened" style={{ ['--env' as string]: cardColors(7, hue, 'dark').field }}>
+            <m.div className="letter" initial={{ y: 70, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: .25, type: 'spring', stiffness: 140, damping: 18 }}>
+              <span className="eyebrow">For the two of you</span>
+              <p className="prompt m">{c.env}</p>
+            </m.div>
+            <div className="pocket" aria-hidden="true"><span className="seal">T</span></div>
+          </div>
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div><p className="tiny muted">Saved on both phones. One may come back at the start of a future night.</p></div>}
           <div className="bottom"><button className="btn" onClick={() => net.act({ a: 'finish' })}>Done for tonight</button></div>

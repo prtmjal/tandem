@@ -14,8 +14,10 @@ export const Motif = memo(function Motif({ level, seed, color, accent, gold = '#
   const els: JSX.Element[] = [];
   const c2 = accent || color;
   switch (level) {
-    case 1: { // scattered specks
-      for (let i = 0; i < 46; i++) els.push(<circle key={i} cx={R(0, w)} cy={R(0, h)} r={R(0.5, 2.6)} fill={i % 5 ? color : c2} opacity={R(0.35, 0.95)} />);
+    case 1: { // scattered specks over two soft glows
+      els.push(<defs key="d"><radialGradient id={id + 'g'}><stop offset="0" stopColor={color} stopOpacity="0.55" /><stop offset="1" stopColor={color} stopOpacity="0" /></radialGradient></defs>);
+      for (let i = 0; i < 2; i++) els.push(<circle key={'g' + i} cx={R(10, 90)} cy={R(10, 130)} r={R(28, 44)} fill={`url(#${id}g)`} />);
+      for (let i = 0; i < 72; i++) els.push(<circle key={i} cx={R(0, w)} cy={R(0, h)} r={R(0.7, 3.4)} fill={i % 5 ? color : c2} opacity={R(0.4, 1)} />);
       break;
     }
     case 2: { // contour lines

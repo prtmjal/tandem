@@ -52,6 +52,7 @@ export function PlayCard(p: PlayCardProps) {
               <span className="chip">{type === 'Twist' ? <>✦ {p.title}</> : <><LevelGlyph level={p.level} /> {p.level} · {p.title ?? levelName(p.level)}</>}</span>
               <span className="chip"><TypeIcon type={type} size={14} /> {type}</span>
             </div>
+            <div className="art ghost" aria-hidden="true"><Motif level={p.level} seed={p.seed + 'g'} color="currentColor" /></div>
             <div className="art"><Motif level={p.level} seed={p.seed} color="currentColor" /></div>
             <div className="body"><h2 className="sr-only">{type === 'Twist' ? 'Wildcard' : `Level ${p.level}, ${levelName(p.level)}`}</h2><p className={'prompt ' + size}>{text}</p></div>
             <div className="foot"><span>{HINTS[type] || ''}</span><span>Pass anytime</span></div>

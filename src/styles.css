@@ -124,8 +124,13 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
 .face::after { content: ''; position: absolute; inset: 0; background-image: var(--grain); background-size: 160px; mix-blend-mode: overlay; opacity: .42; pointer-events: none; }
 .face.back { transform: rotateY(180deg); }
 .face .art { position: absolute; inset: 0; color: var(--motif); opacity: .9; }
-.face.front .art { position: relative; inset: auto; height: 34%; flex: none; opacity: 1;
-  -webkit-mask-image: linear-gradient(#000 45%, transparent); mask-image: linear-gradient(#000 45%, transparent); }
+.face.front .art { position: relative; inset: auto; height: 42%; flex: none; opacity: 1;
+  -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+/* A faint copy of the art across the whole face (10%, under the text) so no card ever looks blank. */
+.face.front .art.ghost { position: absolute; inset: 0; height: auto; opacity: .1; -webkit-mask-image: none; mask-image: none; z-index: 0; }
+/* The face glows a little toward the art at the top, and stays the plain field colour where the text sits. */
+.face.front { background: radial-gradient(120% 70% at 30% 0%, color-mix(in srgb, var(--motif) 34%, var(--field)) 0%, var(--field) 62%), var(--field); }
+.plain .face.front .art.ghost { display: none; }
 .face .head { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; font-size: .78rem; font-weight: 700; letter-spacing: .04em; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; background: color-mix(in srgb, var(--field) 70%, transparent); border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); backdrop-filter: blur(6px); }
 .face .body { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 4px 22px 18px; gap: 12px; }
@@ -275,3 +280,14 @@ label.check input { width: 24px; height: 24px; flex: none; margin: 0; accent-col
 .share-img { width: 100%; max-width: 300px; aspect-ratio: 9 / 16; border-radius: 18px; align-self: center; box-shadow: 0 18px 40px -24px rgba(0,0,0,.5); }
 .qr { width: 220px; height: 220px; align-self: center; border-radius: 12px; background: #fff; padding: 6px; }
 .panel.install .linkbtn { align-self: flex-start; }
+
+/* Opened envelope: a paper letter standing in an envelope pocket. */
+.opened { position: relative; width: min(86vw, 360px); margin: 8px auto 0; padding-bottom: 62px; }
+.opened .letter { position: relative; z-index: 1; background: var(--surface); color: var(--fg); border-radius: 14px; padding: 18px 20px 46px;
+  box-shadow: 0 0 0 1.5px var(--gold), 0 14px 30px -18px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 8px; }
+.opened .pocket { position: absolute; z-index: 2; left: -6px; right: -6px; bottom: 0; height: 104px; border-radius: 0 0 16px 16px; background: var(--env);
+  clip-path: polygon(0 0, 50% 46%, 100% 0, 100% 100%, 0 100%); box-shadow: inset 0 -2px 0 var(--gold); }
+.opened .pocket::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom right, transparent 49.5%, color-mix(in srgb, var(--gold) 70%, transparent) 50%, transparent 50.6%),
+  linear-gradient(to bottom left, transparent 49.5%, color-mix(in srgb, var(--gold) 70%, transparent) 50%, transparent 50.6%); opacity: .7; }
+.opened .seal { position: absolute; left: 50%; top: 58%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; background: var(--gold);
+  display: grid; place-items: center; color: #3a2400; font-family: var(--display); font-weight: 700; }

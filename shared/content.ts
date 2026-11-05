@@ -99,6 +99,69 @@ const RAW: Record<number, Raw[]> = {
 };
 
 /* Extra hand-written cards for Levels 4-6 (merged into RAW at build time) */
+// Heat: physical cards for Levels 5-8, added after playtesting showed the top levels were too tame.
+// Every one is a hands-on type (Do / Session / Scene), so each partner privately answers yes / maybe / not tonight
+// before it is shown. Suggestive and sensual, never graphic: no explicit acts, no anatomy named beyond neck, back,
+// waist, thighs. Appended after EXTRA so existing card ids stay the same.
+const HEAT: Record<number, Raw[]> = {
+5: [
+["Kiss your partner's neck, slowly, from just below the ear down to the collarbone. They say 'more' or 'stay'.","Do","neckkiss"],
+["Hold your partner's wrists gently against the wall and kiss them for one minute. Either of you can say 'pause'.","Do","wristwall",60],
+["Whisper the one thing you've wanted to do to your partner all day. Then do just the first part of it.","Do","allday"],
+["Kiss like you're about to be interrupted: thirty seconds, urgent, then stop and just look at each other.","Do","interrupted",30],
+["Sit in your partner's lap, facing them. Kiss for two minutes without using your hands.","Do","lapkiss",120],
+["Kiss your partner everywhere on their face and neck except their lips. Make them wait for it.","Do","waitlips"],
+["Undo one button or zip on your partner's clothes, slowly, holding eye contact. That's all. For now.","Do","onebutton"],
+["Kiss along your partner's jaw while whispering what you find irresistible about them.","Do","jawwhisper"],
+["Back your partner gently against a wall and kiss them. They decide when it ends.","Do","wallkiss"],
+["Kiss your partner's wrist, then the inside of their elbow, then their shoulder. Ask before each one.","Do","armpath"],
+["One of you can't move for two minutes. The other kisses anywhere above the waist that's welcome.","Do","stillkiss",120],
+["Breathe slowly against your partner's neck for thirty seconds without touching. Then one slow kiss.","Do","breathneck",30]],
+6: [
+["Take off one piece of your partner's clothing, slowly, kissing the skin you uncover. They can say 'stop' at any piece.","Session","undress1"],
+["Slow back massage with warm oil or lotion, from neck to lower back. The receiver sets the pressure.","Session","oilback",300],
+["Blindfold your partner. Kiss three places they don't expect. Before each one, they guess where you'll go.","Session","blindkiss"],
+["Trace an ice cube along your partner's neck and collarbone, then warm the same path with your lips.","Session","icewarm"],
+["Lie together skin to skin, as much as feels right, for five minutes. Just breathe and notice.","Session","skin",300],
+["Run your fingertips down your partner's spine and back up. Ten times, each one slower than the last.","Session","spine"],
+["Kiss your way down your partner's back, slowly. They say 'stay' wherever they want you to linger.","Session","backkisses"],
+["Shower or bathe together. Take turns washing each other's shoulders and back, slowly, saying nothing.","Session","shower"],
+["Hold your partner from behind. Let your hands move slowly over their waist and stomach. They guide your hands.","Session","spoonhands"],
+["Three minutes of fingertip touch each, eyes closed. The receiver can answer only with sounds, no words.","Session","soundsonly",180],
+["Feather-light kisses on your partner's inner arm and the back of their knee. Ask which they liked more.","Session","feather"],
+["Slow-dance in as little clothing as you're both comfortable with. One song, lights low.","Session","barelydance"],
+["Massage your partner's calves and thighs for three minutes, over or under clothes, their choice.","Session","legs",180],
+["Lie face to face, legs tangled, and kiss slowly for five minutes. Nothing has to happen next.","Session","tangled",300]],
+7: [
+["Scene: 'Room Service.' One of you orders, the other delivers, and stays a little longer than the job requires.","Scene","sc-roomservice"],
+["Scene: 'The Private Massage.' One of you is a therapist with very good hands. The client sets every limit.","Scene","sc-massage"],
+["Scene: 'Last Night of the Holiday.' Two strangers who met this week. One of you finally asks the question you've both been avoiding.","Scene","sc-holiday"],
+["Scene: 'The Art Class.' One of you draws, the other poses, as covered as they choose. The artist may only ask, never touch.","Scene","sc-artclass"],
+["Scene: 'Blind Date.' Meet at your own front door as if for the first time. Try to earn the goodnight kiss.","Scene","sc-blinddate"],
+["Scene: 'The Masked Gala.' Slow-dance as strangers. Each song, whisper one secret you'd never say unmasked.","Scene","sc-gala"],
+["Scene: 'The Interview.' One of you applies to be the other's perfect date. Answers must be shown, not told.","Scene","sc-interview"],
+["Scene: 'Snowed In.' Two adults in a cabin with one blanket. Negotiate how you'll share it.","Scene","sc-snowed"],
+["Scene: 'The Photographer.' One of you directs the poses; the other decides how much is on show. Phones stay off.","Scene","sc-photo"],
+["Scene: 'The Bet.' You lost a bet and owe your partner three wishes tonight. You can trade any one away.","Scene","sc-bet"],
+["Scene: 'Strangers on a Train.' Sit side by side as if you just met. One hand moves an inch closer every minute.","Scene","sc-train"],
+["Scene: 'After the Party.' You both stayed to help tidy up. Neither of you is leaving. Show each other why.","Scene","sc-afterparty"]],
+8: [
+["Undress each other, taking turns, one piece at a time. Stop wherever feels right tonight.","Session","undressall"],
+["Blindfold your partner for ten minutes. You decide where the kisses go; they decide when to say 'stop'.","Session","blindcharge",600],
+["Tell your partner exactly how you want to be touched tonight, in one sentence. They do exactly that, nothing more.","Do","exactly"],
+["Ten minutes where only one of you may touch, then swap. The other keeps their hands to themself.","Session","onlyone",600],
+["Kiss your way from your partner's lips down to their waist, slowly. They can redirect you at any moment.","Do","towaist"],
+["Name a part of you your partner loves. They give it two minutes of their full attention.","Do","favpart",120],
+["Lead your partner to the bedroom by the hand. Say nothing. Let the next ten minutes speak.","Do","leadbed",600],
+["Two minutes each using only your lips. No hands for either of you.","Do","lipsonly",120],
+["Massage your partner from head to toe with warm oil, as much skin as they choose. Then they decide what's next.","Session","headtoe"],
+["Loosely tie your partner's wrists with a soft scarf and kiss them for two minutes. Untie at the first word.","Do","scarf",120],
+["For fifteen minutes, the only words either of you may say are 'more', 'slower' and 'there'.","Session","threewords",900],
+["Undress your partner using only your lips and teeth, one item. Hands behind your back.","Do","teeth"],
+["Write tonight's wish on paper. Swap, read it in silence, and begin with your partner's.","Do","wishswap"],
+["Put the phones face down. You both know what the next card would say.","Do","nextcard"]],
+};
+
 const EXTRA: Record<number, Raw[]> = {
 "4": [
 [
@@ -976,7 +1039,7 @@ export const ENVELOPES = ENVS;
 export const DECK: Record<number, Card[]> = {};
 for (let l = 1; l <= 8; l++) {
   const out: Card[] = [];
-  (RAW[l] || []).concat(EXTRA[l] || []).forEach((c, i) =>
+  (RAW[l] || []).concat(EXTRA[l] || [], HEAT[l] || []).forEach((c, i) =>
     out.push({ id: l + 'h' + i, l, text: String(c[0]), type: String(c[1]), topic: String(c[2]), t: Number(c[3] || 0) }));
   (TPL[l] || []).forEach((f, fi) => f.v.forEach((v, si) =>
     out.push({ id: l + 't' + fi + '_' + si, l, text: f.t.replace('{x}', v), type: f.type, topic: f.topic, t: 0 })));

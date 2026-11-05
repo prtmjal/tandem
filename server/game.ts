@@ -226,6 +226,8 @@ export class Room {
       case 'tonight':
         if (this.phase !== 'home') break;
         this.ceiling = { picks: [null, null], confirm: [false, false], done: [false, false] };
+        // Tapping an open level on the map pre-selects only the tapper's own pick; the partner still chooses privately.
+        if (Number.isInteger(x.l) && this.prog.unlocked.includes(x.l!)) this.ceiling.picks[me] = x.l!;
         this.phase = 'ceiling';
         break;
       case 'ceiling:pick':

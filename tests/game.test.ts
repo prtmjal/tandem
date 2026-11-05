@@ -240,3 +240,19 @@ describe('share cards', () => {
     }
   });
 });
+
+describe('map shortcut', () => {
+  it('tapping an open level pre-selects only my own private pick', () => {
+    const r = newRoom([1, 2, 3, 4]);
+    r.act(0, { a: 'tonight', l: 3 });
+    expect(r.phase).toBe('ceiling');
+    expect(r.view(0).ceiling!.myPick).toBe(3);
+    expect(r.view(1).ceiling!.myPick).toBe(null); // the partner still chooses for themself
+    expect(JSON.stringify(r.view(1))).not.toContain('"myPick":3');
+  });
+  it('ignores a level that is not open', () => {
+    const r = newRoom([1, 2]);
+    r.act(0, { a: 'tonight', l: 7 });
+    expect(r.view(0).ceiling!.myPick).toBe(null);
+  });
+});
