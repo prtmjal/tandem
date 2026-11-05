@@ -23,7 +23,7 @@ const RAW: Record<number, Raw[]> = {
 ["Guess the song I'd pick for a road trip. Reveal and compare.","Guess","music"],
 ["Tell me about a place that feels like home to you.","Ask","place"],
 ["What's a tiny habit of mine you've secretly grown to like?","Share","habit"],
-["If we had a free Saturday and no rules, how would you spend it?","Ask","plans"],
+["We have a free Saturday, no rules and unlimited money. Plan it hour by hour, together.","Ask","plans"],
 ["What were you obsessed with as a kid? Show me a photo if you have one.","Ask","childhood"],
 ["Guess what I'd order at a restaurant neither of us has tried. Then I'll tell you my real pick.","Guess","dinner"]],
 2:[
@@ -104,6 +104,31 @@ const RAW: Record<number, Raw[]> = {
 // before it is shown. Suggestive and sensual, never graphic: no explicit acts, no anatomy named beyond neck, back,
 // waist, thighs. Appended after EXTRA so existing card ids stay the same.
 const HEAT: Record<number, Raw[]> = {
+// Levels 1-2: game formats so getting to know each other feels like play, not an interview.
+1: [
+["Two truths and a lie about your life before me. I guess which one is the lie.","Guess","twotruths"],
+["Would you rather relive your best day ever once, or have a pretty good day every day forever? Defend it.","Share","wouldrather"],
+["Rapid fire for thirty seconds: I ask, you answer without thinking. Then swap.","Ask","rapidfire",30],
+["Tell me the most embarrassing thing that happened to you at school. I'll try to top it.","Share","embarrassing"],
+["What's a hill you'll die on that nobody else cares about?","Ask","hilldie"],
+["Guess my comfort movie, my karaoke song and my coffee order. One point each.","Guess","threeguess"],
+["Show me the last photo you took that isn't a screenshot, and tell me the story behind it.","Share","lastphoto"],
+["What's a strange job you'd secretly love to try for one week?","Ask","weirdjob"],
+["Tell me about a tiny moment from our first weeks that you've never mentioned.","Share","tinymoment"],
+["Hot take: name an opinion you hold that most people would argue with.","Share","hottake"],
+["If our relationship were a film, what's the title, the genre, and who plays us?","Share","film"],
+["Teach me something you know a lot about in sixty seconds. I get one question at the end.","Share","teachme",60]],
+2: [
+["What's a dream you quietly gave up on? Should we bring it back?","Ask","dreamback"],
+["Guess the three things I'd save in a fire (everyone is safe). Reveal and compare.","Guess","fire"],
+["What did you believe about love at sixteen that you don't believe now?","Ask","lovebelief"],
+["Tell me about a fear you've outgrown, and one you haven't yet.","Share","fears"],
+["Design our perfect ordinary Tuesday together, from waking up to lights out.","Plan","tuesday"],
+["What's a compliment you were given years ago that you still think about? Who said it?","Share","complimentstick"],
+["If you could ask your future self one question about us, what would it be?","Ask","futureself"],
+["Guess how I'd describe you to someone who's never met you. Then I'll tell you.","Guess","describeyou"],
+["What's one thing you'd love us to be known for as a couple?","Ask","knownfor"],
+["Rate this week out of ten, then tell me what would have made it a ten.","Share","rateweek"]],
 3: [
 ["Give me your best pick-up line, delivered with full confidence. I'll rate it out of ten.","Share","pickup"],
 ["What's one thing I do that I probably don't realise is attractive?","Ask","unaware"],
@@ -1064,12 +1089,12 @@ const EXTRA: Record<number, Raw[]> = {
 /* Templated frames multiply variety at Levels 1-3 (frame x slot filler). Level 4 and up is hand-written only. */
 const TPL: Record<number, Frame[]> = {
 1:[
- {t:"What's your favorite {x}? Tell me why, then ask me.",type:'Ask',topic:'fav',v:['meal','season','smell','board game or video game','street food','way to spend a rainy day','movie to rewatch','holiday memory','place to people-watch','song to sing loudly','morning drink','coffee-shop order']},
- {t:"This or that: {x}? Guess my pick first.",type:'Guess',topic:'thisthat',v:['a lazy Sunday at home or a spontaneous day trip','mountains or beach','cooking together or ordering in','sunrise or midnight','calling or texting','books or films','sweet or savory','city lights or a quiet village','tea or coffee','old songs or new songs']},
- {t:"Describe {x} in three words. I'll go next.",type:'Share',topic:'describe',v:['your ideal Sunday','your first week at your job','your hometown','how we met','your favorite room','your perfect weekend away','your childhood home','your best friend']}],
+ {t:"What's your favorite {x}? Tell me why, then ask me.",type:'Ask',topic:'fav',v:['smell in the world','song to scream in the car','snack at 2 a.m.','movie you could quote from memory','holiday memory','place to people-watch','way to waste a Sunday','childhood TV show','weird food combination','word in any language','sound','compliment you have ever received']},
+ {t:"This or that: {x}? Guess my pick first.",type:'Guess',topic:'thisthat',v:['a lazy Sunday at home or a spontaneous day trip','travel to the past or to the future','be famous or be rich','read minds or be invisible','dance in the rain or watch it from bed','a surprise party or a quiet dinner','sunrise or midnight','city lights or a quiet village','never use your phone again or never eat dessert again','dogs or cats']},
+ {t:"Describe {x} in three words. I'll go next.",type:'Share',topic:'describe',v:['your dream life','the moment we met','your teenage self','the last dream you remember','your most chaotic holiday','your ideal Sunday','your hometown','your friends as a group']}],
 2:[
- {t:"What are you hoping for in {x}? I'll listen first, then ask how I can help.",type:'Ask',topic:'hopes',v:['the next year','your work life','your friendships','your health and energy','how we spend weekends','our home','how we handle money','time for yourself']},
- {t:"Guess my {x}, then reveal and compare.",type:'Guess',topic:'guess',v:['biggest worry this month','happiest moment this week','dream trip','favorite thing about us','proudest moment this year','most-used app','guilty pleasure','comfort food']},
+ {t:"Picture {x} going brilliantly a year from now. What does it look like? I'll ask one follow-up.",type:'Ask',topic:'hopes',v:['the next year','your work life','your friendships','your health and energy','how we spend weekends','our home','how we handle money','time for yourself']},
+ {t:"Guess my {x}, then reveal and compare.",type:'Guess',topic:'guess',v:['happiest moment this week','dream trip','favorite thing about us','proudest moment this year','secret talent','most-used emoji','guilty pleasure','go-to comfort food']},
  {t:"Tell me about a time {x}. What did you need most?",type:'Ask',topic:'feel',v:['you felt overwhelmed','you felt really seen','you felt proud and nobody knew','you changed your mind about something big','you felt homesick']}],
 3:[
  {t:"Compliment {x}. Be specific.",type:'Share',topic:'compliment',v:['the way I look at you','my smile','my hands','my voice when it goes quiet','the way I dance','how I kiss','what I wear when I want your attention','my laugh']},
