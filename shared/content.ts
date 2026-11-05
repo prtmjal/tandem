@@ -39,12 +39,12 @@ const RAW: Record<number, Raw[]> = {
 3:[
 ["Tell me what you noticed about me the first time you felt a flutter. Specific details win.","Share","attract"],
 ["Write a one-line flirty note and hide it where I'll find it tomorrow.","Note","note"],
-["Hold eye contact for 20 seconds without speaking, then say what you were thinking. Laughing counts.","Do","eyes",20],
-["Compliment something about how I carry myself, not how I look.","Share","compliment"],
-["Plan a ten-minute mini-date for tomorrow: place, time, and one detail that's a surprise.","Plan","plan"],
+["Hold eye contact for 20 seconds, close enough to make it hard. Then say what you were thinking. Blushing counts.","Do","eyes",20],
+["Compliment something about how I carry myself that you find attractive. Make me blush.","Share","compliment"],
+["Plan a flirty mini-date for tomorrow: place, time, what I should wear, and one detail that's a surprise.","Plan","plan"],
 ["Send me a message later today that only I would understand.","Note","message"],
 ["Which outfit of mine do you secretly love? Tell me why it works.","Share","outfit"],
-["Tell me about the moment you realized you were comfortable being silly around me.","Ask","silly"]],
+["Tell me about the moment you first wanted to kiss me. Where were we, and why didn't you?","Ask","silly"]],
 4:[
 ["Take turns: three minutes of a hand or shoulder massage. The receiver guides with only 'more', 'less', or 'there'. Then swap.","Do","massage",180],
 ["Slow-dance in the kitchen to one song. No talking until it ends.","Do","dance"],
@@ -104,6 +104,19 @@ const RAW: Record<number, Raw[]> = {
 // before it is shown. Suggestive and sensual, never graphic: no explicit acts, no anatomy named beyond neck, back,
 // waist, thighs. Appended after EXTRA so existing card ids stay the same.
 const HEAT: Record<number, Raw[]> = {
+3: [
+["Give me your best pick-up line, delivered with full confidence. I'll rate it out of ten.","Share","pickup"],
+["What's one thing I do that I probably don't realise is attractive?","Ask","unaware"],
+["Describe the moment you knew you had a crush on me, in as much detail as you dare.","Share","crush"],
+["Text me something flirty right now, even though I'm right here. Then read it to me with a straight face.","Note","textnow"],
+["Flirt with me as if we've just met and you have thirty seconds to get my number.","Do","thirtysec",30],
+["Wink at me. Now explain, in one sentence, exactly what that wink meant.","Do","wink"],
+["What's the most attractive thing you've ever seen me wear? Be honest.","Ask","attractivewear"],
+["Tell me one thing about me you'd brag about to a stranger.","Share","brag"],
+["Rate my flirting from one to ten, then show me what a ten would look like.","Share","rateflirt"],
+["Finish this sentence: 'You looked dangerously good when...'","Share","dangerous"],
+["What would you whisper to me across a crowded room if no one else could hear?","Ask","crowded"],
+["Pick the outfit you want to see me in on our next date. I'll consider it.","Plan","outfitplan"]],
 4: [
 ["Sit in your partner's lap, facing them, foreheads resting together. Tell each other about your day in a whisper.","Do","lapwhisper"],
 ["Give your partner a slow neck massage, then kiss the spot you just rubbed, once.","Do","neckonce"],
@@ -1059,9 +1072,9 @@ const TPL: Record<number, Frame[]> = {
  {t:"Guess my {x}, then reveal and compare.",type:'Guess',topic:'guess',v:['biggest worry this month','happiest moment this week','dream trip','favorite thing about us','proudest moment this year','most-used app','guilty pleasure','comfort food']},
  {t:"Tell me about a time {x}. What did you need most?",type:'Ask',topic:'feel',v:['you felt overwhelmed','you felt really seen','you felt proud and nobody knew','you changed your mind about something big','you felt homesick']}],
 3:[
- {t:"Compliment {x}. Be specific.",type:'Share',topic:'compliment',v:['how I carry myself','how I make you laugh','how I handle a bad day','the way I listen','my taste in something','the way I show up for people','my voice','my style']},
- {t:"Write a one-line flirty note about {x} and hide it where I'll find it.",type:'Note',topic:'note',v:['our last trip','tonight','the way I laugh','a memory from this year','what you noticed this morning','what you are planning this weekend']},
- {t:"Tease me about {x} in the most affectionate way you can.",type:'Share',topic:'tease',v:['my morning routine','how I pack','my phone habits','my cooking','how I drive','my taste in music']}]
+ {t:"Compliment {x}. Be specific.",type:'Share',topic:'compliment',v:['the way I look at you','my smile','my hands','my voice when it goes quiet','the way I dance','how I kiss','what I wear when I want your attention','my laugh']},
+ {t:"Write a one-line flirty note about {x} and hide it where I'll find it.",type:'Note',topic:'note',v:['the first time you wanted to kiss me','what I should wear on our next date','something you keep thinking about','tonight','the way I looked this morning','a compliment you have never said out loud']},
+ {t:"Tease me about {x} in the most flirtatious way you can.",type:'Share',topic:'tease',v:['my pick-up lines','how long it took me to make a move','the way I flirt','my dance moves','how I look at you across a room','my attempts at being smooth']}]
 };
 
 const TW_UP: string[] = ["Twist: one minute of uninterrupted listening. One of you talks about anything, the other only listens.","Twist: 20 seconds of eye contact. Laughing counts.","Twist: swap roles on the next card. Whoever was going to answer now asks."];
