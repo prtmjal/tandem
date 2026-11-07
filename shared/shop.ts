@@ -1,6 +1,7 @@
 // Shop suggestions (affiliate links): what can be suggested, matched to which cards, and which retailers serve which
-// countries. Shown only after a night ("Tonight's kit") and on the map ("Toy box"), never during a night, always
-// labelled "Ad · Paid links". Retailers switch on only when their affiliate link template is set on the server.
+// countries. Shown only after a night ("Tonight's kit") and on the map ("Toy box"), never during a night. Until a
+// retailer's affiliate template is set, its links are plain (labelled "Gift ideas", no commission); once set, they
+// are labelled "Ad · Paid links". SHOP_OFF=1 hides them all.
 // Retailer choices and country lists come from reports/Sexual wellness affiliate programs.md; verify terms on sign-up.
 
 export type KitId = 'blindfold' | 'massage-oil' | 'massage-candle' | 'silk-tie' | 'feather' | 'couples-toy' | 'lubricant';
