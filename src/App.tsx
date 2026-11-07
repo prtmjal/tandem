@@ -559,7 +559,9 @@ function Play(p: RoomProps & { partner: string }) {
         <div className="row">{(['y', 'm', 'n'] as const).map(v => <button key={v} className="ctrl" onClick={() => { cue('tap'); net.act({ a: 'gate', seq: cv.seq, v }); }}>{v === 'y' ? 'Yes' : v === 'm' ? 'Maybe' : 'Not tonight'}</button>)}</div></div>;
   } else {
     const c = cv.card!;
-    main = <PlayCard dealKey={cv.seq} level={c.l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={c} seed={c.id} special={cv.mystery ? 'gold' : undefined} />;
+    // Cards written as "me" and "you" need a reader. Turns alternate card by card, the same on both phones.
+    const reads = /\b(me|my|I|I'll|I'd|I'm)\b/.test(c.text) ? (cv.seq % 2 === p.view.me ? 'You read' : `${p.partner} reads`) : undefined;
+    main = <PlayCard dealKey={cv.seq} level={c.l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={c} seed={c.id} special={cv.mystery ? 'gold' : undefined} reader={reads} />;
     actions = (
       <>
         {c.t > 0 && <TimerRow endsAt={cv.timerEndsAt} secs={c.t} onStart={() => net.act({ a: 'timer', seq: cv.seq })} />}

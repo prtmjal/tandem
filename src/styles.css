@@ -323,3 +323,4 @@ select.ctrl { font: inherit; appearance: auto; }
 .badge.dot { min-width: 8px; width: 8px; height: 8px; padding: 0; }
 .overlay.sheet { place-items: end center; padding: 0; }
 .overlay.sheet > .panel { width: min(100%, 480px); border-radius: 22px 22px 0 0; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+.chip.reader { font-weight: 700; }

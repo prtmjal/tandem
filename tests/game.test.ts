@@ -340,3 +340,22 @@ describe('night pacing', () => {
     }
   });
 });
+
+describe('night length', () => {
+  it('deals at most one long-timer card (5+ minutes) a night', () => {
+    for (let n = 0; n < 30; n++) {
+      const r = newRoom();
+      startSession(r, [6, 6]);
+      let long = 0, guard = 0;
+      while (r.phase === 'card' && guard++ < 200) {
+        const v = r.view(0).session!.card!;
+        if (v.kind === 'twist') { r.act(0, { a: 'next', seq: v.seq }); continue; }
+        if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
+        if (v.gate) { both(r, { a: 'gate', seq: v.seq, v: 'y' }); continue; }
+        if ((v.card!.t || 0) >= 300) long++;
+        r.act(0, { a: 'next', seq: v.seq });
+      }
+      expect(long).toBeLessThanOrEqual(1);
+    }
+  });
+});

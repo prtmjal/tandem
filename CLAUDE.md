@@ -7,6 +7,7 @@ A two-phone couples game. React (Vite) phone app plus one Node server with Socke
 - `npm test` (Vitest: engine, privacy, palette contrast), `npm run typecheck`
 - `npm run build && npm start` (production server on :3001, serves `dist/`)
 - `npm run e2e` (two simulated phones; needs the server running and Playwright)
+- `npm run e2e:apart` (a full night apart on two simulated phones; needs the server running)
 - `npm run e2e:pass` (buy the Couple Pass against a fake Stripe; starts its own servers; run `npm run build` first)
 
 ## Rules that must not break
@@ -24,6 +25,7 @@ A two-phone couples game. React (Vite) phone app plus one Node server with Socke
 12. **No hosting on serverless or shared Node hosting.** Rooms live in memory and need inbound WebSockets (Render, Railway, Fly, or a VPS).
 
 ## Design
+- Content: see `reports/Engaging couples prompts.md` for writing rules. `tests/content.test.ts` enforces rule 2 on every card. Night arc in `server/game.ts`: playful first card, one peak with a breath, at most one turn-it-up twist, a guaranteed slow-down on full nights, appreciation last, at most one 5+ minute timer. Cards written as 'me' show who reads (alternating each card).
 - Minimal by default: no button or line of text that repeats what's already on screen or explained elsewhere (intro, tips, Settings). Prefer one clear control over two near-identical ones.
 
 ## Layout

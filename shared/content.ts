@@ -209,7 +209,7 @@ const HEAT: Record<number, Raw[]> = {
 ["Sit between your partner's knees, back to their chest. They kiss your neck and shoulders; their hands rest wherever you place them.","Session","betweenknees"],
 ["Undress each other to your underwear, slowly, taking turns. Then lie together for five minutes without taking anything else off.","Session","underwear",300],
 ["Put on a blindfold. Your partner guides your hands over them for two minutes, wherever they choose to take them.","Session","guidedhands",120],
-["A slow full-body hug lying down, as bare as you like, for three minutes. Whoever moves first has to kiss the other.","Session","bodyhug",180],
+["A slow full-body hug lying down, as bare as you like, for three minutes. Whoever moves first gets to kiss the other.","Session","bodyhug",180],
 ["Warm a towel and slowly dry your partner after a shower, every inch they offer, kissing as you go.","Session","towel"]],
 7: [
 ["Scene: 'Room Service.' One of you orders, the other delivers, then lingers: they won't leave until the guest says exactly what else they'd like.","Scene","sc-roomservice"],
@@ -256,7 +256,7 @@ const HEAT: Record<number, Raw[]> = {
 ["Five minutes each in charge. The one in charge gives soft instructions; the other can say no to any of them.","Session","incharge",600],
 ["Shower together with the lights off. Wash each other slowly, everywhere you're both comfortable, then take it to bed.","Session","darkshower"],
 ["Stand behind your partner in front of a mirror. Undress them slowly while they watch you do it.","Do","mirror"],
-["Two minutes of teasing without touching: breath, whispers, almost-kisses. Whoever touches first has to do whatever the other asks next.","Do","notouch",120],
+["Two minutes of teasing without touching: breath, whispers, almost-kisses. Whoever touches first gets one request from the other, who can still say no.","Do","notouch",120],
 ["One last kiss that lasts as long as you both want. The game is over; the night isn't.","Do","lastkiss"]],
 };
 
@@ -1083,7 +1083,7 @@ const EXTRA: Record<number, Raw[]> = {
 "easewith"
 ],
 [
-"A long, slow hug with shirts off. See how long you can both stay in it before someone has to kiss the other.",
+"A long, slow hug with shirts off. See how long you can both stay in it before one of you can't resist a kiss.",
 "Session",
 "longhug",
 180
@@ -1122,10 +1122,20 @@ const TPL: Record<number, Frame[]> = {
  {t:"Tease me about {x} in the most flirtatious way you can.",type:'Share',topic:'tease',v:['my pick-up lines','how long it took me to make a move','the way I flirt','my dance moves','how I look at you across a room','my attempts at being smooth']}]
 };
 
-const TW_UP: string[] = ["Twist: one minute of uninterrupted listening. One of you talks about anything, the other only listens.","Twist: 20 seconds of eye contact. Laughing counts.","Twist: swap roles on the next card. Whoever was going to answer now asks."];
-const TW_DOWN: string[] = ["Twist: hum a song together for 30 seconds.","Twist: draw each other in 60 seconds. No judging.","Twist: swap seats and tell your partner one thing you're grateful for."];
-const CLOSERS: string[] = ["Say one thing you'll remember about tonight.","Tell your partner one thing you appreciated about them tonight.","Share one moment tonight that made you smile.","Say one thing you'd like more of next time, and one thing you loved tonight."];
-const ENVS: string[] = ["Plan one small thing for this weekend. Each write one word first: cozy, playful or adventurous. Reveal together and merge them.","Choose a song that will be 'ours' for the week. Play it together tomorrow morning.","Each write one thing you'd like to try together this month. Swap and pick one.","Plan a ten-minute ritual to end tonight: a tea, a stretch, a long hug. Do it now.","Tomorrow, leave a small appreciative note somewhere your partner will find it.","Tomorrow at lunchtime, send a message that starts with 'I'm still thinking about...'"];
+const TW_UP: string[] = ["Twist: one minute of uninterrupted listening. One of you talks about anything, the other only listens.","Twist: 20 seconds of eye contact. Laughing counts.","Twist: swap roles on the next card. Whoever was going to answer now asks.",
+"Twist: answer the next card in a whisper, as close as you can get.","Twist: both answer the next card at the same time, on the count of three.","Twist: the next card gets an encore. When you've both answered, go one level deeper.",
+"Twist: before the next card, each say one thing you've noticed about the other tonight.","Twist: answer the next card without breaking eye contact.","Twist: the next card is a sealed one. Both write your answers under Answer before anyone speaks."];
+const TW_DOWN: string[] = ["Twist: hum a song together for 30 seconds.","Twist: draw each other in 60 seconds. No judging.","Twist: swap seats and tell your partner one thing you're grateful for.",
+"Twist: one slow breath together. In for four, out for six. Then carry on.","Twist: share the funniest moment from tonight so far.","Twist: stretch, get a glass of water, and come back. No rush.",
+"Twist: each name one thing you're enjoying about tonight.","Twist: tell each other one small thing you're looking forward to this week.","Twist: thirty seconds of silence, just smiling at each other."];
+const CLOSERS: string[] = ["Say one thing you'll remember about tonight.","Tell your partner one thing you appreciated about them tonight.","Share one moment tonight that made you smile.","Say one thing you'd like more of next time, and one thing you loved tonight.",
+"Finish this for each other: 'Tonight I learned that you...'","Name the card from tonight you'd play again tomorrow, and why.","Say one thing you love about the way your partner showed up tonight.","Each pick one word for tonight. Say them at the same time.",
+"Tell your partner one thing they said tonight that you'll keep thinking about.","Say thank you for one specific moment tonight. Be exact.","What surprised you most about your partner tonight?","Finish this: 'Next time, I'd love us to...'",
+"Say one thing you admire about your partner that came up tonight.","Choose one moment from tonight to remember on a hard day. Tell each other."];
+const ENVS: string[] = ["Plan one small thing for this weekend. Each write one word first: cozy, playful or adventurous. Reveal together and merge them.","Choose a song that will be 'ours' for the week. Play it together tomorrow morning.","Each write one thing you'd like to try together this month. Swap and pick one.","Plan a ten-minute ritual to end tonight: a tea, a stretch, a long hug. Do it now.","Tomorrow, leave a small appreciative note somewhere your partner will find it.","Tomorrow at lunchtime, send a message that starts with 'I'm still thinking about...'",
+"Pick one evening this week with no phones after nine. Decide what you'll do instead.","Each choose a meal to cook for the other this week. Keep the dish a surprise.","Plan a walk somewhere neither of you has been. Pick the day now.","This week, each send one photo that made you think of the other. No caption needed.",
+"Choose a small tradition for every time you play: a drink, a song, a candle. Start it next time.","Write down three tiny things the other did this week that you loved. Swap on Sunday.","Tomorrow morning, before checking your phone, tell each other one thing you're looking forward to.","Plan your next night of this game. Pick the day and who chooses the music.",
+"This week, try one compliment a day that isn't about looks.","Agree on a secret signal that means 'I'm thinking about you'. Use it before the weekend.","Choose one thing to learn together this month: a dance, a recipe, a few words of a language.","Book something small to look forward to: a film, a picnic, a sunrise."];
 
 
 export const LEVELS = LV;

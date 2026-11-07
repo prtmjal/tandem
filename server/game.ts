@@ -32,7 +32,7 @@ interface Session {
   prev: string[]; used: Set<string>; kept: Map<string, string>;
   /** Cards actually shown face up tonight (never ones swapped away after a private 'not tonight'). */
   shown?: string[];
-  lastTw: number; downDone: boolean; upDone?: boolean; cur: CurCard | CurTwist | null;
+  lastTw: number; downDone: boolean; upDone?: boolean; longUsed?: boolean; cur: CurCard | CurTwist | null;
 }
 
 // Progress merge and sanitizing live in shared/progress.ts so the phone can merge backups the same way.
@@ -150,6 +150,8 @@ export class Room {
     const ok = (c: Card) => !seen.includes(c.id) && !last.includes(c.id) && !((this.prog.parked[c.id] || 0) > now) && !s.used.has(c.id);
     const narrow = (pool: Card[]) => {
       const fresh = pool.filter(c => !prevT.includes(c.topic)); if (fresh.length) pool = fresh;
+      // At most one long timer (5+ minutes) a night, so a night doesn't quietly run past an hour.
+      if (s.longUsed) { const short = pool.filter(c => (c.t || 0) < 300); if (short.length) pool = short; }
       if (prefer) { const pp = pool.filter(prefer); if (pp.length) pool = pp; }
       return pool;
     };
@@ -165,6 +167,7 @@ export class Room {
     this.prog.seen[k].push(c.id);
     const L = this.prog.last[k]; L.push(c.id); while (L.length > this.bufK(l)) L.shift();
     s.prev.push(c.topic); s.used.add(c.id);
+    if ((c.t || 0) >= 300) s.longUsed = true;
     return c;
   }
 

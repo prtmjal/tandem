@@ -28,6 +28,8 @@ interface PlayCardProps {
   level: number; hue: number; vibe?: VibeId; mode: Mode; card: Card | null; seed: string;
   faceDown?: boolean; special?: 'holo' | 'gold'; title?: string; text?: string; type?: string;
   backLabel?: ReactNode; dealKey?: string | number;
+  /** Who reads this card aloud, for cards written as 'me' and 'you' (both phones show the same name). */
+  reader?: string;
 }
 
 /** A 5:7 card with a generated-art back and an illustrated face. No swipe: moving on is always a button. */
@@ -50,6 +52,7 @@ export function PlayCard(p: PlayCardProps) {
           <div className={'face front' + (p.special ? ' ' + p.special : '')} aria-hidden={p.faceDown}>
             <div className="head">
               <span className="chip">{type === 'Twist' ? <>✦ {p.title}</> : <><LevelGlyph level={p.level} /> {p.level} · {p.title ?? levelName(p.level)}</>}</span>
+              {p.reader && <span className="chip reader">{p.reader}</span>}
             </div>
             <div className="art ghost" aria-hidden="true"><Motif level={p.level} seed={p.seed + 'g'} color="currentColor" /></div>
             <div className="art">
