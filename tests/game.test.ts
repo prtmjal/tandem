@@ -237,7 +237,7 @@ describe('share cards', () => {
   });
   it('share cards only ever quote a talk card from Levels 1-3', async () => {
     const { DECK } = await import('../shared/content');
-    const safe = new Set([1, 2, 3].flatMap(l => DECK[l].filter(c => ['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit'].includes(c.type)).map(c => c.text)));
+    const safe = new Set([1, 2, 3].flatMap(l => DECK[l].filter(c => ['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit', 'Seal'].includes(c.type)).map(c => c.text)));
     for (let i = 0; i < 8; i++) {
       const r = toEnvelope();
       both(r, { a: 'share', on: true });
@@ -316,5 +316,27 @@ describe('free long distance deck', () => {
   it('keeps the private vote for hands-on video cards at Level 4 and up', async () => {
     const { APART_DECK, isGated } = await import('../shared/content');
     for (let l = 4; l <= 8; l++) expect(APART_DECK[l].filter(isGated).length, 'level ' + l).toBeGreaterThan(2);
+  });
+});
+
+describe('night pacing', () => {
+  it('at most one turn-it-up wildcard, never in the last four cards, and full nights get a slow-down', () => {
+    for (let n = 0; n < 40; n++) {
+      const r = newRoom();
+      startSession(r, [5, 5], 'mid');
+      let ups = 0, downs = 0, guard = 0;
+      while (r.phase === 'card' && guard++ < 200) {
+        const s = r.view(0).session!, v = s.card!;
+        if (v.kind === 'twist') {
+          if (v.dir === 'up') { ups++; expect(s.idx).toBeLessThan(s.N - 4); } else downs++;
+          r.act(0, { a: 'next', seq: v.seq }); continue;
+        }
+        if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
+        if (v.gate) { both(r, { a: 'gate', seq: v.seq, v: 'y' }); continue; }
+        r.act(0, { a: 'next', seq: v.seq });
+      }
+      expect(ups).toBeLessThanOrEqual(1);
+      expect(downs).toBeGreaterThanOrEqual(1);
+    }
   });
 });

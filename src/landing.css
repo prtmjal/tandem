@@ -181,3 +181,15 @@ section { padding: 44px 0; display: flex; flex-direction: column; gap: 14px; }
 /* Founder note */
 .founder .lead { font-family: var(--display); font-weight: 650; font-size: clamp(1.4rem, 6vw, 1.7rem); line-height: 1.2; letter-spacing: -.01em; }
 .founder .sign { font-weight: 700; color: var(--muted); }
+
+/* Narrow phones (360px and below): bring the two hero phones in so nothing scrolls sideways. */
+@media (max-width: 380px) {
+  .phone { width: 146px; height: 270px; }
+  .p-a { left: calc(50% - 154px); }
+  .p-b { right: calc(50% - 154px); }
+}
+@media (max-width: 340px) {
+  .phone { width: 132px; height: 250px; }
+  .p-a { left: calc(50% - 138px); }
+  .p-b { right: calc(50% - 138px); }
+}

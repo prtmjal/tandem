@@ -11,6 +11,8 @@ import { isVibe } from '../shared/theme';
 import { mergeProgress, sanitizeProgress } from '../shared/progress';
 import { PASS_CARD_COUNT, PASS_DECK } from '../shared/decks';
 const DAY = 24 * 3600 * 1000;
+const PLAYFUL = new Set(['Guess', 'Seal']);
+const PLAYFUL_TOPICS = new Set(['thisthat', 'twotruths', 'rapidfire', 'wouldrather', 'hottake', 'pickup', 'wink', 'film', 'threeguess', 'fridge', 'ap-tour', 'ap-fridge']);
 const PARK_MS = 56 * DAY; // declined cards rest for 8 weeks
 const CURIOUS_MS = 14 * DAY; // an unmatched "curious" tap expires silently
 const rnd = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
@@ -30,7 +32,7 @@ interface Session {
   prev: string[]; used: Set<string>; kept: Map<string, string>;
   /** Cards actually shown face up tonight (never ones swapped away after a private 'not tonight'). */
   shown?: string[];
-  lastTw: number; downDone: boolean; cur: CurCard | CurTwist | null;
+  lastTw: number; downDone: boolean; upDone?: boolean; cur: CurCard | CurTwist | null;
 }
 
 // Progress merge and sanitizing live in shared/progress.ts so the phone can merge backups the same way.
@@ -169,7 +171,7 @@ export class Room {
   private plan(s: Session) {
     return s.N === 12
       ? { w: [3, 2, 3], b: [2, 1, 2, 1], p: [0, 0], c: [3, 2, 3] }
-      : { w: [3, 2, 3, 2], b: [2, 1, 2, 1, 2, 1], p: [0, 0, 0], c: [3, 2, 3] };
+      : { w: [3, 2, 3, 2], b: [2, 1, 2, 1, 2, 1], p: [0, 1, 0], c: [3, 2, 3] }; // one peak with a breath, not a plateau
   }
   private slot(s: Session, i: number) {
     const p = this.plan(s), seq = [...p.w, ...p.b, ...p.p, ...p.c];
@@ -182,18 +184,24 @@ export class Room {
     s.seq++;
     if (s.idx >= s.N) { this.startClose(); return; }
     const gap = s.idx - s.lastTw;
-    if (s.idx >= 3 && s.idx <= s.N - 3 && gap >= 6) {
-      const coolStart = s.idx === s.N - 3 && s.c >= 4 && !s.downDone;
+    // Full nights always get one 'slow down' as the cool-down starts; at most one 'turn it up' per night, never late.
+    const coolStart = s.idx === s.N - 3 && (s.c >= 4 || s.N === 16) && !s.downDone;
+    if (s.idx >= 3 && s.idx <= s.N - 3 && (gap >= 6 || coolStart)) {
       if (gap >= 12 || coolStart || Math.random() < 0.28) {
-        const down = s.idx >= s.N - 3 || Math.random() < 0.3;
-        s.lastTw = s.idx; if (down) s.downDone = true;
+        const down = s.idx >= s.N - 4 || !!s.upDone || Math.random() < 0.3;
+        if (down && s.downDone && !coolStart) { /* one slow-down is enough */ } else {
+        s.lastTw = s.idx; if (down) s.downDone = true; else s.upDone = true;
         s.cur = { kind: 'twist', seq: s.seq, text: rnd(this.fit(down ? TWIST_DOWN : TWIST_UP)), dir: down ? 'down' : 'up' };
         return;
+        }
       }
     }
     const sl = this.slot(s, s.idx);
     const lv = this.lvlFor(Math.max(1, s.c - sl.off));
-    const prefer = sl.ph === 'c' ? (c: Card) => SOFT_TYPES.has(c.type) && !isGated(c) : sl.ph === 'w' ? (c: Card) => !isGated(c) : undefined;
+    // Open playful (an early laugh), close warm (appreciation last), and keep warm-up and cool-down hands-off.
+    const prefer = s.idx === 0 ? (c: Card) => PLAYFUL.has(c.type) || PLAYFUL_TOPICS.has(c.topic)
+      : s.idx === s.N - 1 ? (c: Card) => c.type === 'Appreciate' || (SOFT_TYPES.has(c.type) && !isGated(c) && /appreciat|love|grateful|thank|favou?rite thing about/i.test(c.text))
+      : sl.ph === 'c' ? (c: Card) => SOFT_TYPES.has(c.type) && !isGated(c) : sl.ph === 'w' ? (c: Card) => !isGated(c) : undefined;
     const card = this.draw(lv, prefer);
     const mystery = s.idx === this.plan(s).w.length + 2;
     s.cur = { kind: 'card', seq: s.seq, card, mystery, flips: [false, false], gate: isGated(card) ? { votes: [null, null] } : null, timerEndsAt: null };

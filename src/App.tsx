@@ -635,7 +635,7 @@ function ChatSheet({ view, partner, close }: { view: View; partner: string; clos
   );
 }
 
-function ChatPanel({ view, partner, compact, autoFocus, onExpand }: { view: View; partner: string; compact?: boolean; autoFocus?: boolean; onExpand?: () => void }) {
+function ChatPanel({ view, partner, compact, autoFocus, onExpand, readOnly }: { view: View; partner: string; compact?: boolean; autoFocus?: boolean; onExpand?: () => void; readOnly?: boolean }) {
   const card = view.session?.card;
   const seq = view.phase === 'card' && card ? card.seq : null;
   const [text, setText] = useState('');
@@ -657,7 +657,7 @@ function ChatPanel({ view, partner, compact, autoFocus, onExpand }: { view: View
       {shown.length > 0 && <div className="msgs" ref={list} aria-live="polite">
         {shown.map((m, i) => (
           <div key={m.id} className={'msg' + (m.mine ? ' mine' : '')}>
-            {!compact && m.seq !== null && (i === 0 || shown[i - 1].seq !== m.seq) && <span className="msg-card">{m.seq === seq ? 'On this card' : 'Earlier card'}</span>}
+            {!compact && !readOnly && m.seq !== null && (i === 0 || shown[i - 1].seq !== m.seq) && <span className="msg-card">{m.seq === seq ? 'On this card' : 'Earlier card'}</span>}
             <p>{m.sealed && <span className="seal-mark" title="Opened together">✉︎ </span>}{m.text}</p>
           </div>
         ))}
@@ -665,7 +665,7 @@ function ChatPanel({ view, partner, compact, autoFocus, onExpand }: { view: View
       {sl && (sl.mine
         ? <p className="tiny muted">{sl.partnerSealed ? 'Opening…' : <>Your answer is sealed. It opens when {partner} answers too.</>}</p>
         : sl.partnerSealed && <p className="tiny"><b>{partner} has answered.</b> Write yours to open both.</p>)}
-      <div className="composer">
+      {!readOnly && <><div className="composer">
         <textarea rows={compact ? 1 : 2} maxLength={500} value={text} autoFocus={autoFocus} placeholder={seal && canSeal ? 'Your answer…' : 'Message…'}
           aria-label="Your answer or message" onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
@@ -674,7 +674,7 @@ function ChatPanel({ view, partner, compact, autoFocus, onExpand }: { view: View
       <div className="chat-foot">
         {seq !== null && <label className="seal-toggle"><input type="checkbox" checked={seal} disabled={!canSeal} onChange={e => setSeal(e.target.checked)} /> Seal until we've both answered</label>}
         {compact && onExpand && <button className="linkbtn" onClick={onExpand}>All messages</button>}
-      </div>
+      </div></>}
     </div>
   );
 }
@@ -1063,7 +1063,7 @@ function Close(p: RoomProps & { partner: string }) {
             </m.div>
             <div className="pocket" aria-hidden="true"><span className="seal">T</span></div>
           </div>
-          {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} /></div>}
+          {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} readOnly /></div>}
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
           <ShopLinks kind="kit" items={kitFor(c.kitTopics || [], p.view.session?.tonight ?? 1)} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div></div>}

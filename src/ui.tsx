@@ -17,7 +17,7 @@ export function cardStyle(level: number, hue: number, mode: Mode, vibe?: VibeId)
 }
 
 const HINTS: Record<string, string> = {
-  Ask: 'Answer, then ask back', Share: 'Say it out loud', Guess: 'Guess first, then reveal', Revisit: 'Has this changed?',
+  Ask: 'Answer, then ask back', Share: 'Say it out loud', Guess: 'Seal your guess under Answer, then reveal', Seal: 'Seal yours under Answer · both open together', Revisit: 'Has this changed?',
   Appreciate: 'Listener: just say thank you', Note: 'Do it later', Plan: 'Make the plan together', Do: 'Receiver leads',
   Tease: 'Opens later', Choose: 'Decide together', Session: 'Nothing has to lead anywhere', Scene: 'Cue word steps out',
   Persona: 'Play as long as it’s fun', Cue: 'Say each word once', Chain: 'Part of a chain', Whisper: 'Then the phone goes away',

@@ -79,7 +79,7 @@ const RAW: Record<number, Raw[]> = {
 ["Ask your partner when in the day they'd like more touch, and what kind. Listen first.","Ask","ask-for"],
 ["Take a warm bath or shower, one after the other, then spend ten quiet minutes wrapped up together. No agenda.","Session","calm",600]],
 7:[
-["Scene: 'The Stranger at the Bar.' You're meeting for the first time. Pick names and a backstory, flirt shamelessly, and end it with one of you whispering 'my place?'. Either can use the cue word to step out.","Scene","scene-bar"],
+["Scene: 'The Stranger at the Gallery.' Meet as strangers. Pick names, flirt shamelessly, and end with one of you whispering 'my place?'. The cue word steps out anytime.","Scene","scene-bar"],
 ["Scene: 'Reunion.' Ten years apart, and the pull is still there. Five minutes of catching up, then one of you closes the distance. Decide together how the night continues.","Scene","scene-reunion",300],
 ["Dress clue: wear one clue only (a tie, a scarf, a color). Your partner guesses who you're playing.","Persona","dress"],
 ["Cue check: choose a word for 'pause' and one for 'more of this', and say each aloud once.","Cue","cue"],
@@ -117,7 +117,12 @@ const HEAT: Record<number, Raw[]> = {
 ["Tell me about a tiny moment from our first weeks that you've never mentioned.","Share","tinymoment"],
 ["Hot take: name an opinion you hold that most people would argue with.","Share","hottake"],
 ["If our relationship were a film, what's the title, the genre, and who plays us?","Share","film"],
-["Teach me something you know a lot about in sixty seconds. I get one question at the end.","Share","teachme",60]],
+["Teach me something you know a lot about in sixty seconds. I get one question at the end.","Share","teachme",60],
+["Who's more likely to get us lost on a road trip? Seal your answer, then reveal.","Seal","sl-lost"],
+["Rate your day from 1 to 10. Seal it before you look at each other, then explain the number.","Seal","sl-rateday"],
+["Seal your guess: what's my ultimate comfort food? Reveal and compare.","Seal","sl-comfort"],
+["Most likely to cry at a film: you or me? Seal it, then reveal.","Seal","sl-cry"],
+["Share some good news from this week, however small. Your partner's only job: be thrilled for you.","Share","goodnews"]],
 2: [
 ["What's a dream you quietly gave up on? Should we bring it back?","Ask","dreamback"],
 ["Guess the three things I'd save in a fire (everyone is safe). Reveal and compare.","Guess","fire"],
@@ -128,7 +133,12 @@ const HEAT: Record<number, Raw[]> = {
 ["If you could ask your future self one question about us, what would it be?","Ask","futureself"],
 ["Guess how I'd describe you to someone who's never met you. Then I'll tell you.","Guess","describeyou"],
 ["What's one thing you'd love us to be known for as a couple?","Ask","knownfor"],
-["Rate this week out of ten, then tell me what would have made it a ten.","Share","rateweek"]],
+["Rate this week out of ten, then tell me what would have made it a ten.","Share","rateweek"],
+["Seal one word for how this year has felt so far. Reveal together, then explain.","Seal","sl-yearword"],
+["Seal your guess: what am I most proud of this year? Reveal and compare.","Seal","sl-proud"],
+["Finish this out loud: 'Something I've never told anyone is...' As light or as deep as you like.","Share","starter-never"],
+["Rate how well we handle stress together, 1 to 10. Seal it, reveal, then name one thing that would add a point.","Seal","sl-stress"],
+["Tell me about a small win from this week. I'll ask two questions about it, and celebrate properly.","Share","goodnews2"]],
 3: [
 ["Give me your best pick-up line, delivered with full confidence. I'll rate it out of ten.","Share","pickup"],
 ["What's one thing I do that I probably don't realise is attractive?","Ask","unaware"],
@@ -141,14 +151,20 @@ const HEAT: Record<number, Raw[]> = {
 ["Rate my flirting from one to ten, then show me what a ten would look like.","Share","rateflirt"],
 ["Finish this sentence: 'You looked dangerously good when...'","Share","dangerous"],
 ["What would you whisper to me across a crowded room if no one else could hear?","Ask","crowded"],
-["Pick the outfit you want to see me in on our next date. I'll consider it.","Plan","outfitplan"]],
+["Pick the outfit you want to see me in on our next date. I'll consider it.","Plan","outfitplan"],
+["Seal it: who made the first move? Reveal, then argue your case.","Seal","sl-firstmove"],
+["Most likely to flirt with a stranger by accident: you or me? Seal, reveal, defend.","Seal","sl-flirt"],
+["Seal one word for how I looked the night we met. Reveal together.","Seal","sl-looked"],
+["Finish this slowly: 'The thing about you that still gives me butterflies is...'","Share","starter-butterflies"]],
 4: [
 ["Sit in your partner's lap, facing them, foreheads resting together. Tell each other about your day in a whisper.","Do","lapwhisper"],
 ["Give your partner a slow neck massage, then kiss the spot you just rubbed, once.","Do","neckonce"],
 ["Lie on the couch, one behind the other, and trace lazy patterns on your partner's stomach over their shirt.","Do","spoontrace"],
 ["Pull your partner in by the hand and hold them for one song. One kiss is allowed, but only on the last line.","Do","onesongkiss"],
 ["Take turns naming where you'd like to be touched more often: neck, back, hair, hands. Then give each other a minute of it.","Do","moreoften",120],
-["Warm your hands and ask if you can rest them under the back of your partner's top while you talk. Leave them there.","Do","warmhands"]],
+["Warm your hands and ask if you can rest them under the back of your partner's top while you talk. Leave them there.","Do","warmhands"],
+["Seal your answer: what's the best part of falling asleep next to me? Reveal together.","Seal","sl-asleep"],
+["Tell me one good thing from today. My job is to look as delighted as I actually am.","Share","goodnews3"]],
 5: [
 ["Kiss your partner's neck, slowly, from just below the ear down to the collarbone. They say 'more' or 'stay'.","Do","neckkiss"],
 ["Hold your partner's wrists gently against the wall and kiss them for one minute. Either of you can say 'pause'.","Do","wristwall",60],
@@ -167,7 +183,11 @@ const HEAT: Record<number, Raw[]> = {
 ["Kiss your partner's earlobe, then whisper one thing you can't stop thinking about doing to them.","Do","earwhisper"],
 ["Trade kisses that each last one second longer than the last, starting at one. See how far you get before you lose count.","Do","longerkiss"],
 ["Slide one hand under the back of your partner's shirt while you kiss. Leave it there, warm, for a full minute.","Do","handunder",60],
-["Kiss as slowly as you possibly can for one minute, then as hungrily as you can for ten seconds.","Do","slowfast",70]],
+["Kiss as slowly as you possibly can for one minute, then as hungrily as you can for ten seconds.","Do","slowfast",70],
+["Seal one word for what you want more of from me tonight. Reveal together.","Seal","sl-more"],
+["Seal your guess: where do I most like to be kissed? Reveal, and remember it.","Seal","sl-kissspot"],
+["Finish this in a whisper: 'Tonight, I'd love it if you...'","Share","starter-tonight"],
+["Rate the tension in this room from 1 to 10. Seal it. Reveal. Then close the gap.","Seal","sl-tension"]],
 6: [
 ["Take off your partner's clothes one piece at a time, slowly, kissing the skin you uncover. Keep going as far as you both want; 'stop' ends it at any piece.","Session","undress1"],
 ["Shirt off, warm oil: slow back massage from the neck to the base of the spine. The receiver sets the pressure and says when to go lower.","Session","oilback",300],
@@ -1200,4 +1220,4 @@ export const worksApart = (c: Card) => !GATED.has(c.type) && !TOGETHER_TOPICS.ha
 /** Twists, closing cards and envelopes that need you in one room. */
 export const TOGETHER_TEXT = /swap seats|long hug|somewhere your partner will find/i;
 export const isGated = (c: Card) => c.l >= 4 && GATED.has(c.type);
-export const SOFT_TYPES = new Set(['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit']);
+export const SOFT_TYPES = new Set(['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit', 'Seal']);

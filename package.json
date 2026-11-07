@@ -10,7 +10,8 @@
     "test": "vitest run",
     "e2e": "node tests/two-phones.mjs",
     "typecheck": "tsc -p . --noEmit",
-    "e2e:pass": "node tests/pass-e2e.mjs"
+    "e2e:pass": "node tests/pass-e2e.mjs",
+    "e2e:apart": "node tests/apart-e2e.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "5.3.0",
