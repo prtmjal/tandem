@@ -845,11 +845,21 @@ function RestoreDialog({ code, done }: { code: string; done: (msg?: string) => v
 }
 
 /* ---------------- shop links (affiliate, clearly labelled, never during a night) ---------------- */
-let shopInfo: Promise<string[]> | null = null;
-const enabledRetailers = () => (shopInfo ??= fetch('/api/shop').then(r => r.json()).then(j => (Array.isArray(j.retailers) ? j.retailers : [])).catch(() => []));
-function useShop(): string[] {
-  const [on, setOn] = useState<string[]>([]);
-  useEffect(() => { let live = true; enabledRetailers().then(ids => { if (!live) return; const c = shopCountry(); setOn(c === 'off' ? [] : retailersFor(c).filter(id => ids.includes(id))); }); return () => { live = false; }; }, []);
+let shopInfo: Promise<{ id: string; paid: boolean }[]> | null = null;
+type ShopRetailer = { id: string; paid: boolean };
+const enabledRetailers = () => (shopInfo ??= fetch('/api/shop').then(r => r.json())
+  .then(j => (Array.isArray(j.retailers) ? (j.retailers as ShopRetailer[]).filter(x => x && typeof x.id === 'string') : [])).catch(() => []));
+function useShop(): ShopRetailer[] {
+  const [on, setOn] = useState<ShopRetailer[]>([]);
+  useEffect(() => {
+    let live = true;
+    enabledRetailers().then(list => {
+      if (!live) return;
+      const c = shopCountry();
+      setOn(c === 'off' ? [] : retailersFor(c).map(id => list.find(x => x.id === id)).filter((x): x is ShopRetailer => !!x));
+    });
+    return () => { live = false; };
+  }, []);
   return on;
 }
 
@@ -860,16 +870,20 @@ function ShopLinks({ kind, items }: { kind: 'kit' | 'toybox'; items: KitId[] }) 
   const [hidden, setHidden] = useState(false);
   const list = kind === 'kit' ? items.filter(k => !KIT[k].toyBoxOnly) : items;
   if (hidden || !retailers.length || !list.length) return null;
-  const link = (rid: string, k?: KitId) => <a key={rid} className="ctrl small shoplink" href={`/go/${rid}${k ? '/' + k : ''}`} target="_blank" rel="sponsored noopener noreferrer" referrerPolicy="no-referrer">{RETAILERS[rid].name} ↗</a>;
+  const shown = retailers.slice(0, 2);
+  const paid = shown.some(r => r.paid);
+  const link = (r: ShopRetailer, k?: KitId) => <a key={r.id} className="ctrl small shoplink" href={`/go/${r.id}${k ? '/' + k : ''}`} target="_blank" rel={(r.paid ? 'sponsored ' : '') + 'noopener noreferrer'} referrerPolicy="no-referrer">{RETAILERS[r.id].name} ↗</a>;
   return (
     <div className="panel shop">
-      <p className="eyebrow">Ad · Paid links</p>
-      <h3>{kind === 'kit' ? 'Tonight’s kit' : 'Toy box'}</h3>
-      <p className="tiny muted">{kind === 'kit' ? 'For next time, based on cards you both saw tonight. ' : 'Things that make some cards easier. '}If you buy through these links, Tandem earns a commission. Your price stays the same. We picked these ourselves, and the shop never learns what you played.</p>
+      <p className="eyebrow">{paid ? 'Ad · Paid links' : 'Gift ideas'}</p>
+      <h3>{kind === 'kit' ? 'For next time' : 'Toy box'}</h3>
+      <p className="tiny muted">{paid
+        ? 'If you buy through these links, Tandem earns a commission. Your price stays the same. The shop never learns what you played.'
+        : 'Shops we like. We don’t earn from these links, and the shop never learns what you played.'}</p>
       {kind === 'toybox' && !open
         ? <button className="ctrl" onClick={() => setOpen(true)}>Open the toy box</button>
         : <ul className="kitlist">{list.map(k => (
-          <li key={k}><div><b>{KIT[k].label}</b><span className="tiny muted">{KIT[k].blurb}</span></div><div className="shops">{retailers.slice(0, 2).map(rid => link(rid, k))}</div></li>
+          <li key={k}><div><b>{KIT[k].label}</b><span className="tiny muted">{KIT[k].blurb}</span></div><div className="shops">{shown.map(r => link(r, k))}</div></li>
         ))}</ul>}
       <button className="linkbtn" onClick={() => { setShopCountry('off'); setHidden(true); }}>Hide shop suggestions</button>
     </div>
@@ -1051,7 +1065,7 @@ function Close(p: RoomProps & { partner: string }) {
           </div>
           {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} /></div>}
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
-          <ShopLinks kind="kit" items={kitFor(c.kitTopics || [])} />
+          <ShopLinks kind="kit" items={kitFor(c.kitTopics || [], p.view.session?.tonight ?? 1)} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div></div>}
           <div className="bottom"><button className="btn" onClick={() => net.act({ a: 'finish' })}>Done for tonight</button></div>
         </>

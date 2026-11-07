@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KIT, NO_SHOP, RETAILERS, TOPIC_KIT, affiliateUrl, kitFor, retailersFor } from '../shared/shop';
+import { KIT, NO_SHOP, RETAILERS, TOPIC_KIT, affiliateUrl, kitFor, plainUrl, retailersFor } from '../shared/shop';
 import { APART_DECK, DECK } from '../shared/content';
 import { PASS_DECK } from '../shared/decks';
 import { Room } from '../server/game';
@@ -18,6 +18,8 @@ describe('shop rules', () => {
   it('builds links only from a configured https template, with nothing about the person', () => {
     const amz = RETAILERS.amazonin;
     expect(affiliateUrl(amz, undefined, 'blindfold')).toBe(null);
+    expect(plainUrl(amz, 'blindfold')).toBe('https://www.amazon.in/s?k=blindfold'); // plain link until a tag is set
+    expect(plainUrl(RETAILERS.mymuse, 'blindfold')).toBe('https://mymuse.in/');
     expect(affiliateUrl(amz, 'javascript:alert(1){rawurl}', 'blindfold')).toBe(null);
     expect(affiliateUrl(amz, '{rawurl}&tag=tandem-21', 'massage-oil')).toBe('https://www.amazon.in/s?k=massage%20oil&tag=tandem-21');
     const awin = affiliateUrl(RETAILERS.lovehoneyuk, 'https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued={url}');
@@ -28,6 +30,9 @@ describe('shop rules', () => {
     for (const t of Object.keys(TOPIC_KIT)) expect(topics.has(t), t).toBe(true);
     for (const k of kitFor(Object.keys(TOPIC_KIT))) expect(KIT[k].toyBoxOnly).toBeFalsy();
     expect(kitFor(['blindkiss', 'oilback']).length).toBeLessThanOrEqual(3);
+    // Nothing matched: still a gentle suggestion, so the end of the night is never empty.
+    expect(kitFor([], 6)).toEqual(['massage-candle', 'massage-oil']);
+    expect(kitFor([], 2)).toEqual(['massage-candle']);
   });
   it('shop taps are counted only as a total', () => {
     expect(Object.keys(EVENTS)).toContain('shopClick');

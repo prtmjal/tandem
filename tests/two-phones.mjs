@@ -167,6 +167,10 @@ await click(A, 'Open the envelope');
 await click(B, 'Open it');
 await sleep(4300);
 await shot(A, '18-envelope-dark'); await shot(B, '18-envelope-light');
+// The end of the night always offers gift ideas (plain links until affiliate tags are set).
+await A.locator('.panel.shop').waitFor({ timeout: 5000 });
+const gift = await A.locator('.panel.shop .shoplink').first().getAttribute('href');
+if (!gift || !gift.startsWith('/go/')) throw new Error('gift links missing at the end of the night');
 // Share card: A opts in alone (nothing appears for B), then B opts in and both get the same card.
 await click(A, 'I’d be happy to share a card');
 await A.getByText('If you both say yes, it appears here').waitFor();

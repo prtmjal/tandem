@@ -25,10 +25,13 @@ export const TOPIC_KIT: Record<string, KitId[]> = {
   scarf: ['silk-tie'], feather: ['feather'], oilcircles: ['massage-oil'], guidedhands: ['blindfold'], 'ap-blind': ['blindfold'],
 };
 
-/** Up to three kit items for tonight, from the topics of cards that were actually shown. */
-export function kitFor(topics: string[]): KitId[] {
+/** Up to three kit items for tonight, from the topics of cards that were actually shown. When nothing matched,
+ *  a gentle default so the end of the night always has a suggestion: candle and oil after a warmer night (Level 4+),
+ *  a candle after a lighter one. */
+export function kitFor(topics: string[], tonight = 1): KitId[] {
   const out: KitId[] = [];
   for (const t of topics) for (const k of TOPIC_KIT[t] || []) if (!out.includes(k)) out.push(k);
+  if (!out.length) return tonight >= 4 ? ['massage-candle', 'massage-oil'] : ['massage-candle'];
   return out.slice(0, 3);
 }
 
@@ -78,6 +81,9 @@ export function retailersFor(country: string | null): string[] {
   if (!country || NO_SHOP.has(country)) return [];
   return BY_COUNTRY[country] || [];
 }
+
+/** The shop's own address for an item, with no affiliate tag (used until an affiliate template is set). */
+export function plainUrl(r: Retailer, item?: KitId): string { return item && r.search ? r.search(KIT[item].q) : r.home; }
 
 /** Builds the outbound affiliate URL for a retailer and item, or null if the retailer isn't set up. */
 export function affiliateUrl(r: Retailer, template: string | undefined, item?: KitId): string | null {
