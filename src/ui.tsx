@@ -1,7 +1,8 @@
 // Shared building blocks: the playing card, partner chip, waiting state, countdown, reactions.
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { AnimatePresence, m } from 'motion/react';
-import { LEVELS, type Card } from '../shared/content';
+import type { Card } from '../shared/content';
+import { LEVELS } from '../shared/levels';
 import { cardColors, chipColor, type Mode } from '../shared/theme';
 import type { VibeId } from '../shared/protocol';
 import { GRAIN, LevelGlyph, Motif, ThemeArt, TypeIcon, themeFor } from './art';
@@ -31,6 +32,8 @@ interface PlayCardProps {
   backLabel?: ReactNode; dealKey?: string | number;
   /** Who reads this card aloud, for cards written as 'me' and 'you' (both phones show the same name). */
   reader?: string;
+  /** Replaces the type's usual footer hint (e.g. on a scene that comes with secret roles). */
+  hint?: string;
 }
 
 /** A 5:7 card with a generated-art back and an illustrated face. No swipe: moving on is always a button. */
@@ -61,7 +64,7 @@ export function PlayCard(p: PlayCardProps) {
               {text && <div className="art-theme"><ThemeArt theme={themeFor(text)} seed={p.seed} c="currentColor" /></div>}
             </div>
             <div className="body"><h2 className="sr-only">{type === 'Twist' ? 'Wildcard' : `Level ${p.level}, ${levelName(p.level)}`}</h2><p className={'prompt ' + size}>{text}</p></div>
-            <div className="foot"><span>{HINTS[type] || ''}</span></div>
+            <div className="foot"><span>{p.hint ?? HINTS[type] ?? ''}</span></div>
           </div>
           <div className={'face back' + (p.special === 'gold' ? ' gold' : '')} aria-hidden={!p.faceDown}>
             <div className="art"><Motif level={p.level} seed={p.seed + 'b'} color="currentColor" /></div>

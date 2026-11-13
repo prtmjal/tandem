@@ -1,14 +1,14 @@
 // Server-authoritative game room. Private choices live only here and are never sent to the partner.
 import {
   DECK, LEVELS, CARD_BY_ID, TOTAL_CARDS, TWIST_UP, TWIST_DOWN, CLOSING, ENVELOPES,
-  isGated, SOFT_TYPES, worksApart, TOGETHER_TEXT, APART_DECK, APART_CARDS, MATCH, type Card, type MatchItem,
+  isGated, SOFT_TYPES, worksApart, TOGETHER_TEXT, APART_DECK, APART_CARDS, MATCH, MATCH_BY_ID, type Card, type MatchItem,
 } from '../shared/content';
 import {
   emptyProgress, type Action, type CardView, type Energy, type Phase, type Progress, type VibeId, type View, type Vote,
 } from '../shared/protocol';
 
 import { isVibe } from '../shared/theme';
-import { mergeProgress, sanitizeProgress } from '../shared/progress';
+import { mergeProgress, sanitizeProgress as sanitizeShape } from '../shared/progress';
 import { PASS_CARD_COUNT, PASS_DECK } from '../shared/decks';
 const DAY = 24 * 3600 * 1000;
 const PLAYFUL = new Set(['Guess', 'Seal', 'Likely']);
@@ -38,13 +38,15 @@ interface Session {
   shown?: string[];
   lastTw: number; downDone: boolean; upDone?: boolean; longUsed?: boolean; cur: CurCard | CurTwist | CurMatch | null;
   /** One match round a night; what you were both open to, shown again at the end. */
-  matchDone?: boolean; matches?: string[];
+  matchDone?: boolean; matches?: string[]; scenes?: number;
   /** "Who's more likely" cards where you both picked the same person, out of those you both answered. */
   sync?: { same: number; of: number };
 }
 
 // Progress merge and sanitizing live in shared/progress.ts so the phone can merge backups the same way.
-export { mergeProgress, sanitizeProgress };
+export { mergeProgress };
+/** The server checks uploaded progress against the real deck, not just the shape of an id. */
+export const sanitizeProgress = (p: unknown): Progress => sanitizeShape(p, id => !!CARD_BY_ID[id] || !!MATCH_BY_ID[id]);
 
 /** Plain text only: no control characters, at most 500 characters. */
 export function cleanText(t: unknown): string {
@@ -148,7 +150,8 @@ export class Room {
   private bufK(l: number) { return Math.max(2, Math.round(this.deck(l).length * 0.15)); }
   private lvlFor(t: number) { let best = 1; for (const l of this.prog.unlocked) if (l <= t && l > best) best = l; return best; }
 
-  draw(l: number, prefer?: (c: Card) => boolean): Card {
+  /** `prefer` narrows the pool when it can; `orElse` is the second choice when nothing preferred is left. */
+  draw(l: number, prefer?: (c: Card) => boolean, orElse?: (c: Card) => boolean): Card {
     l = this.playable(l);
     // Apart with the pass, lean on the Long distance deck now and then without draining it in one night.
     if (this.apart && this.pass && !prefer && Math.random() < 0.35) prefer = c => c.id.startsWith('p.distance.');
@@ -160,7 +163,7 @@ export class Room {
       const fresh = pool.filter(c => !prevT.includes(c.topic)); if (fresh.length) pool = fresh;
       // At most one long timer (5+ minutes) a night, so a night doesn't quietly run past an hour.
       if (s.longUsed) { const short = pool.filter(c => (c.t || 0) < 300); if (short.length) pool = short; }
-      if (prefer) { const pp = pool.filter(prefer); if (pp.length) pool = pp; }
+      if (prefer) { const pp = pool.filter(prefer); if (pp.length) pool = pp; else if (orElse) { const oo = pool.filter(orElse); if (oo.length) pool = oo; } }
       return pool;
     };
     let pool = narrow(this.deck(l).filter(ok));
@@ -179,15 +182,19 @@ export class Room {
     return c;
   }
 
+  /** How far below tonight's level each card sits. A night warms up one or two levels down, spends its middle at
+   *  the level you chose (about a third of the cards), takes one breath at the peak, then cools down. */
   private plan(s: Session) {
     return s.N === 12
-      ? { w: [3, 2, 3], b: [2, 1, 2, 1], p: [0, 0], c: [3, 2, 3] }
-      : { w: [3, 2, 3, 2], b: [2, 1, 2, 1, 2, 1], p: [0, 1, 0], c: [3, 2, 3] }; // one peak with a breath, not a plateau
+      ? { w: [2, 1, 1], b: [1, 0, 1, 0], p: [0, 0], c: [1, 2, 2] }
+      : { w: [2, 2, 1, 1], b: [1, 1, 0, 1, 0, 0], p: [0, 1, 0], c: [1, 2, 2] }; // one peak with a breath, not a plateau
   }
   private slot(s: Session, i: number) {
     const p = this.plan(s), seq = [...p.w, ...p.b, ...p.p, ...p.c];
     const ph = i < p.w.length ? 'w' : i < p.w.length + p.b.length ? 'b' : i < p.w.length + p.b.length + p.p.length ? 'p' : 'c';
-    return { off: seq[Math.min(i, seq.length - 1)], ph };
+    const off = seq[Math.min(i, seq.length - 1)];
+    // With only Levels 1-2 to play, stay mostly at Level 2 instead of dropping back to small talk.
+    return { off: s.c <= 2 ? Math.max(0, off - 1) : off, ph };
   }
 
   private advance() {
@@ -214,15 +221,20 @@ export class Room {
       }
     }
     const sl = this.slot(s, s.idx);
-    const lv = this.lvlFor(Math.max(1, s.c - sl.off));
+    let lv = this.lvlFor(Math.max(1, s.c - sl.off));
+    // Level 7 is nearly all role-play. On a Level 8 night, two scenes are plenty: after that, draw from Level 6.
+    if (lv === 7 && s.c0 !== 7 && (s.scenes || 0) >= 2) lv = this.lvlFor(6);
     // Open playful (an early laugh), close warm (appreciation last), and keep warm-up and cool-down hands-off.
     const prefer = s.idx === 0 ? (c: Card) => PLAYFUL.has(c.type) || PLAYFUL_TOPICS.has(c.topic)
       : s.idx === s.N - 1 ? (c: Card) => c.type === 'Appreciate' || (SOFT_TYPES.has(c.type) && !isGated(c) && /appreciat|love|grateful|thank|favou?rite thing about/i.test(c.text))
       : sl.ph === 'c' ? (c: Card) => SOFT_TYPES.has(c.type) && !isGated(c) : sl.ph === 'w' ? (c: Card) => !isGated(c) : undefined;
-    const card = this.draw(lv, prefer);
+    // The first and last cards are never hands-on or a role-play, even when the playful or appreciative ones run out.
+    const calm = (c: Card) => SOFT_TYPES.has(c.type) && !isGated(c);
+    const card = this.draw(lv, prefer, s.idx === 0 || s.idx === s.N - 1 ? calm : undefined);
     const mystery = s.idx === this.plan(s).w.length + 2;
     s.cur = { kind: 'card', seq: s.seq, card, mystery, flips: [false, false], gate: isGated(card) ? { votes: [null, null] } : null, timerEndsAt: null };
     if (card.type === 'Likely') s.cur.likely = [null, null];
+    if (card.type === 'Scene' || card.type === 'Roles') s.scenes = (s.scenes || 0) + 1;
   }
 
   /** Six ideas for the match list, mostly from tonight's level, with a couple from the levels below. Ideas rotate
@@ -287,7 +299,12 @@ export class Room {
 
       case 'unlock:open': {
         if (this.phase !== 'home' || !Number.isInteger(x.l) || x.l < 3 || x.l > 8 || this.prog.unlocked.includes(x.l)) break;
-        this.unlock = { l: x.l, samples: shuffle(DECK[x.l]).slice(0, 3), votes: [null, null], opened: false };
+        // Three cards of three different kinds, so the peek shows the level's range. Never a secret-role card.
+        const pool = shuffle(DECK[x.l].filter(c => !c.roles && c.type !== 'Likely'));
+        const samples: Card[] = [];
+        for (const c of pool) if (samples.length < 3 && !samples.some(q => q.type === c.type)) samples.push(c);
+        for (const c of pool) if (samples.length < 3 && !samples.includes(c)) samples.push(c);
+        this.unlock = { l: x.l, samples, votes: [null, null], opened: false };
         this.phase = 'unlock';
         break;
       }

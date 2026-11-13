@@ -529,3 +529,43 @@ describe('secret roles', () => {
     expect(tested).toBeGreaterThan(0);
   });
 });
+
+describe('night shape', () => {
+  it('about a third of a night is at the level you chose, and it opens and closes calm', async () => {
+    const { isGated } = await import('../shared/content');
+    for (const [lv, min] of [[3, 4], [5, 4], [8, 4], [2, 9]] as const) {
+      for (let n = 0; n < 12; n++) {
+        const r = newRoom([1, 2, 3, 4, 5, 6, 7, 8].filter(l => l <= lv));
+        startSession(r, [lv, lv]);
+        const cards: { l: number; type: string; gated: boolean }[] = []; let guard = 0;
+        while (r.phase === 'card' && guard++ < 200) {
+          const v = r.view(0).session!.card!;
+          if (v.kind !== 'card') { r.act(0, { a: 'next', seq: v.seq }); continue; }
+          if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
+          const cur = (r as unknown as { sess: { cur: { card: import('../shared/content').Card } } }).sess.cur.card;
+          if (v.gate) { cards.push({ l: cur.l, type: cur.type, gated: true }); both(r, { a: 'gate', seq: v.seq, v: 'y' }); r.act(0, { a: 'next', seq: v.seq }); continue; }
+          cards.push({ l: cur.l, type: cur.type, gated: isGated(cur) });
+          r.act(0, { a: 'next', seq: v.seq });
+        }
+        expect(cards.length).toBe(16);
+        expect(cards.filter(c => c.l === lv).length, `level ${lv}`).toBeGreaterThanOrEqual(min);
+        for (const c of [cards[0], cards[15]]) { expect(c.gated).toBe(false); expect(['Scene', 'Roles']).not.toContain(c.type); }
+        if (lv === 8) expect(cards.filter(c => c.type === 'Scene').length).toBeLessThanOrEqual(4);
+      }
+    }
+  });
+});
+
+describe('peeking at a level', () => {
+  it('shows three different cards and never a secret role', () => {
+    for (let l = 3; l <= 8; l++) for (let n = 0; n < 20; n++) {
+      const r = newRoom([1, 2]);
+      r.act(0, { a: 'unlock:open', l });
+      const u = r.view(1).unlock!;
+      expect(u.samples.length).toBe(3);
+      expect(new Set(u.samples.map(c => c.id)).size).toBe(3);
+      for (const c of u.samples) { expect(c.roles).toBeUndefined(); expect(c.type).not.toBe('Likely'); }
+      expect(JSON.stringify(r.view(0))).not.toContain('"roles"');
+    }
+  });
+});

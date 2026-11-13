@@ -3,8 +3,9 @@
 // suggestive at most, never graphic, gender- and anatomy-neutral, every card passable.
 // Status: first draft, awaiting review by an LGBTQ+ sex educator before launch.
 import type { Card, Raw } from './content';
+import type { DeckId } from './pass-info';
+export type { DeckId };
 
-export type DeckId = 'distance' | 'languages' | 'slow';
 
 export const DECKS: Record<DeckId, { name: string; blurb: string; cards: Record<number, Raw[]> }> = {
   distance: {

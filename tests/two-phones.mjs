@@ -144,7 +144,7 @@ for (let guard = 0; guard < 120; guard++) {
     await A.locator('.row.pair').filter({ hasText: 'Me' }).getByRole('button', { name: 'Me', exact: true }).click();
     await B.getByText('Pick privately. Both open together.').waitFor();
     await B.locator('.row.pair').filter({ hasText: 'Me' }).getByRole('button', { name: 'Me', exact: true }).click();
-    await A.getByText(/In sync on/).waitFor(); await B.getByText(/In sync on/).waitFor();
+    await A.getByText(/You (both|each) picked/).waitFor(); await B.getByText(/You (both|each) picked/).waitFor();
     if (!likely) await shot(A, '20-likely-reveal');
     likely++;
   }

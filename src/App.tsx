@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, LazyMotion, MotionConfig, m } from 'motion/react';
 import QRCode from 'qrcode';
-import { DECK } from '../shared/content';
 import { AGE_OK, REACTIONS, type CardView, type VibeId, type View, type Vote } from '../shared/protocol';
 import { VIBES, VIBE_IDS, cardColors, chipColor, hueDistance, blendHue, themeTokens, type Mode } from '../shared/theme';
 import { keys, loadPasses, loadProgress, net, shop, store, useCountdown, useNet, useWakeLock } from './net';
-import { DECKS, DECK_IDS, PASS_CARD_COUNT } from '../shared/decks';
+import { DECK_IDS, PASS_INFO, PASS_CARD_TOTAL } from '../shared/pass-info';
 import { canVibrate, cue, prefs, startHeartbeat, startMusic, stopHeartbeat, stopMusic, unlockAudio, type HapticLevel } from './feel';
 import { Intro, Tip, introSeen, resetTips } from './guide';
 import { drawShareCard, shareImage } from './share';
@@ -535,7 +534,9 @@ function Play(p: RoomProps & { partner: string }) {
   useEffect(() => { if (cv.kind === 'card' && cv.mystery && cv.flipped && !mysteryShown) setMysteryShown(true); }, [cv, mysteryShown]);
   const glow = useRevealCue(cv, p.view.me);
 
-  let main: JSX.Element, actions: JSX.Element;
+  // `step` is what this card asks for (flip, private answer, pick, timer); it scrolls with the card. `core` is the
+  // consent pair, pinned with Pause at the bottom of the screen on every card. `after` is optional extras.
+  let main: JSX.Element, step: JSX.Element | null = null, core: JSX.Element | null = null, after: JSX.Element | null = null;
   const tip = cv.kind === 'twist' ? <Tip id="twist">A wildcard changes the pace for a moment. Do it together, or pass.</Tip>
     : cv.kind === 'match' ? <Tip id="match">Rate each idea on your own phone. Only the ones you’re both open to show up. Nobody ever sees a no.</Tip>
     : cv.mystery && !cv.flipped ? <Tip id="mystery">This card is face down. It turns over when you both tap Flip.</Tip>
@@ -544,20 +545,20 @@ function Play(p: RoomProps & { partner: string }) {
     : <Tip id="card">Read it out loud and talk it through. When you’re ready, either of you taps Next. Pass works exactly the same way.</Tip>;
   if (cv.kind === 'twist') {
     main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'tw' + cv.seq} text={cap(cv.text.replace(/^Twist:\s*/, ''))} type="Twist" title="Wildcard" special="holo" />;
-    actions = <PassNext onPass={next} onNext={next} nextLabel="Done" />;
+    core = <PassNext onPass={next} onNext={next} nextLabel="Done" />;
   } else if (cv.kind === 'match') {
     main = <MatchRound key={cv.seq} cv={cv} partner={p.partner} me={p.view.me} />;
-    actions = <PassNext onPass={next} onNext={next} />;
+    core = <PassNext onPass={next} onNext={next} />;
   } else if (cv.mystery && !cv.flipped) {
     main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'my' + cv.seq} faceDown special="gold"
       backLabel={<><b>Mystery card</b><span className="tiny">Flip it together</span></>} />;
-    actions = cv.myFlip
+    step = cv.myFlip
       ? <div className="center" style={{ display: 'flex', justifyContent: 'center', minHeight: 52, alignItems: 'center' }}><Waiting>Waiting for {p.partner} to flip</Waiting></div>
       : <button className="btn" onClick={() => { cue('flip'); net.act({ a: 'flip', seq: cv.seq }); }}>{cv.partnerFlip ? `${p.partner} is ready. Flip it` : 'Flip it'}</button>;
   } else if (cv.gate) {
     main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'g' + cv.seq} faceDown
       backLabel={<><b>{cv.gate.teaser}</b><span className="tiny">Answer privately on your phone</span></>} />;
-    actions = cv.gate.myVote
+    step = cv.gate.myVote
       ? <div className="panel center"><p className="eyebrow">Locked in</p>{cv.gate.partnerVoted ? <p className="muted">Revealing…</p> : <Waiting>Waiting for {p.partner}</Waiting>}</div>
       : <div className="panel"><p className="eyebrow">Private. {p.partner} won’t see this.</p><p>Are you open to it tonight?</p>
         <div className="row">{(['y', 'm', 'n'] as const).map(v => <button key={v} className="ctrl" onClick={() => { cue('tap'); net.act({ a: 'gate', seq: cv.seq, v }); }}>{v === 'y' ? 'Yes' : v === 'm' ? 'Maybe' : 'Not tonight'}</button>)}</div></div>;
@@ -565,21 +566,26 @@ function Play(p: RoomProps & { partner: string }) {
     const c = cv.card!;
     // Cards written as "me" and "you" need a reader. Turns alternate card by card, the same on both phones.
     const reads = /\b(me|my|I|I'll|I'd|I'm)\b/.test(c.text) ? (cv.seq % 2 === p.view.me ? 'You read' : `${p.partner} reads`) : undefined;
-    main = <PlayCard dealKey={cv.seq} level={c.l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={c} seed={c.id} special={cv.mystery ? 'gold' : undefined} reader={reads} />;
-    actions = (
+    main = <PlayCard dealKey={cv.seq} level={c.l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={c} seed={c.id} special={cv.mystery ? 'gold' : undefined} reader={reads}
+      hint={cv.role && c.type === 'Scene' ? 'Keep your role secret · cue word steps out' : undefined} />;
+    step = (cv.role || cv.likely || c.t > 0) ? (
       <>
-        {cv.role && <div className="panel role"><p className="eyebrow">Your secret role · only you can see it</p><p>{cv.role}</p></div>}
+        {cv.role && <div className="panel role"><p className="eyebrow">Secret · only on your phone</p><p>{cv.role}</p></div>}
         {cv.likely && <LikelyPick seq={cv.seq} likely={cv.likely} me={p.view.me} partner={p.partner} sync={s.sync} />}
         {c.t > 0 && <TimerRow endsAt={cv.timerEndsAt} secs={c.t} onStart={() => net.act({ a: 'timer', seq: cv.seq })} />}
-        <PassNext onPass={next} onNext={next} />
-        <div className="row">
-          <button className="ctrl small" aria-pressed={kept} onClick={() => { cue('tap'); net.act({ a: 'keep', seq: cv.seq }); }}><Icon d={I.star} size={16} /> {kept ? 'Kept' : 'Keep this one'}</button>
-          {!p.view.apart && <AnswerButton view={p.view} onOpen={() => setChatOpen(true)} />}
-          {showDark && <button className="ctrl small" onClick={() => net.act({ a: 'dark', on: true })}><Icon d={I.moon} size={16} /> Go dark</button>}
-        </div>
       </>
+    ) : null;
+    core = <PassNext onPass={next} onNext={next} />;
+    after = (
+      <div className="row">
+        <button className="ctrl small" aria-pressed={kept} onClick={() => { cue('tap'); net.act({ a: 'keep', seq: cv.seq }); }}><Icon d={I.star} size={16} /> {kept ? 'Kept' : 'Keep this one'}</button>
+        {!p.view.apart && <AnswerButton view={p.view} onOpen={() => setChatOpen(true)} />}
+        {showDark && <button className="ctrl small" onClick={() => net.act({ a: 'dark', on: true })}><Icon d={I.moon} size={16} /> Go dark</button>}
+      </div>
     );
   }
+  // Short cards with a pick or a secret role under them are drawn smaller, so card and step fit on one screen.
+  const compact = cv.kind === 'card' && !!cv.card && (!!cv.likely || !!cv.role) && cv.card.text.length < 95;
 
   return (
     <>
@@ -587,14 +593,19 @@ function Play(p: RoomProps & { partner: string }) {
         <div className="prog" role="progressbar" aria-label={`Card ${Math.min(s.idx + 1, s.N)} of ${s.N}`} aria-valuenow={Math.min(s.idx + 1, s.N)} aria-valuemin={1} aria-valuemax={s.N}><i style={{ width: `${Math.round((s.idx / s.N) * 100)}%` }} /></div>
       </div>
       {tip}
-      <div className={'grow cardstage' + (glow ? ' glow' : '')} key={'g' + glow} style={{ display: 'grid', placeItems: 'center' }}>{pre > 0 ? null : main}</div>
-      <div className={'bottom' + (eyesUp ? ' eyes-up' : '')}>
-        {actions}
+      <div className={'grow cardstage' + (glow ? ' glow' : '') + (compact ? ' compact' : '')} key={'g' + glow} style={{ display: 'grid', placeItems: 'center' }}>{pre > 0 ? null : main}</div>
+      {step && <div className="stack step">{step}</div>}
+      {/* Pinned to the bottom of the screen on every card and every phone size: Pass and Next, then Pause. */}
+      <div className={'bottom pinned' + (eyesUp ? ' eyes-up' : '')}>
+        {core}
         <div className="row night">
           <button className="ctrl small" onClick={() => net.act({ a: 'pause' })}><Icon d={I.pause} size={16} /> Pause</button>
           <button className="ctrl small" onClick={() => { net.act({ a: 'softer' }); p.toast('Softer from here'); }}><Icon d={I.softer} size={16} /> Softer</button>
           {p.view.partnerAllowsTouch && <SendTouch partner={p.partner} />}
         </div>
+      </div>
+      <div className={'stack after' + (eyesUp ? ' eyes-up' : '')}>
+        {after}
         <div className="reacts" aria-label="Send a reaction">{REACTIONS.map(r => <button key={r} aria-label={'Send ' + r} onClick={() => p.react(r)}>{r}</button>)}</div>
       </div>
       {p.view.apart && cv.kind === 'card' && !cv.gate && (!cv.mystery || cv.flipped) && <ChatPanel view={p.view} partner={p.partner} compact onExpand={() => setChatOpen(true)} />}
@@ -653,7 +664,7 @@ function LikelyPick({ seq, likely, me, partner, sync }: { seq: number; likely: L
     return (
       <div className="panel center" aria-live="polite">
         <p>{line}</p>
-        <p className="muted tiny">In sync on {sync.same} of {sync.of} tonight</p>
+        {sync.of >= 2 && <p className="muted tiny">In sync on {sync.same} of {sync.of} tonight</p>}
       </div>
     );
   }
@@ -989,13 +1000,13 @@ function PassPanel({ view }: { view: View }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   useEffect(() => { shop.get().then(setInfo); }, []);
-  if (view.pass) return <div className="panel pass on"><p className="eyebrow">Couple Pass</p><p>On for both of you: {DECK_IDS.map(d => DECKS[d].name).join(', ')}. The extra cards mix into the levels you play.</p></div>;
+  if (view.pass) return <div className="panel pass on"><p className="eyebrow">Couple Pass</p><p>On for both of you: {DECK_IDS.map(d => PASS_INFO[d].name).join(', ')}. The extra cards mix into the levels you play.</p></div>;
   if (!info?.enabled) return null;
   return (
     <div className="panel pass">
       <p className="eyebrow">Couple Pass · optional</p>
-      <h3>{PASS_CARD_COUNT} more cards, woven into your levels</h3>
-      <ul className="decklist">{DECK_IDS.map(d => <li key={d}><b>{DECKS[d].name}.</b> {DECKS[d].blurb}</li>)}</ul>
+      <h3>{PASS_CARD_TOTAL} more cards, woven into your levels</h3>
+      <ul className="decklist">{DECK_IDS.map(d => <li key={d}><b>{PASS_INFO[d].name}.</b> {PASS_INFO[d].blurb}</li>)}</ul>
       <p className="tiny muted">One payment covers both of you, for good. No subscription. Levels still open only when you both choose them.</p>
       {err && <p role="alert" className="alert"><span aria-hidden="true">⚠</span> {err}</p>}
       <button className="btn" disabled={busy} onClick={async () => { setErr(''); setBusy(true); try { await shop.checkout(); } catch (e) { setErr((e as Error).message); setBusy(false); } }}>
@@ -1160,4 +1171,3 @@ function PauseOverlay() {
   );
 }
 
-export const _deckSize = Object.values(DECK).reduce((a, b) => a + b.length, 0);

@@ -1,5 +1,6 @@
 // Card content for Tandem After Dark. Suggestive at most, never graphic.
 import { PASS_DECK } from './decks';
+import { LEVELS as LV } from './levels';
 // Card = [text, type, topic, optional timer seconds, optional secret role A, secret role B]
 export type Raw = (string | number)[];
 export type Frame = { t: string; type: string; topic: string; v: string[] };
@@ -8,16 +9,6 @@ export type Card = {
   /** Secret roles (role-play cards): each phone sees only its own. Never sent to the other phone. */
   roles?: [string, string];
 };
-
-const LV: (null | { n: string; who: string })[] = [null,
- {n:'Sparks',who:'New couple, getting to know each other'},
- {n:'Maps',who:'Learning each other more deeply'},
- {n:'Flirt',who:'Playful, teasing, butterflies'},
- {n:'Warmth',who:'Affectionate, receiver-led touch'},
- {n:'Tension',who:'Anticipation, kissing, desire in words'},
- {n:'Velvet',who:'Goal-free sensual touch and mood'},
- {n:'Masquerade',who:'Role-play setups, both confirm nightly'},
- {n:'Midnight',who:'Anticipation, you choose, then the app goes quiet'}];
 
 const RAW: Record<number, Raw[]> = {
 1:[
@@ -220,18 +211,18 @@ const HEAT: Record<number, Raw[]> = {
 ["Scene: 'The Private Massage.' One of you is a therapist with very good hands and very few rules. The client sets every limit and says when the session ends.","Scene","sc-massage"],
 ["Scene: 'Last Night of the Holiday.' Two strangers who met this week. Tonight one of you finally knocks on the other's door. Play out what happens when it opens.","Scene","sc-holiday"],
 ["Scene: 'The Art Class.' One of you poses, as bare as they choose; the other sketches. Halfway through, the artist asks to move the model by hand.","Scene","sc-artclass"],
-["Scene: 'Blind Date.' Meet at your own front door as strangers. By the end of the night, the goodnight kiss has to last at least a minute.","Scene","sc-blinddate"],
+["Scene: 'Blind Date.' Meet at your own front door as strangers. See if the goodnight kiss can last a full minute.","Scene","sc-blinddate"],
 ["Scene: 'The Masked Gala.' Masks on. Dance as strangers, then steal away to a quiet room. The masks stay on; something else comes off.","Scene","sc-gala"],
-["Scene: 'The Interview.' One of you applies to be the other's lover for one night. Every answer must be demonstrated, not described.","Scene","sc-interview"],
+["Scene: 'The Interview.' One of you applies to be the other's lover for one night. Answers are better shown than described.","Scene","sc-interview"],
 ["Scene: 'Snowed In.' Two adults in a cold cabin with one blanket. The only way to stay warm is skin to skin. Negotiate.","Scene","sc-snowed"],
 ["Scene: 'The Photographer.' One of you directs, the other poses, and every pose gets a little less clothed. Phones stay off; only the eyes remember.","Scene","sc-photo"],
 ["Scene: 'The Bet.' You lost, and you owe your partner three wishes tonight, each one bolder than the last. You can trade any one away.","Scene","sc-bet"],
 ["Scene: 'Strangers on a Night Train.' Side by side in a dark carriage. Every minute, a hand moves an inch closer. Neither of you says a word.","Scene","sc-train"],
 ["Scene: 'After the Party.' Everyone else has gone. You've wanted each other all evening and finally have the room to yourselves. Show it.","Scene","sc-afterparty"],
 ["Scene: 'The Spy.' One of you holds a secret; the other has five minutes to get it out of them using only kisses.","Scene","sc-spy",300],
-["Scene: 'The Royal Guard.' One of you must stand perfectly still for three minutes, whatever happens. The other does their best to make them move.","Scene","sc-guard",180],
+["Scene: 'The Royal Guard.' One of you tries to stand perfectly still for three minutes. The other does their best to make them move; the guard can call it off anytime.","Scene","sc-guard",180],
 ["Scene: 'Room 21.' You've booked a hotel room under fake names for one secret night. Arrive separately. Knock twice.","Scene","sc-room21"],
-["Scene: 'The Auction.' One of you bids for a single hour with the other. The winner names three things that hour must include.","Scene","sc-auction"],
+["Scene: 'The Auction.' One of you bids for a single hour with the other. The winner names three things they'd love that hour to include.","Scene","sc-auction"],
 ["Scene: 'Opposites.' Swap your usual roles in bed for tonight: whoever usually leads, follows. Agree one word to swap back.","Scene","sc-opposites"],
 ["Scene: 'The Tailor.' One of you takes the other's measurements, very slowly, with a tape measure and fingertips. Fitting is by invitation only.","Scene","sc-tailor"],
 ["Scene: 'Long-Lost Lovers.' You were together years ago and swore it was over. Tonight, you find out it isn't. Start with the first touch.","Scene","sc-lostlovers"],
@@ -252,7 +243,7 @@ const HEAT: Record<number, Raw[]> = {
 ["Undress your partner using only your lips and teeth. Hands behind your back, as long as it takes.","Do","teeth"],
 ["Write tonight's wish on paper. Swap, read it in silence, and make your partner's come true first.","Do","wishswap"],
 ["Put the phones face down. You both know what the next card would say.","Do","nextcard"],
-["Undress for your partner to one song, slowly, as far as you like. They have to keep their hands on the bed.","Do","strip"],
+["Undress for your partner to one song, slowly, as far as you like. They keep their hands on the bed until invited.","Do","strip"],
 ["Lie skin to skin, as bare as you both want, and kiss for five minutes without letting your hands rest.","Session","barekiss",300],
 ["Whisper exactly what you want your partner to do to you tonight. They repeat it back, word for word, then begin.","Do","repeatback"],
 ["Sit your partner on the edge of the bed. Kneel and kiss slowly from their ankle up to their thigh. They say when to stop.","Do","ankleup"],
@@ -289,16 +280,16 @@ const PLAY: Record<number, Raw[]> = {
 ["Who's more likely to steal a kiss in public?","Likely","likely-steal"],
 ["Who's more likely to dress up just to get a reaction?","Likely","likely-dressup"],
 ["Who's more likely to fall for a cheesy pick-up line?","Likely","likely-cheesy"],
-["Roles: 'The Café.' Two strangers share the last table. Play it for three minutes. Your role is on your phone, so keep it secret.","Roles","roles-cafe",180,
+["Roles: 'The Café.' Two strangers share the last table. Three minutes.","Roles","roles-cafe",180,
  "Your secret: you're sure you've met them before. Work out where without asking directly.",
  "Your secret: you're in town for one night and want one local secret before you leave."],
-["Roles: 'Speed Date.' Three minutes to win a second date. Read your secret role, then begin.","Roles","roles-speeddate",180,
+["Roles: 'Speed Date.' Three minutes to win a second date.","Roles","roles-speeddate",180,
  "Your secret: work the word 'pineapple' into the conversation three times without getting caught.",
  "Your secret: for the first minute, answer every question with another question."],
-["Roles: 'The Wedding Guests.' Two strangers seated together at a friend's wedding. Read your secret, then begin.","Roles","roles-wedding",180,
+["Roles: 'The Wedding Guests.' Two strangers seated together at a friend's wedding.","Roles","roles-wedding",180,
  "Your secret: you've decided to ask them to dance, but only after they make you laugh.",
  "Your secret: you're pretending to know the couple well. You've never met them."],
-["Roles: 'The Wrong Table.' A mix-up seats two strangers together at dinner. Neither of you leaves. Read your secret first.","Roles","roles-table",180,
+["Roles: 'The Wrong Table.' A mix-up seats two strangers together at dinner. Neither leaves.","Roles","roles-table",180,
  "Your secret: you're a famous chef in disguise, quietly judging the food.",
  "Your secret: you're avoiding a dull blind date and need them to play along."]],
 4: [
@@ -311,36 +302,36 @@ const PLAY: Record<number, Raw[]> = {
 ["Who's more likely to send a teasing message from work?","Likely","likely-tease"],
 ["Who's more likely to break first in a no-touching dare?","Likely","likely-break"],
 ["Who's more likely to whisper something bold in a public place?","Likely","likely-whisper"],
-["Scene: 'The Note.' A folded note slides across a table. Read your secret, then play it out. The cue word steps out anytime.","Scene","rs-note",0,
+["Scene: 'The Note.' A folded note slides across a table between you.","Scene","rs-note",0,
  "You wrote the note. It says one bold thing you want tonight. Say it out loud when the moment feels right.",
  "You received the note. Make them work for it before you say yes."]],
 6: [
 ["Who's more likely to suggest trying something new tonight?","Likely","likely-new"],
 ["Who's more likely to light candles just to set the mood?","Likely","likely-candles"],
 ["Who's more likely to lose track of time when it's just us?","Likely","likely-time"],
-["Scene: 'The Last Dance.' A party is ending and you've been watching each other all night. Read your secret first.","Scene","rs-lastdance",0,
+["Scene: 'The Last Dance.' A party is ending. You've watched each other all night.","Scene","rs-lastdance",0,
  "Your secret: you came alone, hoping they'd ask. Don't make it easy.",
  "Your secret: you've decided to ask for the last dance, and for one thing after it."]],
 7: [
 ["Who's more likely to stay in character the longest?","Likely","likely-character"],
 ["Who's more likely to break character laughing?","Likely","likely-laugh"],
-["Scene: 'The Stuck Lift.' Two strangers, stuck between floors for ten minutes. Read your secret first. The cue word steps out anytime.","Scene","rs-lift",600,
+["Scene: 'The Stuck Lift.' Two strangers, stuck between floors for ten minutes.","Scene","rs-lift",600,
  "Your secret: a friend showed you their photo months ago, and you've wanted to meet them ever since.",
  "Your secret: you've decided to kiss them before the doors open, but only if they make you laugh first."],
-["Scene: 'The Spy and the Mark.' A masked party and a secret to steal. Read your role first. The cue word steps out anytime.","Scene","rs-spy",0,
+["Scene: 'The Spy and the Mark.' A masked party and a secret to steal.","Scene","rs-spy",0,
  "You're the spy. Get them to whisper the password, using only charm.",
  "You're the mark. You know they're a spy. Let them think they're winning."],
-["Scene: 'The Portrait.' An artist and a model, one long sitting. Read your secret first. The cue word steps out anytime.","Scene","rs-portrait",0,
+["Scene: 'The Portrait.' An artist and a model, one long sitting.","Scene","rs-portrait",0,
  "You're the artist. You've painted many people, but never wanted a sitting to last this long.",
  "You're the model. Before the hour ends, you'll make the artist put down the brush."],
-["Scene: 'Masks.' A masquerade, two strangers, one dance. Read your secret first. The cue word steps out anytime.","Scene","rs-masks",0,
+["Scene: 'Masks.' A masquerade, two strangers, one dance.","Scene","rs-masks",0,
  "Your secret: you know exactly who's behind the mask. Don't let on.",
  "Your secret: you've never done anything this bold. Tonight you will."]],
 8: [
-["Scene: 'Room 12.' One of you is already waiting. Read your secret, then let it unfold slowly. The cue word steps out anytime.","Scene","rs-room12",0,
+["Scene: 'Room 12.' One of you is already waiting. Let it unfold slowly.","Scene","rs-room12",0,
  "You're waiting in the dim room. You've set one rule for the night, and you say it first.",
  "You knock. Inside, you follow their rule, and ask for one thing in return."],
-["Scene: 'The Arrangement.' Two strangers agree to one secret night, each with a condition. Read yours first.","Scene","rs-arrangement",0,
+["Scene: 'The Arrangement.' Two strangers agree to one secret night, each with a condition.","Scene","rs-arrangement",0,
  "Your condition: no talking, only touch, until they say your name.",
  "Your condition: the lights stay low, and you decide when it begins."]],
 };

@@ -5,7 +5,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 ## 1. Private test launch (can happen now)
 
 - ✅ Game, landing page, privacy page, payments (off), email list (off), backups, share cards and apart mode are built.
-- ✅ 95 unit tests (including content rules on every card and privacy of the match list, "Who's more likely" picks and secret roles) and three browser tests (together, apart, purchase) pass. npm audit reports 0 vulnerabilities.
+- ✅ 100 unit tests (including content rules on every card and privacy of the match list, "Who's more likely" picks and secret roles) and three browser tests (together, apart, purchase) pass. npm audit reports 0 vulnerabilities.
 - ✅ A production build from a clean install serves every page and API.
 - ✅ Deployed to Railway at https://tandem-after-dark-production.up.railway.app
 - 🟡 Finish the Railway setup: variables `STATS_TOKEN` and `PUBLIC_URL`, a volume at `/data` with `STATS_FILE=/data/stats.json`, and Healthcheck path `/healthz`.
@@ -48,7 +48,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 
 - **Deploys end live games.** Rooms live in server memory, so a deploy or restart closes every game in progress. Progress is safe on the phones, but couples mid-night are dropped. Deploy at quiet hours (for example, mid-morning in your main market).
 - **One server.** One instance handles many couples. Running more than one needs a shared store (Redis), which is a later step.
-- **Bundle size.** The game's first load is about 168 KB of JavaScript (gzip), over the 150 KB target in the design report. That's fine for now; trim before marketing to budget phones.
+- **Bundle size.** The game's first load is about 151 KB of JavaScript (gzip), on the 150 KB target. Card text is no longer in the download; it arrives one card at a time.
 - **Card art** is matched to card text by keywords; a few cards may get a loosely related picture. Report any that look wrong.
 - **Music** is a generated loop. Commission real loops before a big launch if you want richer sound.
 - **Self-declared 18+ only.** It's the norm for non-explicit apps, but get the lawyer's view per country (see above).
