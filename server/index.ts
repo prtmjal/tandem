@@ -132,7 +132,7 @@ io.on('connection', socket => {
     if (x.a === 'share' && !sharedBefore && room.view(idx).close?.shareCard) stats.count('shared');
     broadcast(room);
     if (out.celebrate?.length) io.to(`${room.code}:0`).to(`${room.code}:1`).emit('celebrate', out.celebrate);
-    if (room.prog.sessions !== before || room.prog.unlocked.length !== unlockedBefore || x.a === 'unlock:vote' || x.a === 'gate') sendProgress(room);
+    if (room.prog.sessions !== before || room.prog.unlocked.length !== unlockedBefore || x.a === 'unlock:vote' || x.a === 'gate' || x.a === 'match' || x.a === 'wish:done') sendProgress(room);
   });
 
   // Floating reactions are relayed to the partner and never stored.

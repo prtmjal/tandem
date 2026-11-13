@@ -380,6 +380,15 @@ function Home(p: RoomProps) {
           })}
         </div>
       </div>
+      {view.wishes.length > 0 && (
+        <div className="panel wishes">
+          <div><h3>Next time</h3><p className="tiny muted">Ideas you were both open to. Tick one off when you’ve done it.</p></div>
+          <ul>{view.wishes.map(w => (
+            <li key={w.id}><span>{w.text}</span>
+              <button className="ctrl small" aria-label={`Done: ${w.text}`} onClick={() => { cue('tap'); net.act({ a: 'wish:done', id: w.id }); }}>Done</button></li>
+          ))}</ul>
+        </div>
+      )}
       <InstallPrompt sessions={view.sessions} />
       <PassPanel view={view} />
       <ShopLinks kind="toybox" items={KIT_IDS} />
@@ -1147,7 +1156,7 @@ function Close(p: RoomProps & { partner: string }) {
             <div className="pocket" aria-hidden="true"><span className="seal">T</span></div>
           </div>
           {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} readOnly /></div>}
-          {c.matches.length > 0 && <div className="panel"><h3>You’re both open to</h3><div className="kept">{c.matches.map(t => <p key={t}>{t}</p>)}</div></div>}
+          {c.matches.length > 0 && <div className="panel"><div><h3>You’re both open to</h3><p className="tiny muted">Saved to “Next time” on your map.</p></div><div className="kept">{c.matches.map(t => <p key={t}>{t}</p>)}</div></div>}
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
           <ShopLinks kind="kit" items={kitFor(c.kitTopics || [], p.view.session?.tonight ?? 1)} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div></div>}

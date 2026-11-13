@@ -15,6 +15,9 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
   for (const c of [...(a.capsule || []), ...(b.capsule || [])]) caps.set(c.d, c);
   out.capsule = Array.from(caps.values()).sort((x, y) => x.d - y.d).slice(-50);
   out.sessions = Math.max(a.sessions || 0, b.sessions || 0);
+  // The "Next time" list: everything either phone remembers, minus anything either phone ticked off.
+  out.wishesDone = Array.from(new Set([...(a.wishesDone || []), ...(b.wishesDone || [])])).slice(-80);
+  out.wishes = Array.from(new Set([...(a.wishes || []), ...(b.wishes || [])])).filter(id => !out.wishesDone.includes(id)).slice(-40);
   return out;
 }
 
@@ -36,6 +39,8 @@ export function sanitizeProgress(p: unknown, known: (id: string) => boolean = lo
   if (Array.isArray(q.capsule)) out.capsule = q.capsule.filter(c => c && typeof c.d === 'number' && Array.isArray(c.items))
     .map(c => ({ d: c.d, items: c.items.filter(s => typeof s === 'string').slice(0, 20).map(s => s.slice(0, 400)) })).slice(-50);
   if (typeof q.sessions === 'number') out.sessions = Math.max(0, Math.floor(q.sessions));
+  const ideas = (x: unknown, max: number) => (Array.isArray(x) ? x.filter(i => typeof i === 'string' && /^m\.\d\.\d{1,3}$/.test(i) && known(i)).slice(-max) : []);
+  out.wishes = ideas(q.wishes, 40); out.wishesDone = ideas(q.wishesDone, 80);
   if (q.curious && typeof q.curious === 'object') for (const k in q.curious) if (/^[3-8]$/.test(k) && typeof q.curious[k] === 'number') out.curious[k] = q.curious[k];
   return out;
 }

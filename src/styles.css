@@ -347,3 +347,9 @@ select.ctrl { font: inherit; appearance: auto; }
 /* Cards with a pick or a secret role under them are shorter, so the card and its step fit on one screen. */
 .cardstage.compact .card3d { max-height: 46svh; }
 @media (max-height: 700px) { .card3d { max-height: 54svh; } .cardstage.compact .card3d { max-height: 42svh; } }
+
+/* "Next time": the shared list of ideas you were both open to */
+.wishes ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.wishes li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+.wishes li span { font-weight: 600; }
+.wishes li .ctrl { flex: none; }

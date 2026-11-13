@@ -242,7 +242,8 @@ export class Room {
   private matchRound(lv: number): CurMatch | null {
     const s = this.sess!;
     const fits = (m: MatchItem) => (this.apart ? m.where !== 'together' : m.where !== 'apart');
-    const pool = () => { const seen = this.prog.seen.m || []; const out: MatchItem[] = []; for (let l = Math.max(1, lv - 2); l <= lv; l++) out.push(...(MATCH[l] || []).filter(m => fits(m) && !seen.includes(m.id))); return out; };
+    const pool = () => { const seen = (this.prog.seen.m || []).concat(this.prog.wishes || []); // never re-ask what's already on your list
+      const out: MatchItem[] = []; for (let l = Math.max(1, lv - 2); l <= lv; l++) out.push(...(MATCH[l] || []).filter(m => fits(m) && !seen.includes(m.id))); return out; };
     let p = pool();
     if (p.length < 6) { this.prog.seen.m = []; p = pool(); }
     if (p.length < 4) return null;
@@ -403,10 +404,21 @@ export class Room {
         const [a, b] = cur.picks;
         if (a && b) {
           // Only the overlap, shuffled, so neither the order nor the wording says who chose yes or maybe.
-          cur.both = shuffle(cur.items.filter(it => a[it.id] !== 'n' && b[it.id] !== 'n').map(it => it.text));
+          const open = cur.items.filter(it => a[it.id] !== 'n' && b[it.id] !== 'n');
+          cur.both = shuffle(open.map(it => it.text));
+          // Keep the overlap as the couple's shared "Next time" list (ids only; saved on the phones, not here).
+          const ids = open.map(it => it.id);
+          this.prog.wishesDone = (this.prog.wishesDone || []).filter(id => !ids.includes(id));
+          this.prog.wishes = Array.from(new Set([...(this.prog.wishes || []), ...ids])).slice(-40);
           cur.picks = [null, null]; // the raw answers are no longer needed: forget them
           s.matches = Array.from(new Set([...(s.matches || []), ...cur.both]));
         }
+        break;
+      }
+      case 'wish:done': {
+        if (typeof x.id !== 'string' || !(this.prog.wishes || []).includes(x.id)) break;
+        this.prog.wishes = this.prog.wishes.filter(id => id !== x.id);
+        this.prog.wishesDone = [...(this.prog.wishesDone || []), x.id].slice(-80);
         break;
       }
       case 'next': {
@@ -525,6 +537,7 @@ export class Room {
       meAllowsTouch: !!P[me]?.allowTouch,
       unlocked: this.prog.unlocked.slice(),
       sessions: this.prog.sessions,
+      wishes: (this.prog.wishes || []).slice().reverse().map(id => MATCH_BY_ID[id]).filter(Boolean).map(m => ({ id: m.id, text: m.text })),
       totalCards: TOTAL_CARDS + APART_CARDS + (this.pass ? PASS_CARD_COUNT : 0),
       pass: this.pass,
       unlock: this.unlock ? {

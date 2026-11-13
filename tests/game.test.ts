@@ -569,3 +569,42 @@ describe('peeking at a level', () => {
     }
   });
 });
+
+describe('next time list', () => {
+  const rate = (r: Room, m: { seq: number; items: { id: string }[] }, a: string[], b: string[]) => {
+    r.act(0, { a: 'match', seq: m.seq, picks: Object.fromEntries(m.items.map((it, i) => [it.id, a[i]])) as never });
+    r.act(1, { a: 'match', seq: m.seq, picks: Object.fromEntries(m.items.map((it, i) => [it.id, b[i]])) as never });
+  };
+  it('keeps only what you were both open to, on both phones, and never asks those again', async () => {
+    const { sanitizeProgress, mergeProgress } = await import('../shared/progress');
+    const r = newRoom();
+    startSession(r, [4, 4]);
+    const m = toMatch(r)!;
+    rate(r, m, ['y', 'y', 'n', 'n', 'm', 'n'], ['y', 'n', 'y', 'n', 'y', 'n']);
+    const want = [m.items[0], m.items[4]].map(i => i.id).sort();
+    for (const me of [0, 1] as const) {
+      expect(r.view(me).wishes.map(w => w.id).sort()).toEqual(want);
+      expect(r.progressFor(me).wishes.slice().sort()).toEqual(want); // what each phone stores: ids of the overlap only
+      expect(JSON.stringify(r.progressFor(me))).not.toMatch(/:"[ymn]"/);
+    }
+    r.act(0, { a: 'next', seq: m.seq }); play(r); both(r, { a: 'open' }); r.act(0, { a: 'finish' });
+    for (let n = 0; n < 4; n++) { // later match lists never repeat an idea that's already on the list
+      startSession(r, [4, 4]);
+      const again = toMatch(r)!;
+      for (const it of again.items) expect(want).not.toContain(it.id);
+      r.act(0, { a: 'next', seq: again.seq }); play(r); both(r, { a: 'open' }); r.act(0, { a: 'finish' });
+    }
+    // Either partner can tick one off; a stale copy on the other phone doesn't bring it back.
+    const stale = sanitizeProgress(JSON.parse(JSON.stringify(r.progressFor(1))));
+    r.act(1, { a: 'wish:done', id: want[0] });
+    expect(r.view(0).wishes.map(w => w.id)).toEqual([want[1]]);
+    expect(mergeProgress(r.progressFor(0), stale).wishes).toEqual([want[1]]);
+    r.act(0, { a: 'wish:done', id: 'm.9.999' }); // unknown ids are ignored
+    expect(r.view(0).wishes.length).toBe(1);
+  });
+  it('a backup or upload keeps only real idea ids', async () => {
+    const { sanitizeProgress } = await import('../shared/progress');
+    const p = sanitizeProgress({ wishes: ['m.4.1', '<b>', 7, 'm.4.1x', '4h1'], wishesDone: ['m.2.0', {}] });
+    expect(p.wishes).toEqual(['m.4.1']); expect(p.wishesDone).toEqual(['m.2.0']);
+  });
+});

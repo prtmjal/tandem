@@ -26,10 +26,14 @@ export interface Progress {
   sessions: number;
   /** This phone's own private "curious" taps. Never shared with the partner. */
   curious: Record<string, number>;
+  /** "Next time" list: match-list ideas you were both open to (ids only). Shared, never anyone's own answers. */
+  wishes: string[];
+  /** Ideas ticked off the list, so an older copy on the other phone doesn't bring them back. */
+  wishesDone: string[];
 }
 
 export const emptyProgress = (): Progress => ({
-  v: 1, unlocked: [1, 2], seen: {}, last: {}, parked: {}, capsule: [], sessions: 0, curious: {},
+  v: 1, unlocked: [1, 2], seen: {}, last: {}, parked: {}, capsule: [], sessions: 0, curious: {}, wishes: [], wishesDone: [],
 });
 
 export type CardView =
@@ -74,6 +78,8 @@ export interface View {
   pass: boolean;
   unlocked: number[];
   sessions: number;
+  /** The "Next time" list: ideas you were both open to on earlier match lists, newest first. */
+  wishes: { id: string; text: string }[];
   totalCards: number;
   unlock: null | { l: number; samples: Card[]; myVote: boolean | null; partnerVoted: boolean; opened: boolean };
   ceiling: null | { myPick: number | null; myConfirm: boolean; partnerDone: boolean; meDone: boolean };
@@ -118,6 +124,8 @@ export type Action =
   | { a: 'likely'; seq: number; who: 0 | 1 }
   /** My private yes / maybe / no for every idea in this match round. */
   | { a: 'match'; seq: number; picks: Record<string, Vote> }
+  /** Tick an idea off the shared "Next time" list. Either partner can. */
+  | { a: 'wish:done'; id: string }
   | { a: 'next'; seq: number }
   | { a: 'timer'; seq: number }
   | { a: 'keep'; seq: number }

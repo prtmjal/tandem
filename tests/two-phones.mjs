@@ -219,6 +219,12 @@ const png = await A.evaluate(async () => { const r = await fetch(document.queryS
 await shot(B, '18b-share-ready');
 await click(A, 'Done for tonight');
 await A.getByText('1 night together').waitFor({ timeout: 5000 });
+// "Next time": the four ideas both were open to are saved on the map; either phone can tick one off for both.
+await A.locator('.panel.wishes li').nth(3).waitFor(); await B.locator('.panel.wishes li').nth(3).waitFor();
+await A.locator('.panel.wishes').scrollIntoViewIfNeeded(); await shot(A, '22-next-time');
+await B.locator('.panel.wishes li').first().getByRole('button', { name: /^Done/ }).click(); await sleep(500);
+if ((await A.locator('.panel.wishes li').count()) !== 3) throw new Error('ticking off a Next time idea should update both phones');
+await A.evaluate(() => window.scrollTo(0, 0));
 await shot(A, '19-home-after');
 // Backup: A makes a backup code in Settings; a fresh phone restores it and gets the same unlocked levels.
 if (await A.locator('.panel.install').count()) throw new Error('install prompt shown after only one night');
