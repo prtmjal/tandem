@@ -1,6 +1,6 @@
 // Saved progress: merging two copies and cleaning an untrusted one. Used by the server (two phones joining a
 // room) and by the phone (restoring a backup code).
-import { CARD_BY_ID } from './content';
+import { CARD_BY_ID, MATCH_BY_ID } from './content';
 import { emptyProgress, type Progress } from './protocol';
 
 /** Merge two phones' saved progress. Each phone's private taps stay with that player. */
@@ -27,6 +27,8 @@ export function sanitizeProgress(p: unknown): Progress {
   const ids = (x: unknown) => (Array.isArray(x) ? x.filter(i => typeof i === 'string' && CARD_BY_ID[i]).slice(0, 2000) : []);
   if (Array.isArray(q.unlocked)) out.unlocked = q.unlocked.filter(l => Number.isInteger(l) && l >= 1 && l <= 8);
   for (let l = 1; l <= 8; l++) { const k = String(l); if (q.seen?.[k]) out.seen[k] = ids(q.seen[k]); if (q.last?.[k]) out.last[k] = ids(q.last[k]); }
+  // Match-list ideas already offered (so they rotate). Only ids; never anyone's answers.
+  if (Array.isArray(q.seen?.m)) out.seen.m = q.seen!.m.filter(i => typeof i === 'string' && MATCH_BY_ID[i]).slice(0, 200);
   if (q.parked && typeof q.parked === 'object') for (const k in q.parked) if (CARD_BY_ID[k] && typeof q.parked[k] === 'number') out.parked[k] = q.parked[k];
   if (Array.isArray(q.capsule)) out.capsule = q.capsule.filter(c => c && typeof c.d === 'number' && Array.isArray(c.items))
     .map(c => ({ d: c.d, items: c.items.filter(s => typeof s === 'string').slice(0, 20).map(s => s.slice(0, 400)) })).slice(-50);

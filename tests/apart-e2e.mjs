@@ -4,6 +4,22 @@ import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
 const PLAY = process.env.URL || 'http://localhost:3001/play';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/** Match list: each phone rates every idea privately; only the overlap shows on both phones. */
+async function playMatch(A, B, sleep) {
+  const items = await A.locator('.matchitem').count();
+  for (let i = 0; i < items; i++) await A.locator('.matchitem').nth(i).getByRole('button', { name: 'Yes', exact: true }).click();
+  await A.getByRole('button', { name: 'Lock in my answers' }).click();
+  // B still sees only its own blank list: nothing of A's answers, and only that A is done after B locks in.
+  if (await B.locator('.matchitem [aria-pressed="true"]').count()) throw new Error('match answers leaked');
+  for (let i = 0; i < items; i++) await B.locator('.matchitem').nth(i).getByRole('button', { name: i < 3 ? 'Yes' : i < 4 ? 'Maybe' : 'No', exact: true }).click();
+  await B.getByRole('button', { name: 'Lock in my answers' }).click();
+  await A.getByText('You’re both open to').first().waitFor(); await B.getByText('You’re both open to').first().waitFor();
+  await B.locator('.matchlist .kept p').nth(3).waitFor();
+  const shownA = await A.locator('.matchlist .kept p').count(), shownB = await B.locator('.matchlist .kept p').count();
+  if (shownA !== 4 || shownB !== 4) throw new Error(`match overlap wrong: ${shownA}/${shownB}`);
+  await sleep(300);
+}
 const browser = await chromium.launch();
 const errors = [];
 let out = { cards: 0, apartCards: 0, gates: 0, sealed: false, gift: false };
@@ -43,6 +59,10 @@ try {
     if (await A.getByRole('button', { name: 'Done', exact: true }).isVisible().catch(() => false)) {
       await A.getByRole('button', { name: 'Done', exact: true }).click(); await sleep(450); continue;
     }
+    if (await A.getByRole('button', { name: 'Lock in my answers' }).isVisible().catch(() => false)) {
+      await playMatch(A, B, sleep); out.matched = true;
+      await A.getByRole('button', { name: 'Next', exact: true }).click(); await sleep(450); continue;
+    }
     if (await A.getByRole('button', { name: 'Next', exact: true }).isVisible().catch(() => false)) {
       out.cards++;
       const inline = A.locator('.chat.compact textarea');
@@ -63,5 +83,5 @@ try {
   await A.locator('.panel.shop').waitFor({ timeout: 5000 }); out.gift = true;
   await A.screenshot({ path: 'tests/shots/apart-end.png', fullPage: true });
   console.log(JSON.stringify({ ...out, errors }, null, 2));
-  process.exitCode = errors.length || !out.sealed || out.cards < 8 ? 1 : 0;
+  process.exitCode = errors.length || !out.sealed || !out.matched || out.cards < 8 ? 1 : 0;
 } catch (e) { console.error(e); process.exitCode = 1; } finally { await browser.close(); }

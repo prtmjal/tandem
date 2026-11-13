@@ -1,9 +1,13 @@
 // Card content for Tandem After Dark. Suggestive at most, never graphic.
 import { PASS_DECK } from './decks';
-// Card = [text, type, topic, optional timer seconds]
+// Card = [text, type, topic, optional timer seconds, optional secret role A, secret role B]
 export type Raw = (string | number)[];
 export type Frame = { t: string; type: string; topic: string; v: string[] };
-export type Card = { id: string; l: number; text: string; type: string; topic: string; t: number };
+export type Card = {
+  id: string; l: number; text: string; type: string; topic: string; t: number;
+  /** Secret roles (role-play cards): each phone sees only its own. Never sent to the other phone. */
+  roles?: [string, string];
+};
 
 const LV: (null | { n: string; who: string })[] = [null,
  {n:'Sparks',who:'New couple, getting to know each other'},
@@ -258,6 +262,87 @@ const HEAT: Record<number, Raw[]> = {
 ["Stand behind your partner in front of a mirror. Undress them slowly while they watch you do it.","Do","mirror"],
 ["Two minutes of teasing without touching: breath, whispers, almost-kisses. Whoever touches first gets one request from the other, who can still say no.","Do","notouch",120],
 ["One last kiss that lasts as long as you both want. The game is over; the night isn't.","Do","lastkiss"]],
+};
+
+/* ---------- Play formats (appended after HEAT so existing card ids stay the same) ---------- */
+// 'Likely': "Who's more likely to...". Each partner privately taps a name; both picks open together.
+// 'Roles' (Level 3, playful) and 'Scene' (Level 4+, hands-on, private vote first): a shared setup on the card plus a
+// secret role on each phone. Each partner sees only their own role.
+const PLAY: Record<number, Raw[]> = {
+1: [
+["Who's more likely to cry at a film and deny it afterwards?","Likely","likely-film"],
+["Who's more likely to get us lost while insisting they know the way?","Likely","likely-lost"],
+["Who's more likely to eat the last slice without asking?","Likely","likely-slice"],
+["Who's more likely to say hello to a stranger's dog before the stranger?","Likely","likely-dog"],
+["Who's more likely to plan a holiday down to the minute?","Likely","likely-plan"],
+["Who's more likely to fall asleep first on a movie night?","Likely","likely-asleep"]],
+2: [
+["Who's more likely to remember a small detail from years ago?","Likely","likely-remember"],
+["Who's more likely to say sorry first after an argument?","Likely","likely-sorry"],
+["Who's more likely to quietly worry about something and not mention it?","Likely","likely-worry"],
+["Who's more likely to make a big life change on a hunch?","Likely","likely-hunch"],
+["Who's more likely to keep a promise made in passing?","Likely","likely-promise"]],
+3: [
+["Who's more likely to send a flirty message at the worst possible moment?","Likely","likely-text"],
+["Who's more likely to make the first move at a party?","Likely","likely-firstmove"],
+["Who's more likely to blush during this game?","Likely","likely-blush"],
+["Who's more likely to steal a kiss in public?","Likely","likely-steal"],
+["Who's more likely to dress up just to get a reaction?","Likely","likely-dressup"],
+["Who's more likely to fall for a cheesy pick-up line?","Likely","likely-cheesy"],
+["Roles: 'The Café.' Two strangers share the last table. Play it for three minutes. Your role is on your phone, so keep it secret.","Roles","roles-cafe",180,
+ "Your secret: you're sure you've met them before. Work out where without asking directly.",
+ "Your secret: you're in town for one night and want one local secret before you leave."],
+["Roles: 'Speed Date.' Three minutes to win a second date. Read your secret role, then begin.","Roles","roles-speeddate",180,
+ "Your secret: work the word 'pineapple' into the conversation three times without getting caught.",
+ "Your secret: for the first minute, answer every question with another question."],
+["Roles: 'The Wedding Guests.' Two strangers seated together at a friend's wedding. Read your secret, then begin.","Roles","roles-wedding",180,
+ "Your secret: you've decided to ask them to dance, but only after they make you laugh.",
+ "Your secret: you're pretending to know the couple well. You've never met them."],
+["Roles: 'The Wrong Table.' A mix-up seats two strangers together at dinner. Neither of you leaves. Read your secret first.","Roles","roles-table",180,
+ "Your secret: you're a famous chef in disguise, quietly judging the food.",
+ "Your secret: you're avoiding a dull blind date and need them to play along."]],
+4: [
+["Who's more likely to start a cuddle that turns into something more?","Likely","likely-cuddle"],
+["Who's more likely to ask for a massage and fall asleep halfway through?","Likely","likely-massage"],
+["Who's more likely to steal the blanket in the night?","Likely","likely-blanket"],
+["Who's more likely to want five more minutes in bed?","Likely","likely-bed"]],
+5: [
+["Who's more likely to start a kiss in the kitchen?","Likely","likely-kitchen"],
+["Who's more likely to send a teasing message from work?","Likely","likely-tease"],
+["Who's more likely to break first in a no-touching dare?","Likely","likely-break"],
+["Who's more likely to whisper something bold in a public place?","Likely","likely-whisper"],
+["Scene: 'The Note.' A folded note slides across a table. Read your secret, then play it out. The cue word steps out anytime.","Scene","rs-note",0,
+ "You wrote the note. It says one bold thing you want tonight. Say it out loud when the moment feels right.",
+ "You received the note. Make them work for it before you say yes."]],
+6: [
+["Who's more likely to suggest trying something new tonight?","Likely","likely-new"],
+["Who's more likely to light candles just to set the mood?","Likely","likely-candles"],
+["Who's more likely to lose track of time when it's just us?","Likely","likely-time"],
+["Scene: 'The Last Dance.' A party is ending and you've been watching each other all night. Read your secret first.","Scene","rs-lastdance",0,
+ "Your secret: you came alone, hoping they'd ask. Don't make it easy.",
+ "Your secret: you've decided to ask for the last dance, and for one thing after it."]],
+7: [
+["Who's more likely to stay in character the longest?","Likely","likely-character"],
+["Who's more likely to break character laughing?","Likely","likely-laugh"],
+["Scene: 'The Stuck Lift.' Two strangers, stuck between floors for ten minutes. Read your secret first. The cue word steps out anytime.","Scene","rs-lift",600,
+ "Your secret: a friend showed you their photo months ago, and you've wanted to meet them ever since.",
+ "Your secret: you've decided to kiss them before the doors open, but only if they make you laugh first."],
+["Scene: 'The Spy and the Mark.' A masked party and a secret to steal. Read your role first. The cue word steps out anytime.","Scene","rs-spy",0,
+ "You're the spy. Get them to whisper the password, using only charm.",
+ "You're the mark. You know they're a spy. Let them think they're winning."],
+["Scene: 'The Portrait.' An artist and a model, one long sitting. Read your secret first. The cue word steps out anytime.","Scene","rs-portrait",0,
+ "You're the artist. You've painted many people, but never wanted a sitting to last this long.",
+ "You're the model. Before the hour ends, you'll make the artist put down the brush."],
+["Scene: 'Masks.' A masquerade, two strangers, one dance. Read your secret first. The cue word steps out anytime.","Scene","rs-masks",0,
+ "Your secret: you know exactly who's behind the mask. Don't let on.",
+ "Your secret: you've never done anything this bold. Tonight you will."]],
+8: [
+["Scene: 'Room 12.' One of you is already waiting. Read your secret, then let it unfold slowly. The cue word steps out anytime.","Scene","rs-room12",0,
+ "You're waiting in the dim room. You've set one rule for the night, and you say it first.",
+ "You knock. Inside, you follow their rule, and ask for one thing in return."],
+["Scene: 'The Arrangement.' Two strangers agree to one secret night, each with a condition. Read yours first.","Scene","rs-arrangement",0,
+ "Your condition: no talking, only touch, until they say your name.",
+ "Your condition: the lights stay low, and you decide when it begins."]],
 };
 
 const EXTRA: Record<number, Raw[]> = {
@@ -1147,8 +1232,11 @@ export const ENVELOPES = ENVS;
 export const DECK: Record<number, Card[]> = {};
 for (let l = 1; l <= 8; l++) {
   const out: Card[] = [];
-  (RAW[l] || []).concat(EXTRA[l] || [], HEAT[l] || []).forEach((c, i) =>
-    out.push({ id: l + 'h' + i, l, text: String(c[0]), type: String(c[1]), topic: String(c[2]), t: Number(c[3] || 0) }));
+  (RAW[l] || []).concat(EXTRA[l] || [], HEAT[l] || [], PLAY[l] || []).forEach((c, i) => {
+    const card: Card = { id: l + 'h' + i, l, text: String(c[0]), type: String(c[1]), topic: String(c[2]), t: Number(c[3] || 0) };
+    if (c[4] && c[5]) card.roles = [String(c[4]), String(c[5])];
+    out.push(card);
+  });
   (TPL[l] || []).forEach((f, fi) => f.v.forEach((v, si) =>
     out.push({ id: l + 't' + fi + '_' + si, l, text: f.t.replace('{x}', v), type: f.type, topic: f.topic, t: 0 })));
   DECK[l] = out;
@@ -1230,4 +1318,42 @@ export const worksApart = (c: Card) => !GATED.has(c.type) && !TOGETHER_TOPICS.ha
 /** Twists, closing cards and envelopes that need you in one room. */
 export const TOGETHER_TEXT = /swap seats|long hug|somewhere your partner will find/i;
 export const isGated = (c: Card) => c.l >= 4 && GATED.has(c.type);
-export const SOFT_TYPES = new Set(['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit', 'Seal']);
+export const SOFT_TYPES = new Set(['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit', 'Seal', 'Likely']);
+
+/* ---------- Match list: private yes / maybe / no on ideas, only overlaps shown ---------- */
+// One round a night. Each partner rates six ideas on their own phone; only ideas you're both open to (yes or maybe)
+// are shown, never who said which, and never a no. Ids are "m.<level>.<n>". Flag: 't' needs the same room, 'a' only
+// apart, otherwise both. Suggestive at most, like every card.
+const MATCH_RAW: Record<number, [string, ('t' | 'a')?][]> = {
+1: [["A picnic somewhere neither of us has been",'t'],["Cooking a dish from a country we've never visited",'t'],["A phone-free evening, just the two of us",'t'],
+["Watching the sunrise together",'t'],["A games night, just us two"],["Learning a dance together",'t'],["A day trip with no plan",'t'],
+["Swapping playlists for a week"],["Reading the same book at the same time"],["Volunteering together for a day",'t'],["Watching the same film at the same time, on a call",'a']],
+2: [["A weekly check-in about how we're really doing"],["Writing each other a letter to open in a year"],["Planning a trip we've both always wanted"],
+["Spending proper time with each other's oldest friends",'t'],["A screen-free hour before bed",'t'],["Learning a language together"],
+["Making a photo album of our year"],["A monthly date we take turns planning"],["Talking about our money goals"],["Taking a class together",'t'],["A countdown to our next visit",'a']],
+3: [["Flirty messages during the workday"],["Dressing up for a fancy dinner at home",'t'],["A surprise date planned by one of us",'t'],
+["Slow dancing in the living room",'t'],["A photo of tonight's outfit"],["Love notes hidden for each other",'t'],["A weekend away somewhere new",'t'],
+["Recreating our first date",'t'],["A dares-only night"],["A voice note to wake up to"],["Role play as strangers meeting for the first time"]],
+4: [["Longer cuddles in the morning",'t'],["A slow massage with warm oil",'t'],["A bath together",'t'],["Falling asleep holding hands",'t'],
+["More kisses for no reason",'t'],["Hair stroking while we talk",'t'],["A candlelit evening at home",'t'],["Being held from behind",'t'],
+["Talking until one of us falls asleep"],["Saying more about what feels good"]],
+5: [["Kissing for longer than usual",'t'],["Teasing messages before a date night"],["A kiss against the wall",'t'],
+["Hearing exactly what my partner wants"],["Whispers in each other's ear in public",'t'],["Making out like we just met",'t'],
+["A blindfolded kiss",'t'],["Being woken up with kisses",'t'],["Building anticipation all day"],["Describing a kiss in detail over a call",'a']],
+6: [["A full-body massage with no goal",'t'],["Showering together",'t'],["Undressing each other slowly",'t'],["A blindfold",'t'],
+["Being touched with a feather or silk",'t'],["Candlelight and a mirror",'t'],["Something new to wear for each other"],["Lights on instead of off",'t'],
+["Taking an hour or more, no rush",'t'],["Saying what feels good, out loud"]],
+7: [["Meeting as strangers somewhere public",'t'],["A secret hotel night under made-up names",'t'],["One of us in charge for the night"],
+["Dressing up in costume"],["A masked night",'t'],["Role play on a video call",'a'],["Playing a scene with secret roles"],
+["Being seduced like it's the first time",'t'],["A massage-therapist scene",'t'],["Swapping who usually leads"]],
+8: [["Gentle restraint with silk ties",'t'],["Trying a toy together",'t'],["Somewhere new in the house",'t'],["Mornings instead of nights",'t'],
+["Being more vocal"],["Watching each other in a mirror",'t'],["Taking turns being in charge",'t'],["A whole weekend with no plans but each other",'t'],
+["Talking each other through a fantasy"],["Undressing slowly on camera",'a']],
+};
+export type MatchItem = { id: string; l: number; text: string; where: 'both' | 'together' | 'apart' };
+export const MATCH: Record<number, MatchItem[]> = {};
+export const MATCH_BY_ID: Record<string, MatchItem> = {};
+for (let l = 1; l <= 8; l++) MATCH[l] = (MATCH_RAW[l] || []).map(([text, f], i) => {
+  const m: MatchItem = { id: `m.${l}.${i}`, l, text, where: f === 't' ? 'together' : f === 'a' ? 'apart' : 'both' };
+  MATCH_BY_ID[m.id] = m; return m;
+});

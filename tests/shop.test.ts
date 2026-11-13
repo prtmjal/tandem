@@ -52,7 +52,7 @@ describe("tonight's kit uses only cards both partners saw", () => {
       let guard = 0;
       while (r.phase === 'card' && guard++ < 300) {
         const v = r.view(0).session!.card!;
-        if (v.kind === 'twist') { r.act(0, { a: 'next', seq: v.seq }); continue; }
+        if (v.kind !== 'card') { r.act(0, { a: 'next', seq: v.seq }); continue; }
         if (v.mystery && !v.flipped) { r.act(0, { a: 'flip', seq: v.seq }); r.act(1, { a: 'flip', seq: v.seq }); continue; }
         if (v.gate) {
           const cur = (r as unknown as { sess: { cur: { card: { topic: string } } } }).sess.cur.card;

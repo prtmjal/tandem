@@ -39,6 +39,15 @@ export type CardView =
       mystery: boolean; myFlip: boolean; partnerFlip: boolean; flipped: boolean;
       gate: null | { teaser: string; myVote: Vote | null; partnerVoted: boolean };
       timerEndsAt: number | null;
+      /** Role-play cards: my own secret role. The partner's is never sent. */
+      role: string | null;
+      /** "Who's more likely" cards: my own pick (a seat), only whether my partner picked, and both picks once both have. */
+      likely: null | { mine: 0 | 1 | null; partnerPicked: boolean; picks: [0 | 1, 0 | 1] | null };
+    }
+  /** The match list: rate ideas privately; only the ones you're both open to are shown, in a shuffled order. */
+  | {
+      kind: 'match'; seq: number; level: number; items: { id: string; text: string }[];
+      mine: Record<string, Vote> | null; partnerDone: boolean; both: string[] | null;
     };
 
 export interface View {
@@ -72,7 +81,11 @@ export interface View {
     tonight: number; energy: Energy; myVibe: VibeId | null; partnerVibe: VibeId | null;
     memory: string | null; myReady: boolean; partnerReady: boolean; countdownAt: number | null;
   };
-  session: null | { idx: number; N: number; tonight: number; card: CardView | null; keptIds: string[] };
+  session: null | {
+    idx: number; N: number; tonight: number; card: CardView | null; keptIds: string[];
+    /** "Who's more likely" cards tonight where you both picked the same person, out of those you both answered. */
+    sync: { same: number; of: number };
+  };
   close: null | {
     stage: 0 | 1; closer: string; env: string; kept: string[];
     myOpen: boolean; partnerOpen: boolean; countdownAt: number | null;
@@ -82,6 +95,8 @@ export interface View {
     shareCard: null | { question: string; nights: number };
     /** Topics of cards shown tonight (both saw them), for matching shop suggestions after the night. */
     kitTopics: string[];
+    /** Ideas from tonight's match list that you're both open to (never who said yes or maybe). */
+    matches: string[];
   };
 }
 
@@ -99,6 +114,10 @@ export type Action =
   | { a: 'ready' }
   | { a: 'flip'; seq: number }
   | { a: 'gate'; seq: number; v: Vote }
+  /** My private pick on a "Who's more likely" card: the seat of the person I picked. */
+  | { a: 'likely'; seq: number; who: 0 | 1 }
+  /** My private yes / maybe / no for every idea in this match round. */
+  | { a: 'match'; seq: number; picks: Record<string, Vote> }
   | { a: 'next'; seq: number }
   | { a: 'timer'; seq: number }
   | { a: 'keep'; seq: number }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, LazyMotion, MotionConfig, m } from 'motion/react';
 import QRCode from 'qrcode';
 import { DECK } from '../shared/content';
-import { AGE_OK, REACTIONS, type VibeId, type View } from '../shared/protocol';
+import { AGE_OK, REACTIONS, type CardView, type VibeId, type View, type Vote } from '../shared/protocol';
 import { VIBES, VIBE_IDS, cardColors, chipColor, hueDistance, blendHue, themeTokens, type Mode } from '../shared/theme';
 import { keys, loadPasses, loadProgress, net, shop, store, useCountdown, useNet, useWakeLock } from './net';
 import { DECKS, DECK_IDS, PASS_CARD_COUNT } from '../shared/decks';
@@ -537,6 +537,7 @@ function Play(p: RoomProps & { partner: string }) {
 
   let main: JSX.Element, actions: JSX.Element;
   const tip = cv.kind === 'twist' ? <Tip id="twist">A wildcard changes the pace for a moment. Do it together, or pass.</Tip>
+    : cv.kind === 'match' ? <Tip id="match">Rate each idea on your own phone. Only the ones you’re both open to show up. Nobody ever sees a no.</Tip>
     : cv.mystery && !cv.flipped ? <Tip id="mystery">This card is face down. It turns over when you both tap Flip.</Tip>
     : cv.gate ? <Tip id="gate">Answer on your own phone. If either of you says “not tonight”, the card quietly changes. Nobody sees who said what.</Tip>
     : p.view.apart ? <Tip id="card-apart">You’re apart: read the card out loud on your call. Either of you taps Next when you’re done talking.</Tip>
@@ -544,6 +545,9 @@ function Play(p: RoomProps & { partner: string }) {
   if (cv.kind === 'twist') {
     main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'tw' + cv.seq} text={cap(cv.text.replace(/^Twist:\s*/, ''))} type="Twist" title="Wildcard" special="holo" />;
     actions = <PassNext onPass={next} onNext={next} nextLabel="Done" />;
+  } else if (cv.kind === 'match') {
+    main = <MatchRound key={cv.seq} cv={cv} partner={p.partner} me={p.view.me} />;
+    actions = <PassNext onPass={next} onNext={next} />;
   } else if (cv.mystery && !cv.flipped) {
     main = <PlayCard dealKey={cv.seq} level={level} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={null} seed={'my' + cv.seq} faceDown special="gold"
       backLabel={<><b>Mystery card</b><span className="tiny">Flip it together</span></>} />;
@@ -564,6 +568,8 @@ function Play(p: RoomProps & { partner: string }) {
     main = <PlayCard dealKey={cv.seq} level={c.l} hue={p.theme.cardHue} vibe={p.theme.cardVibe} mode={p.theme.mode} card={c} seed={c.id} special={cv.mystery ? 'gold' : undefined} reader={reads} />;
     actions = (
       <>
+        {cv.role && <div className="panel role"><p className="eyebrow">Your secret role · only you can see it</p><p>{cv.role}</p></div>}
+        {cv.likely && <LikelyPick seq={cv.seq} likely={cv.likely} me={p.view.me} partner={p.partner} sync={s.sync} />}
         {c.t > 0 && <TimerRow endsAt={cv.timerEndsAt} secs={c.t} onStart={() => net.act({ a: 'timer', seq: cv.seq })} />}
         <PassNext onPass={next} onNext={next} />
         <div className="row">
@@ -595,6 +601,70 @@ function Play(p: RoomProps & { partner: string }) {
       {chatOpen && <ChatSheet view={p.view} partner={p.partner} close={() => setChatOpen(false)} />}
       <Countdown at={arriveAt} />
     </>
+  );
+}
+
+/* ---------------- match list and "Who's more likely" ----------------
+   Both are private picks. The partner's answers never reach this phone: only the overlap (match list) or both picks
+   once both have picked (Who's more likely). Every reveal plays the same cue, whatever the result. */
+type MatchView = Extract<CardView, { kind: 'match' }>;
+type LikelyView = NonNullable<Extract<CardView, { kind: 'card' }>['likely']>;
+const MATCH_LABEL = { y: 'Yes', m: 'Maybe', n: 'No' } as const;
+
+function MatchRound({ cv, partner, me }: { cv: MatchView; partner: string; me: 0 | 1 }) {
+  const [picks, setPicks] = useState<Record<string, Vote>>({});
+  const all = cv.items.every(i => picks[i.id]);
+  useEffect(() => { if (cv.both) cue('reveal', me); }, [!!cv.both, me]);
+  if (cv.both) return (
+    <div className="panel matchlist" aria-live="polite">
+      <p className="eyebrow">Match list</p>
+      <h3>{cv.both.length ? 'You’re both open to' : 'No overlaps this time'}</h3>
+      {cv.both.length ? <div className="kept">{cv.both.map(t => <p key={t}>{t}</p>)}</div>
+        : <p className="muted">That’s an answer too. Nobody sees who said what.</p>}
+    </div>
+  );
+  if (cv.mine) return (
+    <div className="panel matchlist center"><p className="eyebrow">Locked in</p>
+      {cv.partnerDone ? <p className="muted">Revealing…</p> : <Waiting>Waiting for {partner}</Waiting>}</div>
+  );
+  return (
+    <div className="panel matchlist">
+      <p className="eyebrow">Match list · private. {partner} won’t see your answers.</p>
+      {cv.items.map(it => (
+        <div key={it.id} className="matchitem" role="group" aria-label={it.text}>
+          <p>{it.text}</p>
+          <div className="seg">{(['y', 'm', 'n'] as const).map(v => (
+            <button key={v} className="ctrl small" aria-pressed={picks[it.id] === v} onClick={() => { cue('tap'); setPicks(x => ({ ...x, [it.id]: v })); }}>{MATCH_LABEL[v]}</button>
+          ))}</div>
+        </div>
+      ))}
+      <button className="btn" disabled={!all} onClick={() => { cue('ready'); net.act({ a: 'match', seq: cv.seq, picks }); }}>Lock in my answers</button>
+    </div>
+  );
+}
+
+function LikelyPick({ seq, likely, me, partner, sync }: { seq: number; likely: LikelyView; me: 0 | 1; partner: string; sync: { same: number; of: number } }) {
+  useEffect(() => { if (likely.picks) cue('reveal', me); }, [!!likely.picks, me]);
+  if (likely.picks) {
+    const [a, b] = likely.picks, mine = likely.picks[me];
+    // Same pick: name that person. Different picks: each of you picked yourself, or each picked the other.
+    const line = a === b ? <>You both picked <b>{a === me ? 'you' : partner}</b>.</>
+      : mine === me ? <>You each picked <b>yourselves</b>.</> : <>You each picked <b>each other</b>.</>;
+    return (
+      <div className="panel center" aria-live="polite">
+        <p>{line}</p>
+        <p className="muted tiny">In sync on {sync.same} of {sync.of} tonight</p>
+      </div>
+    );
+  }
+  if (likely.mine !== null) return <div className="panel center"><p className="eyebrow">Locked in</p>{likely.partnerPicked ? <p className="muted">Revealing…</p> : <Waiting>Waiting for {partner}</Waiting>}</div>;
+  return (
+    <div className="panel"><p className="eyebrow">Pick privately. Both open together.</p>
+      <div className="row pair">
+        <button className="ctrl" onClick={() => { cue('tap'); net.act({ a: 'likely', seq, who: me }); }}>Me</button>
+        <button className="ctrl" onClick={() => { cue('tap'); net.act({ a: 'likely', seq, who: me === 0 ? 1 : 0 }); }}>{partner}</button>
+      </div>
+    </div>
   );
 }
 
@@ -1066,6 +1136,7 @@ function Close(p: RoomProps & { partner: string }) {
             <div className="pocket" aria-hidden="true"><span className="seal">T</span></div>
           </div>
           {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} readOnly /></div>}
+          {c.matches.length > 0 && <div className="panel"><h3>You’re both open to</h3><div className="kept">{c.matches.map(t => <p key={t}>{t}</p>)}</div></div>}
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
           <ShopLinks kind="kit" items={kitFor(c.kitTopics || [], p.view.session?.tonight ?? 1)} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div></div>}

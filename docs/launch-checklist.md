@@ -5,7 +5,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 ## 1. Private test launch (can happen now)
 
 - ✅ Game, landing page, privacy page, payments (off), email list (off), backups, share cards and apart mode are built.
-- ✅ 86 unit tests (including content rules on every card), three browser tests (together, apart, purchase), the two-phone browser test and the purchase test pass. npm audit reports 0 vulnerabilities.
+- ✅ 95 unit tests (including content rules on every card and privacy of the match list, "Who's more likely" picks and secret roles) and three browser tests (together, apart, purchase) pass. npm audit reports 0 vulnerabilities.
 - ✅ A production build from a clean install serves every page and API.
 - ✅ Deployed to Railway at https://tandem-after-dark-production.up.railway.app
 - 🟡 Finish the Railway setup: variables `STATS_TOKEN` and `PUBLIC_URL`, a volume at `/data` with `STATS_FILE=/data/stats.json`, and Healthcheck path `/healthz`.
@@ -32,7 +32,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
   - [ ] the 18+ approach, and Brazil (ECA Digital may not accept a self-declared age)
   - [ ] India IT Act 67/67A and the DPDP Act
   - [ ] EU accessibility and consumer law, if selling in the EU
-- 🟡 **Content review** of all 527 cards (444 free together, 43 free apart, 40 Couple Pass) by an LGBTQ+ sex educator.
+- 🟡 **Content review** of all 569 cards (486 free together, 43 free apart, 40 Couple Pass) plus 83 match-list ideas and the secret roles by an LGBTQ+ sex educator.
 - 🟡 **Payments**, if you want them at launch:
   - [ ] get Stripe's written approval (describe it as a couples' relationship and conversation game)
   - [ ] create the one-time price, plus optional regional prices

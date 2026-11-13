@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { APART_DECK, CLOSING, DECK, ENVELOPES, TWIST_DOWN, TWIST_UP } from '../shared/content';
+import { APART_DECK, CLOSING, DECK, ENVELOPES, MATCH, TWIST_DOWN, TWIST_UP } from '../shared/content';
 import { PASS_DECK } from '../shared/decks';
 
 // CLAUDE.md rule 2, checked on every card, twist, closer and envelope.
 const cards = [...Object.values(DECK).flat(), ...Object.values(APART_DECK).flat(), ...Object.values(PASS_DECK).flat()];
-const texts = [...cards.map(c => c.text), ...TWIST_UP, ...TWIST_DOWN, ...CLOSING, ...ENVELOPES];
+const texts = [...cards.map(c => c.text), ...cards.flatMap(c => c.roles || []), ...Object.values(MATCH).flat().map(m => m.text), ...TWIST_UP, ...TWIST_DOWN, ...CLOSING, ...ENVELOPES];
 
 describe('content rules', () => {
   it('is gender-neutral', () => {
@@ -20,6 +20,16 @@ describe('content rules', () => {
     const seen = new Set<string>();
     for (const t of texts) { const k = t.toLowerCase(); expect(seen.has(k), t).toBe(false); seen.add(k); }
     for (const t of texts) expect(t.split(/\s+/).length, t).toBeLessThanOrEqual(32);
+  });
+  it('every role-play card has two secret roles, and only role-play cards do', () => {
+    for (const c of cards) expect(!!c.roles, c.id).toBe(c.type === 'Roles' || (c.type === 'Scene' && !!c.roles));
+    for (const c of cards.filter(c => c.type === 'Roles')) expect(c.roles?.length, c.id).toBe(2);
+  });
+  it('the match list has enough ideas at every level, together and apart', () => {
+    for (let l = 1; l <= 8; l++) {
+      expect(MATCH[l].filter(m => m.where !== 'apart').length, 'together ' + l).toBeGreaterThanOrEqual(8);
+      expect(MATCH[l].filter(m => m.where !== 'together').length, 'apart ' + l).toBeGreaterThanOrEqual(2);
+    }
   });
   it('every card has a type and a topic', () => {
     for (const c of cards) { expect(c.type, c.id).toBeTruthy(); expect(c.topic, c.id).toBeTruthy(); }

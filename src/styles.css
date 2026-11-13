@@ -324,3 +324,9 @@ select.ctrl { font: inherit; appearance: auto; }
 .overlay.sheet { place-items: end center; padding: 0; }
 .overlay.sheet > .panel { width: min(100%, 480px); border-radius: 22px 22px 0 0; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
 .chip.reader { font-weight: 700; }
+
+/* Match list and secret roles */
+.matchlist { width: 100%; max-width: 440px; max-height: 100%; overflow-y: auto; gap: 12px; }
+.matchitem { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.matchitem p { font-weight: 600; }
+.panel.role { border-style: dashed; }

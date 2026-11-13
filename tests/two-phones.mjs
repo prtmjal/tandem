@@ -8,6 +8,22 @@ const URL = process.env.URL || 'http://localhost:3001/play';
 const OUT = process.env.OUT || 'tests/shots';
 mkdirSync(OUT, { recursive: true });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/** Match list: each phone rates every idea privately; only the overlap shows on both phones. */
+async function playMatch(A, B, sleep) {
+  const items = await A.locator('.matchitem').count();
+  for (let i = 0; i < items; i++) await A.locator('.matchitem').nth(i).getByRole('button', { name: 'Yes', exact: true }).click();
+  await A.getByRole('button', { name: 'Lock in my answers' }).click();
+  // B still sees only its own blank list: nothing of A's answers, and only that A is done after B locks in.
+  if (await B.locator('.matchitem [aria-pressed="true"]').count()) throw new Error('match answers leaked');
+  for (let i = 0; i < items; i++) await B.locator('.matchitem').nth(i).getByRole('button', { name: i < 3 ? 'Yes' : i < 4 ? 'Maybe' : 'No', exact: true }).click();
+  await B.getByRole('button', { name: 'Lock in my answers' }).click();
+  await A.getByText('You’re both open to').first().waitFor(); await B.getByText('You’re both open to').first().waitFor();
+  await B.locator('.matchlist .kept p').nth(3).waitFor();
+  const shownA = await A.locator('.matchlist .kept p').count(), shownB = await B.locator('.matchlist .kept p').count();
+  if (shownA !== 4 || shownB !== 4) throw new Error(`match overlap wrong: ${shownA}/${shownB}`);
+  await sleep(300);
+}
 const phone = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 
 const browser = await chromium.launch();
@@ -94,7 +110,7 @@ await shot(A, '09-countdown');
 await sleep(2600);
 
 // Play the night. Each loop advances whichever screen is showing.
-let cards = 0, gates = 0, mysteries = 0, twists = 0, reacted = false, offlineDone = false;
+let cards = 0, gates = 0, mysteries = 0, twists = 0, reacted = false, offlineDone = false, matched = false, likely = 0, roles = 0;
 for (let guard = 0; guard < 120; guard++) {
   if (await A.getByText('Closing card').isVisible().catch(() => false)) break;
   if (await A.getByText('Are you open to it tonight?').isVisible().catch(() => false)) {
@@ -116,6 +132,27 @@ for (let guard = 0; guard < 120; guard++) {
     twists++;
     if (twists === 1) await shot(A, '13-twist');
     await A.getByRole('button', { name: 'Done', exact: true }).click(); await sleep(450); continue;
+  }
+  if (await A.getByRole('button', { name: 'Lock in my answers' }).isVisible().catch(() => false)) {
+    await shot(A, '19-match-private');
+    await playMatch(A, B, sleep); matched = true;
+    await shot(B, '19b-match-overlap');
+    await A.getByRole('button', { name: 'Next', exact: true }).click(); await sleep(450); continue;
+  }
+  if (await A.getByText('Pick privately. Both open together.').isVisible().catch(() => false)) {
+    // Who's more likely: A picks first; B sees no hint of it until B picks too.
+    await A.locator('.row.pair').filter({ hasText: 'Me' }).getByRole('button', { name: 'Me', exact: true }).click();
+    await B.getByText('Pick privately. Both open together.').waitFor();
+    await B.locator('.row.pair').filter({ hasText: 'Me' }).getByRole('button', { name: 'Me', exact: true }).click();
+    await A.getByText(/In sync on/).waitFor(); await B.getByText(/In sync on/).waitFor();
+    if (!likely) await shot(A, '20-likely-reveal');
+    likely++;
+  }
+  if (await A.locator('.panel.role').isVisible().catch(() => false)) {
+    const ra = await A.locator('.panel.role p').last().textContent(), rb = await B.locator('.panel.role p').last().textContent();
+    if (!ra || !rb || ra === rb) throw new Error('secret roles should differ per phone');
+    if (!roles) await shot(A, '21-secret-role');
+    roles++;
   }
   if (await A.getByRole('button', { name: 'Next', exact: true }).isVisible().catch(() => false)) {
     cards++;
@@ -207,9 +244,11 @@ const all = framesA.join('\n');
 const leaks = [];
 if (all.includes('"myPick":4')) leaks.push('B ceiling pick reached A');
 if (all.includes('"myVote":"y"')) leaks.push('B gate vote reached A');
+// B said Maybe and No on the match list: those raw answers must never reach A, only the overlap.
+if (/"m\.\d\.\d+":"[ymn]"/.test(all.replace(/"mine":\{[^}]*\}/g, ''))) leaks.push('B match answers reached A');
 if (/"curious"\s*:\s*\{[^}]*"\d"/.test(all) && false) leaks.push('curious');
 const tonight4 = all.includes('"tonight":4');
 
-console.log(JSON.stringify({ code, cards, gates, mysteries, twists, tonight4, frames: framesA.length, leaks, errors }, null, 2));
+console.log(JSON.stringify({ code, cards, gates, mysteries, twists, matched, likely, roles, tonight4, frames: framesA.length, leaks, errors }, null, 2));
 await browser.close();
-if (leaks.length || errors.length || !tonight4 || cards < 8) process.exit(1);
+if (leaks.length || errors.length || !tonight4 || !matched || cards < 8) process.exit(1);

@@ -22,6 +22,7 @@ const HINTS: Record<string, string> = {
   Tease: 'Opens later', Choose: 'Decide together', Session: 'Nothing has to lead anywhere', Scene: 'Cue word steps out',
   Persona: 'Play as long as it’s fun', Cue: 'Say each word once', Chain: 'Part of a chain', Whisper: 'Then the phone goes away',
   Epilogue: 'For the morning after', Compliment: 'Be specific',
+  Likely: 'Pick on your phone · whoever is picked explains', Roles: 'Keep your role secret · guess each other’s at the end',
 };
 
 interface PlayCardProps {

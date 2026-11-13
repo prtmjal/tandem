@@ -26,6 +26,7 @@ function play(r: Room, gate: (i: 0 | 1) => 'y' | 'm' | 'n' = () => 'y') {
   const ids: string[] = []; let guard = 0;
   while (r.phase === 'card' && guard++ < 200) {
     const v = r.view(0).session!.card!;
+    if (v.kind === 'match') { r.act(0, { a: 'next', seq: v.seq }); continue; }
     if (v.kind === 'twist') { r.act(1, { a: 'next', seq: v.seq }); continue; }
     if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
     if (v.gate) { r.act(0, { a: 'gate', seq: v.seq, v: gate(0) }); r.act(1, { a: 'gate', seq: v.seq, v: gate(1) }); continue; }
@@ -55,6 +56,7 @@ describe('privacy: a partner never receives the other partner\'s raw choices', (
     let checked = 0, guard = 0;
     while (r.phase === 'card' && guard++ < 200) {
       const v0 = r.view(0).session!.card!;
+      if (v0.kind === 'match') { r.act(0, { a: 'next', seq: v0.seq }); continue; }
       if (v0.kind === 'twist') { r.act(0, { a: 'next', seq: v0.seq }); continue; }
       if (v0.mystery && !v0.flipped) { both(r, { a: 'flip', seq: v0.seq }); continue; }
       if (v0.gate) {
@@ -189,6 +191,7 @@ describe('apart mode', () => {
       let guard = 0;
       while (r.phase === 'card' && guard++ < 200) {
         const v = r.view(0).session!.card!;
+        if (v.kind === 'match') { r.act(0, { a: 'next', seq: v.seq }); continue; }
         if (v.kind === 'twist') { expect(TOGETHER_TEXT.test(v.text)).toBe(false); r.act(0, { a: 'next', seq: v.seq }); continue; }
         if (v.gate && (!v.mystery || v.flipped)) { // only the video-call deck has hands-on cards apart, and they still get the private vote
           both(r, { a: 'gate', seq: v.seq, v: 'y' });
@@ -237,7 +240,7 @@ describe('share cards', () => {
   });
   it('share cards only ever quote a talk card from Levels 1-3', async () => {
     const { DECK } = await import('../shared/content');
-    const safe = new Set([1, 2, 3].flatMap(l => DECK[l].filter(c => ['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit', 'Seal'].includes(c.type)).map(c => c.text)));
+    const safe = new Set([1, 2, 3].flatMap(l => DECK[l].filter(c => ['Ask', 'Share', 'Note', 'Guess', 'Appreciate', 'Revisit', 'Seal', 'Likely'].includes(c.type)).map(c => c.text)));
     for (let i = 0; i < 8; i++) {
       const r = toEnvelope();
       both(r, { a: 'share', on: true });
@@ -327,6 +330,7 @@ describe('night pacing', () => {
       let ups = 0, downs = 0, guard = 0;
       while (r.phase === 'card' && guard++ < 200) {
         const s = r.view(0).session!, v = s.card!;
+        if (v.kind === 'match') { r.act(0, { a: 'next', seq: v.seq }); continue; }
         if (v.kind === 'twist') {
           if (v.dir === 'up') { ups++; expect(s.idx).toBeLessThan(s.N - 4); } else downs++;
           r.act(0, { a: 'next', seq: v.seq }); continue;
@@ -349,6 +353,7 @@ describe('night length', () => {
       let long = 0, guard = 0;
       while (r.phase === 'card' && guard++ < 200) {
         const v = r.view(0).session!.card!;
+        if (v.kind === 'match') { r.act(0, { a: 'next', seq: v.seq }); continue; }
         if (v.kind === 'twist') { r.act(0, { a: 'next', seq: v.seq }); continue; }
         if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
         if (v.gate) { both(r, { a: 'gate', seq: v.seq, v: 'y' }); continue; }
@@ -357,5 +362,170 @@ describe('night length', () => {
       }
       expect(long).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+
+/* ---------- match list, "Who's more likely" and secret roles ---------- */
+/** Plays until the match round (or the night ends). */
+function toMatch(r: Room) {
+  let guard = 0;
+  while (r.phase === 'card' && guard++ < 200) {
+    const v = r.view(0).session!.card!;
+    if (v.kind === 'match') return v;
+    if (v.kind === 'twist') { r.act(0, { a: 'next', seq: v.seq }); continue; }
+    if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
+    if (v.gate) { both(r, { a: 'gate', seq: v.seq, v: 'y' }); continue; }
+    r.act(0, { a: 'next', seq: v.seq });
+  }
+  return null;
+}
+
+describe('match list', () => {
+  it('comes once a night, before the peak, without taking a card\'s place', () => {
+    for (const energy of ['mid', 'low'] as const) {
+      const r = newRoom();
+      startSession(r, [5, 5], energy);
+      const m = toMatch(r)!;
+      expect(m).not.toBe(null);
+      expect(m.items.length).toBe(6);
+      const s = r.view(0).session!;
+      expect(s.idx).toBe(energy === 'mid' ? 9 : 6);
+      r.act(1, { a: 'next', seq: m.seq }); // passing works like any card
+      expect(r.view(0).session!.idx).toBe(s.idx);
+      expect(play(r).length).toBe(s.N - s.idx);
+    }
+  });
+
+  it('answers stay private; only ideas you are both open to are shown, never a no', () => {
+    const r = newRoom();
+    startSession(r, [4, 4]);
+    const m = toMatch(r)!;
+    const ids = m.items.map(i => i.id);
+    // Asha: yes, yes, maybe, maybe, no, no. Sam: yes, no, yes, maybe, yes, no.
+    const a = ['y', 'y', 'm', 'm', 'n', 'n'] as const, b = ['y', 'n', 'y', 'm', 'y', 'n'] as const;
+    r.act(0, { a: 'match', seq: m.seq, picks: Object.fromEntries(ids.map((id, i) => [id, a[i]])) });
+    const sam = r.view(1).session!.card!;
+    expect(sam.kind === 'match' && sam.partnerDone).toBe(true);
+    expect(sam.kind === 'match' && sam.mine).toBe(null);
+    expect(JSON.stringify(r.view(1))).not.toMatch(/"(y|m|n)"/);
+    r.act(1, { a: 'match', seq: m.seq, picks: Object.fromEntries(ids.map((id, i) => [id, b[i]])) });
+    const shown = [0, 2, 3].map(i => m.items[i].text).sort();
+    for (const me of [0, 1] as const) {
+      const v = r.view(me).session!.card!;
+      expect(v.kind === 'match' && v.both!.slice().sort()).toEqual(shown);
+      expect(v.kind === 'match' && v.mine).toBe(null); // nobody's raw answers are sent after the reveal either
+    }
+    expect(JSON.stringify(r)).not.toMatch(/"picks":\[\{/); // raw answers are forgotten once revealed
+    r.act(0, { a: 'next', seq: m.seq });
+    play(r); both(r, { a: 'open' });
+    expect(r.view(1).close!.matches.slice().sort()).toEqual(shown);
+  });
+
+  it('ignores incomplete or invented answers', () => {
+    const r = newRoom();
+    startSession(r, [3, 3]);
+    const m = toMatch(r)!;
+    r.act(0, { a: 'match', seq: m.seq, picks: { [m.items[0].id]: 'y' } });
+    r.act(0, { a: 'match', seq: m.seq, picks: Object.fromEntries(m.items.map(i => [i.id, 'x'])) as never });
+    expect(r.view(1).session!.card!.kind === 'match' && (r.view(1).session!.card as { partnerDone: boolean }).partnerDone).toBe(false);
+  });
+
+  it('apart, never offers ideas that need one room, and ideas rotate across nights', async () => {
+    const { MATCH_BY_ID } = await import('../shared/content');
+    const r = newRoom(); r.act(0, { a: 'apart', on: true });
+    const seen = new Set<string>();
+    for (let n = 0; n < 3; n++) {
+      startSession(r, [6, 6]);
+      const m = toMatch(r)!;
+      for (const it of m.items) { expect(MATCH_BY_ID[it.id].where).not.toBe('together'); }
+      r.act(0, { a: 'next', seq: m.seq }); play(r); both(r, { a: 'open' }); r.act(0, { a: 'finish' });
+      m.items.forEach(i => seen.add(i.id));
+    }
+    expect(seen.size).toBeGreaterThan(6);
+  });
+});
+
+/** Plays until a card of the given type is face up (or the night ends). */
+function toType(r: Room, type: string) {
+  let guard = 0;
+  while (r.phase === 'card' && guard++ < 200) {
+    const v = r.view(0).session!.card!;
+    if (v.kind === 'card' && v.card?.type === type) return v;
+    if (v.kind !== 'card') { r.act(0, { a: 'next', seq: v.seq }); continue; }
+    if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
+    if (v.gate) { both(r, { a: 'gate', seq: v.seq, v: 'y' }); continue; }
+    r.act(0, { a: 'next', seq: v.seq });
+  }
+  return null;
+}
+
+describe('who\'s more likely', () => {
+  it('a pick stays private until both have picked, then both open together and count toward being in sync', () => {
+    let tested = 0;
+    for (let n = 0; n < 30 && tested < 3; n++) {
+      const r = newRoom([1, 2, 3]);
+      startSession(r, [3, 3]);
+      const v = toType(r, 'Likely'); if (!v) continue;
+      r.act(0, { a: 'likely', seq: v.seq, who: 1 });
+      const sam = r.view(1).session!.card!;
+      expect(sam.kind === 'card' && sam.likely).toEqual({ mine: null, partnerPicked: true, picks: null });
+      expect(JSON.stringify(r.view(1).session!.card)).not.toContain('"mine":1');
+      r.act(0, { a: 'likely', seq: v.seq, who: 0 }); // one pick each
+      r.act(1, { a: 'likely', seq: v.seq, who: 1 });
+      for (const me of [0, 1] as const) {
+        const c = r.view(me).session!.card!;
+        expect(c.kind === 'card' && c.likely!.picks).toEqual([1, 1]);
+        expect(r.view(me).session!.sync).toEqual({ same: 1, of: 1 });
+      }
+      tested++;
+    }
+    expect(tested).toBeGreaterThan(0);
+  });
+});
+
+describe('secret roles', () => {
+  it('each phone gets only its own role, and the partner\'s never travels', async () => {
+    const { CARD_BY_ID } = await import('../shared/content');
+    let tested = 0;
+    for (let n = 0; n < 40 && tested < 3; n++) {
+      const r = newRoom([1, 2, 3]);
+      startSession(r, [3, 3]);
+      const v = toType(r, 'Roles'); if (!v) continue;
+      const roles = CARD_BY_ID[v.card!.id].roles!;
+      const a = r.view(0).session!.card!, b = r.view(1).session!.card!;
+      if (a.kind !== 'card' || b.kind !== 'card') throw new Error('not a card');
+      expect([a.role, b.role].sort()).toEqual(roles.slice().sort());
+      expect(a.role).not.toBe(b.role);
+      expect(JSON.stringify(r.view(0))).not.toContain(b.role!);
+      expect(JSON.stringify(r.view(1))).not.toContain(a.role!);
+      tested++;
+    }
+    expect(tested).toBeGreaterThan(0);
+  });
+
+  it('hands-on role-play scenes still get the private vote first, and no role is sent before it', () => {
+    let tested = 0;
+    for (let n = 0; n < 60 && tested < 2; n++) {
+      const r = newRoom();
+      startSession(r, [7, 7]);
+      let guard = 0;
+      while (r.phase === 'card' && guard++ < 200) {
+        const v = r.view(0).session!.card!;
+        if (v.kind !== 'card') { r.act(0, { a: 'next', seq: v.seq }); continue; }
+        if (v.mystery && !v.flipped) { both(r, { a: 'flip', seq: v.seq }); continue; }
+        if (v.gate) {
+          const cur = (r as unknown as { sess: { cur: { card: { roles?: string[] } } } }).sess.cur.card;
+          if (cur.roles) {
+            expect(v.role).toBe(null); expect(v.card).toBe(null);
+            for (const role of cur.roles) expect(JSON.stringify(r.view(0)) + JSON.stringify(r.view(1))).not.toContain(role);
+            tested++;
+          }
+          both(r, { a: 'gate', seq: v.seq, v: 'y' }); continue;
+        }
+        r.act(0, { a: 'next', seq: v.seq });
+      }
+    }
+    expect(tested).toBeGreaterThan(0);
   });
 });

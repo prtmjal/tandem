@@ -1,7 +1,7 @@
 // Server-authoritative game room. Private choices live only here and are never sent to the partner.
 import {
   DECK, LEVELS, CARD_BY_ID, TOTAL_CARDS, TWIST_UP, TWIST_DOWN, CLOSING, ENVELOPES,
-  isGated, SOFT_TYPES, worksApart, TOGETHER_TEXT, APART_DECK, APART_CARDS, type Card,
+  isGated, SOFT_TYPES, worksApart, TOGETHER_TEXT, APART_DECK, APART_CARDS, MATCH, type Card, type MatchItem,
 } from '../shared/content';
 import {
   emptyProgress, type Action, type CardView, type Energy, type Phase, type Progress, type VibeId, type View, type Vote,
@@ -11,7 +11,7 @@ import { isVibe } from '../shared/theme';
 import { mergeProgress, sanitizeProgress } from '../shared/progress';
 import { PASS_CARD_COUNT, PASS_DECK } from '../shared/decks';
 const DAY = 24 * 3600 * 1000;
-const PLAYFUL = new Set(['Guess', 'Seal']);
+const PLAYFUL = new Set(['Guess', 'Seal', 'Likely']);
 const PLAYFUL_TOPICS = new Set(['thisthat', 'twotruths', 'rapidfire', 'wouldrather', 'hottake', 'pickup', 'wink', 'film', 'threeguess', 'fridge', 'ap-tour', 'ap-fridge']);
 const PARK_MS = 56 * DAY; // declined cards rest for 8 weeks
 const CURIOUS_MS = 14 * DAY; // an unmatched "curious" tap expires silently
@@ -24,15 +24,23 @@ interface Player { token: string; name: string; connected: boolean; curious: Rec
 interface CurCard {
   kind: 'card'; seq: number; card: Card; mystery: boolean; flips: [boolean, boolean];
   gate: null | { votes: [Vote | null, Vote | null] }; timerEndsAt: number | null;
+  /** "Who's more likely": each partner's private pick (a seat) until both have picked. */
+  likely?: [Idx | null, Idx | null];
 }
 interface CurTwist { kind: 'twist'; seq: number; text: string; dir: 'up' | 'down' }
+/** The match list. Picks are private; only the overlap (both yes or maybe) is ever sent, shuffled. */
+interface CurMatch { kind: 'match'; seq: number; level: number; items: MatchItem[]; picks: [Record<string, Vote> | null, Record<string, Vote> | null]; both: string[] | null }
 
 interface Session {
   c: number; c0: number; N: number; idx: number; seq: number;
   prev: string[]; used: Set<string>; kept: Map<string, string>;
   /** Cards actually shown face up tonight (never ones swapped away after a private 'not tonight'). */
   shown?: string[];
-  lastTw: number; downDone: boolean; upDone?: boolean; longUsed?: boolean; cur: CurCard | CurTwist | null;
+  lastTw: number; downDone: boolean; upDone?: boolean; longUsed?: boolean; cur: CurCard | CurTwist | CurMatch | null;
+  /** One match round a night; what you were both open to, shown again at the end. */
+  matchDone?: boolean; matches?: string[];
+  /** "Who's more likely" cards where you both picked the same person, out of those you both answered. */
+  sync?: { same: number; of: number };
 }
 
 // Progress merge and sanitizing live in shared/progress.ts so the phone can merge backups the same way.
@@ -186,6 +194,12 @@ export class Room {
     const s = this.sess!;
     s.seq++;
     if (s.idx >= s.N) { this.startClose(); return; }
+    // One match round a night, just before the peak: it doesn't take a card's place.
+    if (!s.matchDone && s.idx === this.plan(s).w.length + this.plan(s).b.length - 1) {
+      s.matchDone = true;
+      const m = this.matchRound(this.lvlFor(s.c0));
+      if (m) { s.cur = m; return; }
+    }
     const gap = s.idx - s.lastTw;
     // Full nights always get one 'slow down' as the cool-down starts; at most one 'turn it up' per night, never late.
     const coolStart = s.idx === s.N - 3 && (s.c >= 4 || s.N === 16) && !s.downDone;
@@ -208,6 +222,22 @@ export class Room {
     const card = this.draw(lv, prefer);
     const mystery = s.idx === this.plan(s).w.length + 2;
     s.cur = { kind: 'card', seq: s.seq, card, mystery, flips: [false, false], gate: isGated(card) ? { votes: [null, null] } : null, timerEndsAt: null };
+    if (card.type === 'Likely') s.cur.likely = [null, null];
+  }
+
+  /** Six ideas for the match list, mostly from tonight's level, with a couple from the levels below. Ideas rotate
+   *  across nights. Apart, ideas that need one room are left out. */
+  private matchRound(lv: number): CurMatch | null {
+    const s = this.sess!;
+    const fits = (m: MatchItem) => (this.apart ? m.where !== 'together' : m.where !== 'apart');
+    const pool = () => { const seen = this.prog.seen.m || []; const out: MatchItem[] = []; for (let l = Math.max(1, lv - 2); l <= lv; l++) out.push(...(MATCH[l] || []).filter(m => fits(m) && !seen.includes(m.id))); return out; };
+    let p = pool();
+    if (p.length < 6) { this.prog.seen.m = []; p = pool(); }
+    if (p.length < 4) return null;
+    const top = shuffle(p.filter(m => m.l === lv)).slice(0, 4);
+    const items = top.concat(shuffle(p.filter(m => !top.includes(m))).slice(0, 6 - top.length));
+    (this.prog.seen.m ||= []).push(...items.map(m => m.id));
+    return { kind: 'match', seq: s.seq, level: lv, items: shuffle(items), picks: [null, null], both: null };
   }
 
   private resolveGate(cur: CurCard) {
@@ -217,6 +247,7 @@ export class Room {
     this.prog.parked[cur.card.id] = Date.now() + PARK_MS;
     cur.card = this.draw(cur.card.l, c => !isGated(c));
     cur.gate = null; cur.mystery = false;
+    cur.likely = cur.card.type === 'Likely' ? [null, null] : undefined;
   }
 
   private startClose() {
@@ -338,6 +369,29 @@ export class Room {
         if (cur.gate.votes[other] !== null) this.resolveGate(cur);
         break;
       }
+      case 'likely': {
+        const cur = s?.cur; if (this.phase !== 'card' || !s || !cur || cur.kind !== 'card' || cur.seq !== x.seq || !cur.likely || cur.gate) break;
+        if (cur.mystery && !(cur.flips[0] && cur.flips[1])) break;
+        if (cur.likely[me] !== null || (x.who !== 0 && x.who !== 1)) break;
+        cur.likely[me] = x.who;
+        if (cur.likely[other] !== null) { const y = (s.sync ||= { same: 0, of: 0 }); y.of++; if (cur.likely[0] === cur.likely[1]) y.same++; }
+        break;
+      }
+      case 'match': {
+        const cur = s?.cur; if (this.phase !== 'card' || !s || !cur || cur.kind !== 'match' || cur.seq !== x.seq || cur.picks[me]) break;
+        const picks = x.picks; if (!picks || typeof picks !== 'object') break;
+        const clean: Record<string, Vote> = {};
+        for (const it of cur.items) { const v = picks[it.id]; if (v !== 'y' && v !== 'm' && v !== 'n') { return {}; } clean[it.id] = v; }
+        cur.picks[me] = clean;
+        const [a, b] = cur.picks;
+        if (a && b) {
+          // Only the overlap, shuffled, so neither the order nor the wording says who chose yes or maybe.
+          cur.both = shuffle(cur.items.filter(it => a[it.id] !== 'n' && b[it.id] !== 'n').map(it => it.text));
+          cur.picks = [null, null]; // the raw answers are no longer needed: forget them
+          s.matches = Array.from(new Set([...(s.matches || []), ...cur.both]));
+        }
+        break;
+      }
       case 'next': {
         const cur = s?.cur; if (this.phase !== 'card' || !s || !cur || cur.seq !== x.seq) break;
         if (cur.kind === 'card' && !cur.gate && (!cur.mystery || (cur.flips[0] && cur.flips[1]))) (s.shown ||= []).push(cur.card.id);
@@ -413,17 +467,28 @@ export class Room {
     if (s?.cur) {
       const cur = s.cur;
       if (cur.kind === 'twist') card = { kind: 'twist', seq: cur.seq, text: cur.text, dir: cur.dir };
-      else {
+      else if (cur.kind === 'match') {
+        card = {
+          kind: 'match', seq: cur.seq, level: cur.level, items: cur.items.map(it => ({ id: it.id, text: it.text })),
+          mine: cur.both ? null : cur.picks[me], partnerDone: !!cur.picks[other] || !!cur.both, both: cur.both,
+        };
+      } else {
         const flipped = !cur.mystery || (cur.flips[0] && cur.flips[1]);
         const hidden = !flipped || !!cur.gate; // never send card text before the mystery flip or the private check
         card = {
-          kind: 'card', seq: cur.seq, level: cur.card.l, card: hidden ? null : cur.card, mystery: cur.mystery,
+          kind: 'card', seq: cur.seq, level: cur.card.l, card: hidden ? null : { ...cur.card, roles: undefined }, mystery: cur.mystery,
           myFlip: cur.flips[me], partnerFlip: cur.flips[other], flipped,
           gate: cur.gate ? {
             teaser: cur.card.type === 'Scene' ? 'A role-play card is next.' : 'A hands-on card is next.',
             myVote: cur.gate.votes[me], partnerVoted: cur.gate.votes[other] !== null,
           } : null,
           timerEndsAt: cur.timerEndsAt,
+          // Secret roles: role A goes to the player whose turn it is to read (alternating each card), role B to the other.
+          role: !hidden && cur.card.roles ? cur.card.roles[cur.seq % 2 === me ? 0 : 1] : null,
+          likely: !hidden && cur.likely ? {
+            mine: cur.likely[me], partnerPicked: cur.likely[other] !== null,
+            picks: cur.likely[0] !== null && cur.likely[1] !== null ? [cur.likely[0], cur.likely[1]] : null,
+          } : null,
         };
         if (hidden && !cur.gate) card.gate = null;
       }
@@ -457,7 +522,7 @@ export class Room {
         tonight: this.arrive.tonight, energy: this.arrive.energy, myVibe: this.arrive.vibes[me], partnerVibe: this.arrive.vibes[other],
         memory: this.arrive.memory, myReady: this.arrive.ready[me], partnerReady: this.arrive.ready[other], countdownAt: this.arrive.countdownAt,
       } : null,
-      session: s ? { idx: s.idx, N: s.N, tonight: s.c0, card, keptIds: Array.from(s.kept.keys()) } : null,
+      session: s ? { idx: s.idx, N: s.N, tonight: s.c0, card, keptIds: Array.from(s.kept.keys()), sync: { ...(s.sync || { same: 0, of: 0 }) } } : null,
       chat: this.chat.map(m => ({ id: m.id, mine: m.from === me, text: m.text, seq: m.seq, sealed: m.sealed })),
       // Only whether the partner has sealed an answer for this card, never what it says.
       sealed: this.sealed && s?.cur?.seq === this.sealed.seq
@@ -467,6 +532,7 @@ export class Room {
         kept: s ? Array.from(s.kept.values()) : [], myOpen: this.close.open[me], partnerOpen: this.close.open[other], countdownAt: this.close.countdownAt,
         myShare: this.close.share[me],
         // Topics of cards both partners saw tonight, so 'Tonight's kit' can match them. Never swapped-away cards.
+        matches: s?.matches?.slice() || [],
         kitTopics: Array.from(new Set((s?.shown || []).map(id => CARD_BY_ID[id]?.topic).filter((t): t is string => !!t))),
         // Only the outcome: a card exists when both said yes. Nobody learns whether the other declined.
         shareCard: this.close.share[0] && this.close.share[1] && this.close.shareQ ? { question: this.close.shareQ, nights: this.prog.sessions + 1 } : null,
