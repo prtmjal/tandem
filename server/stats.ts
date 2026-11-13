@@ -6,6 +6,7 @@ import { dirname } from 'node:path';
 
 export const EVENTS = {
   landing: 'Landing page visits',
+  blog: 'Blog page visits',
   play: 'Game page opens',
   created: 'Games started (rooms created)',
   joined: 'Partners joined',

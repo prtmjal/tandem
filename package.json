@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n server,web \"tsx watch server/index.ts\" \"vite\"",
-    "build": "vite build && esbuild server/index.ts --bundle --platform=node --format=esm --outfile=dist-server/index.js --packages=external",
+    "build": "vite build && esbuild server/index.ts --bundle --platform=node --format=esm --outfile=dist-server/index.js --packages=external && node scripts/build-blog.mjs",
     "start": "node dist-server/index.js",
     "test": "vitest run",
     "e2e": "node tests/two-phones.mjs",
@@ -34,6 +34,7 @@
     "@vitejs/plugin-react": "4.3.4",
     "concurrently": "9.1.0",
     "esbuild": "0.24.0",
+    "marked": "12.0.2",
     "tsx": "4.19.2",
     "typescript": "5.6.3",
     "vite": "5.4.11",

@@ -14,7 +14,7 @@ The landing page is at http://localhost:5173 and the game at http://localhost:51
 ## Checks
 
 ```bash
-npm test          # engine, privacy and palette contrast tests (102 tests)
+npm test          # engine, privacy and palette contrast tests (113 tests)
 npm run typecheck
 npm run build && npm start   # production server on :3001
 npm run e2e       # two simulated phones play a full night (needs the server running)
@@ -127,3 +127,23 @@ Before going live, ask Stripe to approve the business in writing (describe it as
 
 - Have an LGBTQ+ sex educator review the card text, and a lawyer confirm IT Act 67/67A and DPDP positioning.
 - Running more than one server instance needs a shared store (Redis adapter for Socket.IO) or a move to Supabase or Cloudflare Durable Objects. One instance comfortably handles a lot of couples.
+
+## Home site and game on separate addresses
+
+One Railway service can serve both `yourdomain.com` (home page, blog, privacy) and `play.yourdomain.com` (the game).
+
+1. In Railway, open the service, then Settings → Networking, and add both custom domains. Railway shows a DNS record for each; add them at your domain registrar.
+2. In Variables, set `SITE_URL=https://yourdomain.com` and `PLAY_URL=https://play.yourdomain.com` (no trailing slash).
+3. Redeploy. The log line `Site at ..., game at ...` confirms the split is on.
+
+After that, `yourdomain.com/play` and old invite links redirect to the play address, the blog and privacy page redirect back to the main address, and search engines are given a sitemap for the main address only. Until both variables are set, everything stays on one address as before.
+
+Progress is saved per address in each phone's browser. Anyone who played on the old Railway address should make a backup code in Settings first and restore it on the new address.
+
+## Writing a blog post
+
+1. Copy `blog/_template.md` to a new file in `blog/`, named in lowercase words joined by hyphens, for example `date-night-questions.md`. The file name becomes the address: `/blog/date-night-questions`.
+2. Fill in the header (title, description, date) and write the post in Markdown underneath. Remove the `draft: true` line when it's ready.
+3. Commit the file (GitHub's website works: Add file → Create new file). Railway rebuilds and the post is live, listed on `/blog` and in `/sitemap.xml`.
+
+Pictures go in `public/img/blog/` and are linked as `/img/blog/name.jpg`. `npm test` checks every post: header fields, at least 150 words, only Level 1-3 card text, nothing loaded from other sites. A post that breaks a rule stops the build with a plain-language message, so the live site keeps the previous version.

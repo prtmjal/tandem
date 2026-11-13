@@ -3,12 +3,13 @@ import express from 'express';
 import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Server, type Socket } from 'socket.io';
 import { Room, mergeProgress, sanitizeProgress } from './game';
 import { newsConfig, subscribe, validEmail } from './news';
 import { STATS_PAGE, Stats } from './stats';
+import { fillPage, hostsFromEnv, robots, route, sitemap } from './hosts';
 import { KIT, RETAILERS, affiliateUrl, plainUrl, type KitId } from '../shared/shop';
 import { claim, createCheckout, hasPass, priceFor, priceLabel, storeConfig, validPasses } from './store';
 import { ADULT_REQUIRED, REACTIONS, isAdultAttested, type Action } from '../shared/protocol';
@@ -213,6 +214,8 @@ app.use((_, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   next();
 });
+const hosts = hostsFromEnv(process.env);
+if (hosts) console.log(`Site at ${hosts.site.origin}, game at ${hosts.play.origin}`);
 /* ---------------- usage counts (totals only, see server/stats.ts) ---------------- */
 const stats = new Stats(process.env.STATS_FILE);
 let lastLogged = new Date().toISOString().slice(0, 10);
@@ -248,7 +251,7 @@ app.get('/api/store', async (req, res) => {
 app.post('/api/checkout', express.json({ limit: '2kb' }), async (req, res) => {
   if (!store) return res.status(404).json({ error: 'Payments are not set up.' });
   if (limited('checkout:' + reqIp(req), 10, 60 * 60 * 1000)) return res.status(429).json({ error: 'Too many tries. Try again later.' });
-  try { stats.count('checkout'); res.json({ url: await createCheckout(store, process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`, countryOf(req.headers)) }); }
+  try { stats.count('checkout'); res.json({ url: await createCheckout(store, hosts?.play.origin || process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`, countryOf(req.headers)) }); }
   catch { res.status(502).json({ error: 'Couldn’t reach the payment page. Try again in a moment.' }); }
 });
 app.post('/api/claim', express.json({ limit: '2kb' }), async (req, res) => {
@@ -300,16 +303,42 @@ app.post('/api/news', express.json({ limit: '1kb' }), async (req, res) => {
 app.get('/healthz', (_, res) => res.json({ ok: true, rooms: rooms.size }));
 
 // Serve the built web app whenever it exists (after `npm run build`). In dev, Vite serves it instead.
-const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
+// One server, optionally two addresses (see server/hosts.ts): the public site (home, blog, privacy) and the game.
+const here = path.dirname(fileURLToPath(import.meta.url));
+const dist = path.resolve(here, '../dist');
+const blogDir = path.resolve(here, '../dist-server/blog');
 if (existsSync(path.join(dist, 'index.html'))) {
-  app.use(express.static(dist, { maxAge: '1h', index: false }));
-  // The game lives at /play; everything else gets the landing page. Old invite links (/?j=...) are sent to /play.
-  app.get(['/play', '/play/*'], (_, res) => { stats.count('play'); res.sendFile(path.join(dist, 'play.html')); });
-  app.get('/privacy', (_, res) => res.sendFile(path.join(dist, 'privacy.html')));
+  const read = (f: string) => readFileSync(f, 'utf8');
+  const pages = { home: read(path.join(dist, 'index.html')), privacy: read(path.join(dist, 'privacy.html')) };
+  const posts: { slug: string; title: string; date: string; updated: string }[] = existsSync(path.join(blogDir, 'posts.json')) ? JSON.parse(read(path.join(blogDir, 'posts.json'))) : [];
+  const blog = new Map<string, string>(posts.map(p => [p.slug, read(path.join(blogDir, p.slug + '.html'))]));
+  const blogIndex = existsSync(path.join(blogDir, 'index.html')) ? read(path.join(blogDir, 'index.html')) : null;
+  const css = (pages.home.match(/<link rel="stylesheet"[^>]*>/) || [''])[0];
+  const originOf = (req: express.Request) => process.env.PUBLIC_URL?.replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
+  const send = (req: express.Request, res: express.Response, html: string, status = 200) =>
+    res.status(status).type('html').setHeader('Cache-Control', 'public, max-age=300').send(fillPage(html, hosts, req.path.replace(/\/$/, '') || '/', originOf(req)));
+
+  app.get('/robots.txt', (req, res) => res.type('text/plain').send(robots(hosts, req.get('host') || '', originOf(req))));
+  app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(sitemap(hosts, originOf(req), posts)));
+  // Pages have one address each: /privacy, not /privacy.html.
+  app.get(/\.html$/, (req, res) => res.redirect(301, req.path.replace(/(\/index)?\.html$/, '') || '/'));
+  app.use(express.static(dist, { maxAge: '1h', index: false, redirect: false }));
   app.get('*', (req, res) => {
-    if (typeof req.query.j === 'string') return res.redirect(302, '/play?j=' + encodeURIComponent(req.query.j));
-    if (req.path === '/') stats.count('landing');
-    res.sendFile(path.join(dist, 'index.html'));
+    const r = route(hosts, req.get('host') || '', req.path, req.url.slice(req.path.length));
+    if ('redirect' in r) return res.redirect(r.permanent ? 301 : 302, r.redirect);
+    if (r.serve === 'play') {
+      stats.count('play');
+      res.setHeader('X-Robots-Tag', 'noindex'); // the game is not a page for search engines
+      return res.sendFile(path.join(dist, 'play.html'));
+    }
+    const p = req.path.replace(/\/$/, '') || '/';
+    if (p === '/') { stats.count('landing'); return send(req, res, pages.home); }
+    if (p === '/privacy') return send(req, res, pages.privacy);
+    if (p === '/blog' && blogIndex) { stats.count('blog'); return send(req, res, blogIndex); }
+    const post = p.startsWith('/blog/') ? blog.get(p.slice(6)) : undefined;
+    if (post) { stats.count('blog'); return send(req, res, post); }
+    // Anything else is a real 404, so search engines don't index stray addresses as copies of the home page.
+    send(req, res, `<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Page not found | Tandem</title><meta name="robots" content="noindex" /><link rel="icon" href="/icon.svg" type="image/svg+xml" />${css}</head><body><header class="bar"><a class="logo" href="/"><span class="logo-mark" aria-hidden="true"></span>Tandem</a></header><main class="post"><h1>That page isn’t here.</h1><p class="muted post-lead">It may have moved, or the link may be mistyped.</p><p><a class="btn" href="/">Go to the home page</a></p></main></body></html>`, 404);
   });
 }
 

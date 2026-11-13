@@ -4,8 +4,9 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 
 ## 1. Private test launch (can happen now)
 
+- ✅ Blog (Markdown files in `blog/`), sitemap and the home/game address split are built; the split switches on with `SITE_URL` and `PLAY_URL`.
 - ✅ Game, landing page, privacy page, payments (off), email list (off), backups, share cards and apart mode are built.
-- ✅ 102 unit tests (including content rules on every card and privacy of the match list, "Who's more likely" picks and secret roles) and three browser tests (together, apart, purchase) pass. npm audit reports 0 vulnerabilities.
+- ✅ 113 unit tests (including content rules on every card and privacy of the match list, "Who's more likely" picks and secret roles) and three browser tests (together, apart, purchase) pass. npm audit reports 0 vulnerabilities.
 - ✅ A production build from a clean install serves every page and API.
 - ✅ Deployed to Railway at https://tandem-after-dark-production.up.railway.app
 - 🟡 Finish the Railway setup: variables `STATS_TOKEN` and `PUBLIC_URL`, a volume at `/data` with `STATS_FILE=/data/stats.json`, and Healthcheck path `/healthz`.
@@ -24,8 +25,10 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 ## 2. Before a public launch
 
 - 🟡 **Name and domain.** Pick the name, check trademarks (US, EU, UK, India; classes 9 and 41) and buy the domain. Then:
-  - [ ] point the domain at Railway (Custom Domain + CNAME)
-  - [ ] set `PUBLIC_URL`
+  - [ ] add both `yourdomain.com` and `play.yourdomain.com` to the Railway service (Settings → Networking) and add the DNS records it shows
+  - [ ] set `SITE_URL=https://yourdomain.com` and `PLAY_URL=https://play.yourdomain.com` (see README: home site and game on separate addresses)
+  - [ ] submit `https://yourdomain.com/sitemap.xml` in Google Search Console
+  - [ ] ask early testers to make a backup code before the move (progress is saved per address)
   - [ ] update the name in `index.html`, `play.html`, `privacy.html`, `public/manifest.webmanifest`, `src/share.ts` and the founder note
 - 🟡 **Legal review** with a lawyer:
   - [ ] terms of service and a full privacy policy (`/privacy` today is a plain-language summary)

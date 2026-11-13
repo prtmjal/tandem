@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /play
-Disallow: /go/
-Disallow: /stats
