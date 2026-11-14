@@ -69,7 +69,7 @@ export function PlayCard(p: PlayCardProps) {
           <div className={'face back' + (p.special === 'gold' ? ' gold' : '')} aria-hidden={!p.faceDown}>
             <div className="art"><Motif level={p.level} seed={p.seed + 'b'} color="currentColor" /></div>
             <div className="brand">
-              {p.backLabel ?? <><b>Tandem</b><span className="tiny">{p.level} · {levelName(p.level)}</span></>}
+              {p.backLabel ?? <><b>Nod Twice</b><span className="tiny">{p.level} · {levelName(p.level)}</span></>}
             </div>
           </div>
         </div>

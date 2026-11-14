@@ -1,10 +1,10 @@
 ---
 title: How a two-phone couples question game works
-description: One link, two phones, no app. Here is how a night of Tandem works, from the first question to the envelope at the end.
+description: One link, two phones, no app. Here is how a night of Nod Twice works, from the first question to the envelope at the end.
 date: 2026-11-14
 ---
 
-Most couples games are a box of cards on a table, or an app you both have to download. Tandem After Dark is neither. One of you starts a game, sends a link, and you each play on your own phone, in the same room or on a video call.
+Most couples games are a box of cards on a table, or an app you both have to download. Nod Twice is neither. One of you starts a game, sends a link, and you each play on your own phone, in the same room or on a video call.
 
 ## Why two phones?
 

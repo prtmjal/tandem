@@ -61,7 +61,7 @@ function shell({ css, title, description, path, type, extraHead = '', main }) {
   <body>
     <a class="skip" href="#main">Skip to content</a>
     <header class="bar">
-      <a class="logo" href="/" aria-label="Tandem After Dark, home"><span class="logo-mark" aria-hidden="true"></span>Tandem</a>
+      <a class="logo" href="/" aria-label="Nod Twice, home"><span class="logo-mark" aria-hidden="true"></span>Nod Twice</a>
       <a class="bar-link" href="/blog">Blog</a>
     </header>
     <main id="main" class="post">
@@ -77,9 +77,9 @@ ${main}
 }
 
 export function postPage(post, css) {
-  const ld = { '@context': 'https://schema.org', '@type': 'BlogPosting', headline: post.title, description: post.description, datePublished: post.date, dateModified: post.updated, mainEntityOfPage: `__SITE__/blog/${post.slug}`, publisher: { '@type': 'Organization', name: 'Tandem After Dark' } };
+  const ld = { '@context': 'https://schema.org', '@type': 'BlogPosting', headline: post.title, description: post.description, datePublished: post.date, dateModified: post.updated, mainEntityOfPage: `__SITE__/blog/${post.slug}`, publisher: { '@type': 'Organization', name: 'Nod Twice' } };
   return shell({
-    css, title: `${post.title} | Tandem`, description: post.description, path: `/blog/${post.slug}`, type: 'article',
+    css, title: `${post.title} | Nod Twice`, description: post.description, path: `/blog/${post.slug}`, type: 'article',
     extraHead: `<meta property="article:published_time" content="${post.date}" />\n    <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`,
     main: `      <article>
         <p class="post-meta"><a href="/blog">Blog</a> · <time datetime="${post.date}">${nice(post.date)}</time></p>
@@ -98,8 +98,8 @@ ${renderBody(post)}
 
 export function indexPage(posts, css) {
   return shell({
-    css, title: 'Blog: date nights, questions and closeness | Tandem', path: '/blog', type: 'website',
-    description: 'Ideas for date nights, questions worth asking and ways to feel closer, from the couple behind Tandem After Dark.',
+    css, title: 'Blog: date nights, questions and closeness | Nod Twice', path: '/blog', type: 'website',
+    description: 'Ideas for date nights, questions worth asking and ways to feel closer, from the couple behind Nod Twice.',
     main: `      <h1>Blog</h1>
       <p class="muted post-lead">Date nights, questions worth asking, and ways to feel closer.</p>
       <ul class="post-list">

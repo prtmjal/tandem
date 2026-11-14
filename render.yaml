@@ -1,7 +1,7 @@
 # One-click deploy on Render: New > Blueprint > pick this repo.
 services:
   - type: web
-    name: tandem-after-dark
+    name: nod-twice
     runtime: node
     plan: free            # free sleeps after 15 idle minutes; switch to starter for always-on
     buildCommand: npm ci --include=dev && npm run build

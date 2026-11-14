@@ -58,12 +58,12 @@ export async function drawShareCard(o: { question: string; nights: number; vibes
   const lh = size * 1.22, top = 260 + Math.max(0, (7 - lines.length) * lh * 0.5);
   lines.forEach((l, i) => ctx.fillText(l, 80, top + i * lh));
   ctx.fillStyle = '#695959'; ctx.font = `600 34px ${BODY}`;
-  ctx.fillText(o.nights === 1 ? 'Our first night of Tandem' : `Night ${o.nights} of Tandem, together`, 80, ch - 90);
+  ctx.fillText(o.nights === 1 ? 'Our first night of Nod Twice' : `Night ${o.nights} of Nod Twice, together`, 80, ch - 90);
   ctx.restore();
 
   // Footer: what it is and where to find it.
   ctx.fillStyle = '#FEF9F6'; ctx.textAlign = 'center';
-  ctx.font = `750 64px ${DISPLAY}`; ctx.fillText('Tandem', W / 2, 1620);
+  ctx.font = `750 64px ${DISPLAY}`; ctx.fillText('Nod Twice', W / 2, 1620);
   ctx.font = `500 36px ${BODY}`; ctx.fillText('The question game you play on two phones', W / 2, 1690);
   ctx.font = `600 32px ${BODY}`; ctx.globalAlpha = 0.85; ctx.fillText(o.host, W / 2, 1760); ctx.globalAlpha = 1;
 
@@ -72,7 +72,7 @@ export async function drawShareCard(o: { question: string; nights: number; vibes
 
 /** Opens the phone's share sheet with the image, or downloads it where sharing files isn't supported. */
 export async function shareImage(blob: Blob) {
-  const file = new File([blob], 'tandem-tonight.png', { type: 'image/png' });
+  const file = new File([blob], 'nodtwice-tonight.png', { type: 'image/png' });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.canShare?.({ files: [file] })) {
     try { await nav.share({ files: [file], text: 'The question game you play on two phones', url: location.origin }); return 'shared'; }

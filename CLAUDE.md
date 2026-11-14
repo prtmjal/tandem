@@ -1,4 +1,4 @@
-# Tandem After Dark: notes for Claude
+# Nod Twice: notes for Claude
 
 A two-phone couples game. React (Vite) phone app plus one Node server with Socket.IO. Server and app deploy together as one service.
 

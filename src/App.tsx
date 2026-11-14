@@ -168,7 +168,7 @@ function AgeGate({ onYes, mode, hue }: { onYes: () => void; mode: Mode; hue: num
       <div className="grow" />
       <div className="stack center" style={{ textAlign: 'center' }}>
         <h2>This one’s for adults</h2>
-        <p className="muted">Tandem After Dark is only for people 18 and older. Thanks for being honest.</p>
+        <p className="muted">Nod Twice is only for people 18 and older. Thanks for being honest.</p>
       </div>
       <div className="grow" />
     </main>
@@ -178,7 +178,7 @@ function AgeGate({ onYes, mode, hue }: { onYes: () => void; mode: Mode; hue: num
       <HeroFan mode={mode} hue={hue} />
       <div className="stack">
         <p className="eyebrow">For two adults, on two phones</p>
-        <h1>Tandem After Dark</h1>
+        <h1>Nod Twice</h1>
         <p className="muted">Eight levels from first sparks to midnight, for couples of any gender or orientation. Each of you plays on your own phone, and your private answers stay private.</p>
       </div>
       <div className="stack">
@@ -332,7 +332,7 @@ function Lobby({ view }: { view: View }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => { QRCode.toDataURL(link, { margin: 0, width: 320, color: { dark: '#1b0b0e', light: '#ffffff' } }).then(setQr).catch(() => {}); }, [link]);
   const share = async () => {
-    try { if (navigator.share) { await navigator.share({ title: 'Tandem After Dark', text: 'Join me tonight', url: link }); return; } } catch { /* cancelled */ }
+    try { if (navigator.share) { await navigator.share({ title: 'Nod Twice', text: 'Join me tonight', url: link }); return; } } catch { /* cancelled */ }
     try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* copy blocked */ }
   };
   return (
@@ -829,7 +829,7 @@ function ShareOffer({ view, theme, toast }: { view: View; theme: RoomProps['them
   useEffect(() => {
     if (!card) { setUrl(null); return; }
     let live = true, made = '';
-    drawShareCard({ question: card.question, nights: card.nights, vibes: [theme.myVibe, theme.partnerVibe ?? theme.myVibe], host: location.host })
+    drawShareCard({ question: card.question, nights: card.nights, vibes: [theme.myVibe, theme.partnerVibe ?? theme.myVibe], host: location.host.replace(/^play\./, '') }) // the card shows the home address, not the game's
       .then(b => { if (!live) return; blob.current = b; made = URL.createObjectURL(b); setUrl(made); })
       .catch(() => {});
     return () => { live = false; if (made) URL.revokeObjectURL(made); };
@@ -893,7 +893,7 @@ function ProgressSettings({ toast }: { toast: (s: string) => void }) {
       else setQr('');
     } catch { setErr('This browser can’t make a backup code. Try Chrome or Safari.'); }
   };
-  const save = () => { if (!code) return; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([code], { type: 'text/plain' })); a.download = 'tandem-backup.txt'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  const save = () => { if (!code) return; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([code], { type: 'text/plain' })); a.download = 'nodtwice-backup.txt'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
   return (
     <div className="stack">
       <p className="eyebrow">Your progress</p>
@@ -970,7 +970,7 @@ function ShopLinks({ kind, items }: { kind: 'kit' | 'toybox'; items: KitId[] }) 
       <p className="eyebrow">{paid ? 'Ad · Paid links' : 'Gift ideas'}</p>
       <h3>{kind === 'kit' ? 'For next time' : 'Toy box'}</h3>
       <p className="tiny muted">{paid
-        ? 'If you buy through these links, Tandem earns a commission. Your price stays the same. The shop never learns what you played.'
+        ? 'If you buy through these links, Nod Twice earns a commission. Your price stays the same. The shop never learns what you played.'
         : 'Shops we like. We don’t earn from these links, and the shop never learns what you played.'}</p>
       {kind === 'toybox' && !open
         ? <button className="ctrl" onClick={() => setOpen(true)}>Open the toy box</button>
@@ -1138,7 +1138,7 @@ function Close(p: RoomProps & { partner: string }) {
       {!revealed ? (
         <>
           <PlayCard dealKey="closer" level={3} hue={hue} mode={p.theme.mode} card={null} seed="closer" text={c.closer} type="Share" title="Final card" special="gold" />
-          <div className="envelope" style={{ ['--env' as string]: cardColors(7, hue, 'dark').field }}><div className="body" /><div className="flap" /><div className="seal">T</div></div>
+          <div className="envelope" style={{ ['--env' as string]: cardColors(7, hue, 'dark').field }}><div className="body" /><div className="flap" /><div className="seal">N</div></div>
           <div className="bottom">
             {c.myOpen
               ? <div style={{ display: 'flex', justifyContent: 'center', minHeight: 52, alignItems: 'center' }}>{c.partnerOpen ? <span className="muted">Opening…</span> : <Waiting>Waiting for {p.partner}</Waiting>}</div>
@@ -1153,7 +1153,7 @@ function Close(p: RoomProps & { partner: string }) {
               <span className="eyebrow">For the two of you</span>
               <p className="prompt m">{c.env}</p>
             </m.div>
-            <div className="pocket" aria-hidden="true"><span className="seal">T</span></div>
+            <div className="pocket" aria-hidden="true"><span className="seal">N</span></div>
           </div>
           {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} readOnly /></div>}
           {c.matches.length > 0 && <div className="panel"><div><h3>You’re both open to</h3><p className="tiny muted">Saved to “Next time” on your map.</p></div><div className="kept">{c.matches.map(t => <p key={t}>{t}</p>)}</div></div>}

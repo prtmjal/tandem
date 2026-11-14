@@ -24,12 +24,11 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 
 ## 2. Before a public launch
 
-- 🟡 **Name and domain.** Pick the name, check trademarks (US, EU, UK, India; classes 9 and 41) and buy the domain. Then:
-  - [ ] add both `yourdomain.com` and `play.yourdomain.com` to the Railway service (Settings → Networking) and add the DNS records it shows
-  - [ ] set `SITE_URL=https://yourdomain.com` and `PLAY_URL=https://play.yourdomain.com` (see README: home site and game on separate addresses)
-  - [ ] submit `https://yourdomain.com/sitemap.xml` in Google Search Console
+- 🟡 **Name and domain.** The name is **Nod Twice** and nodtwice.com is bought (November 2026). Still to do: a trademark search for "Nod Twice" (US and UK first; classes 9 and 41), then:
+  - [ ] add both `nodtwice.com` and `play.nodtwice.com` to the Railway service (Settings → Networking) and add the DNS records it shows
+  - [ ] set `SITE_URL=https://www.nodtwice.com` and `PLAY_URL=https://play.nodtwice.com` (see README: home site and game on separate addresses)
+  - [ ] submit `https://www.nodtwice.com/sitemap.xml` in Google Search Console
   - [ ] ask early testers to make a backup code before the move (progress is saved per address)
-  - [ ] update the name in `index.html`, `play.html`, `privacy.html`, `public/manifest.webmanifest`, `src/share.ts` and the founder note
 - 🟡 **Legal review** with a lawyer:
   - [ ] terms of service and a full privacy policy (`/privacy` today is a plain-language summary)
   - [ ] the 18+ approach, and Brazil (ECA Digital may not accept a self-declared age)

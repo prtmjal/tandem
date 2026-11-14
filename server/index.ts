@@ -1,4 +1,4 @@
-// Tandem After Dark: room server. Serves the built web app and runs live rooms over Socket.IO.
+// Nod Twice: room server. Serves the built web app and runs live rooms over Socket.IO.
 import express from 'express';
 import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -338,8 +338,8 @@ if (existsSync(path.join(dist, 'index.html'))) {
     const post = p.startsWith('/blog/') ? blog.get(p.slice(6)) : undefined;
     if (post) { stats.count('blog'); return send(req, res, post); }
     // Anything else is a real 404, so search engines don't index stray addresses as copies of the home page.
-    send(req, res, `<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Page not found | Tandem</title><meta name="robots" content="noindex" /><link rel="icon" href="/icon.svg" type="image/svg+xml" />${css}</head><body><header class="bar"><a class="logo" href="/"><span class="logo-mark" aria-hidden="true"></span>Tandem</a></header><main class="post"><h1>That page isn’t here.</h1><p class="muted post-lead">It may have moved, or the link may be mistyped.</p><p><a class="btn" href="/">Go to the home page</a></p></main></body></html>`, 404);
+    send(req, res, `<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Page not found | Nod Twice</title><meta name="robots" content="noindex" /><link rel="icon" href="/icon.svg" type="image/svg+xml" />${css}</head><body><header class="bar"><a class="logo" href="/"><span class="logo-mark" aria-hidden="true"></span>Nod Twice</a></header><main class="post"><h1>That page isn’t here.</h1><p class="muted post-lead">It may have moved, or the link may be mistyped.</p><p><a class="btn" href="/">Go to the home page</a></p></main></body></html>`, 404);
   });
 }
 
-http.listen(PORT, () => console.log(`Tandem After Dark server on :${PORT}`));
+http.listen(PORT, () => console.log(`Nod Twice server on :${PORT}`));

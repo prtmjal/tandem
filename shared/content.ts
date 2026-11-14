@@ -1,4 +1,4 @@
-// Card content for Tandem After Dark. Suggestive at most, never graphic.
+// Card content for Nod Twice. Suggestive at most, never graphic.
 import { PASS_DECK } from './decks';
 import { LEVELS as LV } from './levels';
 // Card = [text, type, topic, optional timer seconds, optional secret role A, secret role B]

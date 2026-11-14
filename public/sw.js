@@ -1,5 +1,5 @@
 // Minimal service worker: caches the app shell so it opens fast and can be installed. Live play still needs the network.
-const CACHE = 'tandem-v2';
+const CACHE = 'nodtwice-v1';
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/play', '/manifest.webmanifest', '/icon.svg']))); });
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', e => {

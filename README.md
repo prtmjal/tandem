@@ -1,4 +1,4 @@
-# Tandem After Dark
+# Nod Twice
 
 A two-phone game for couples, from first sparks to midnight. Each partner plays on their own phone. Private choices (how far tonight, yes / maybe / not tonight, curious about a level) stay on the server and are never sent to the other phone; only the outcome is.
 

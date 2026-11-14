@@ -21,7 +21,7 @@ describe('shop rules', () => {
     expect(plainUrl(amz, 'blindfold')).toBe('https://www.amazon.in/s?k=blindfold'); // plain link until a tag is set
     expect(plainUrl(RETAILERS.mymuse, 'blindfold')).toBe('https://mymuse.in/');
     expect(affiliateUrl(amz, 'javascript:alert(1){rawurl}', 'blindfold')).toBe(null);
-    expect(affiliateUrl(amz, '{rawurl}&tag=tandem-21', 'massage-oil')).toBe('https://www.amazon.in/s?k=massage%20oil&tag=tandem-21');
+    expect(affiliateUrl(amz, '{rawurl}&tag=nodtwice-21', 'massage-oil')).toBe('https://www.amazon.in/s?k=massage%20oil&tag=nodtwice-21');
     const awin = affiliateUrl(RETAILERS.lovehoneyuk, 'https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued={url}');
     expect(awin).toBe('https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued=' + encodeURIComponent('https://www.lovehoney.co.uk/'));
   });
