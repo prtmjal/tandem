@@ -99,6 +99,8 @@ You can also do a lighter version by message. The post on [games to play with yo
 
 If you like the hidden-answer idea, the [newlywed game questions](/blog/newlywed-game-questions-for-couples) are a good next step, and [how a two-phone couples game works](/blog/how-a-two-phone-couples-game-works) walks through a whole night.
 
+Looking for lighter games? Try [never have I ever and this or that for couples](/blog/never-have-i-ever-and-this-or-that-for-couples).
+
 ## Frequently asked questions
 
 **How many prompts should we do in one sitting?**

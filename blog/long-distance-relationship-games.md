@@ -62,6 +62,8 @@ Pass and Next are identical buttons. That matters on a call, because you cannot 
 - **End on something small.** A sentence about what you liked is enough.
 - **Let a good conversation win.** If a question leads somewhere real, abandon the game and follow it.
 
+Choosing between apps and games? See [Paired alternatives (free, no account)](/blog/paired-alternatives-free-no-account).
+
 ## Frequently asked questions
 
 **How often should we play games when we live apart?**

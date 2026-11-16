@@ -71,6 +71,8 @@ Nod Twice is a free browser game for two partners, each on their own phone. One 
 
 Each of you privately picks how far tonight can go, and the game plays at the lower of the two choices. Pass and Next are identical buttons, so nobody needs to explain a pass. The night ends with an envelope holding one small idea for the week. There is more detail in [how a two-phone couples game works](/blog/how-a-two-phone-couples-game-works).
 
+Want more ideas for an evening in? See [at home date night games for couples](/blog/at-home-date-night-games-for-couples) for a full 90-minute plan.
+
 ## Frequently asked questions
 
 **When is Valentine's Day in 2027?**

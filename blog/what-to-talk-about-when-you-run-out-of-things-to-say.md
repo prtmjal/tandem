@@ -98,6 +98,8 @@ Everything above works with no app at all. If you would rather not run the turns
 
 Each of you privately picks how far the night can go, and the game plays at the lower of the two choices. A night is 12 or 16 cards. If a card is not for you, Pass and Next are identical buttons, so skipping never needs an explanation. There is no download and no account.
 
+If you like questions that get gradually more personal, you may also like [36 questions that lead to love: do they work?](/blog/36-questions-that-lead-to-love-do-they-work), which explains the famous version and gives you a shorter one to try.
+
 ## Frequently asked questions
 
 **Is it normal to run out of things to talk about in a relationship?**

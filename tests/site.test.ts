@@ -122,6 +122,15 @@ describe('blog', () => {
     expect(bad('<iframe src="https://other.site"></iframe>')).toThrow();
     expect(renderBody({ slug: 'x', body: '[a](https://other.site)' })).toContain('rel="noopener noreferrer"');
   });
+  it('every link between posts points at a post that exists, and no post is an island', () => {
+    const slugs = new Set(posts.map(p => p.slug));
+    const linked = new Set<string>();
+    for (const p of posts) for (const m of p.body.matchAll(/\]\(\/blog\/([a-z0-9-]+)\)/g)) { expect(slugs.has(m[1]), `${p.slug} links to missing ${m[1]}`).toBe(true); expect(m[1], `${p.slug} links to itself`).not.toBe(p.slug); linked.add(m[1]); }
+    for (const p of posts) if (posts.length > 1) expect(linked.has(p.slug), `nothing links to ${p.slug}`).toBe(true);
+  });
+  it('every post links to the game', () => {
+    for (const p of posts) expect(p.body, p.slug).toContain('](/play)');
+  });
   it('explains what is wrong with a post in plain words', () => {
     expect(() => parsePost('My Post.md', '')).toThrow(/lowercase words joined by hyphens/);
     expect(() => parsePost('a-post.md', 'no header')).toThrow(/header between two --- lines/);

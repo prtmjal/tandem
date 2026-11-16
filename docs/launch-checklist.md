@@ -6,7 +6,7 @@ Status as of November 2026. ✅ done in code · 🟡 needs you · ⬜ not starte
 
 - ✅ Blog (Markdown files in `blog/`), sitemap and the home/game address split are built; the split switches on with `SITE_URL` and `PLAY_URL`.
 - ✅ Game, landing page, privacy page, payments (off), email list (off), backups, share cards and apart mode are built.
-- ✅ 120 unit tests (including content rules on every card and privacy of the match list, "Who's more likely" picks and secret roles) and three browser tests (together, apart, purchase) pass. npm audit reports 0 vulnerabilities.
+- ✅ 122 unit tests (including content rules on every card and privacy of the match list, "Who's more likely" picks and secret roles) and three browser tests (together, apart, purchase) pass. npm audit reports 0 vulnerabilities.
 - ✅ A production build from a clean install serves every page and API.
 - ✅ Live at https://www.nodtwice.com (home page and blog; the game is at https://www.nodtwice.com/play), on Railway.
 - 🟡 Finish the Railway setup: variables `STATS_TOKEN` and `PUBLIC_URL`, a volume at `/data` with `STATS_FILE=/data/stats.json`, and Healthcheck path `/healthz`.

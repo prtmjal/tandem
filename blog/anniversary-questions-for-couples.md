@@ -85,6 +85,8 @@ If choosing questions feels like homework, Nod Twice does the choosing. It is a 
 
 Each of you privately picks how far tonight can go, and the game plays at the lower of the two choices. Some cards are sealed answers: you both write, then open them together, which suits anniversary reflections well. You can read how it works in [how a two-phone couples game works](/blog/how-a-two-phone-couples-game-works). Prefer something lighter? Try [who's more likely to questions for couples](/blog/whos-more-likely-to-questions-for-couples).
 
+If you like questions that get gradually more personal, you may also like [36 questions that lead to love: do they work?](/blog/36-questions-that-lead-to-love-do-they-work), which explains the famous version and gives you a shorter one to try.
+
 ## Frequently asked questions
 
 **Can we use these if we have only been together a few months?**
