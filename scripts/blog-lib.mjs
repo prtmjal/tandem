@@ -49,6 +49,7 @@ function shell({ css, title, description, path, type, extraHead = '', main }) {
     <meta name="theme-color" content="#130D12" media="(prefers-color-scheme: dark)" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icon-192.png" sizes="192x192" type="image/png" />
     <meta property="og:type" content="${type}" />
     <meta property="og:title" content="${esc(title)}" />
     <meta property="og:description" content="${esc(description)}" />
@@ -77,10 +78,16 @@ ${main}
 }
 
 export function postPage(post, css) {
-  const ld = { '@context': 'https://schema.org', '@type': 'BlogPosting', headline: post.title, description: post.description, datePublished: post.date, dateModified: post.updated, mainEntityOfPage: `__SITE__/blog/${post.slug}`, publisher: { '@type': 'Organization', name: 'Nod Twice' } };
+  const org = { '@type': 'Organization', name: 'Nod Twice', url: '__SITE__/', logo: { '@type': 'ImageObject', url: '__SITE__/icon-512.png' } };
+  const ld = { '@context': 'https://schema.org', '@type': 'BlogPosting', headline: post.title, description: post.description, datePublished: post.date, dateModified: post.updated, image: '__SITE__/og.png', author: org, publisher: org, mainEntityOfPage: `__SITE__/blog/${post.slug}` };
+  const crumbs = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: '__SITE__/' },
+    { '@type': 'ListItem', position: 2, name: 'Blog', item: '__SITE__/blog' },
+    { '@type': 'ListItem', position: 3, name: post.title, item: `__SITE__/blog/${post.slug}` } ] };
+  const jsonld = o => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`;
   return shell({
     css, title: `${post.title} | Nod Twice`, description: post.description, path: `/blog/${post.slug}`, type: 'article',
-    extraHead: `<meta property="article:published_time" content="${post.date}" />\n    <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`,
+    extraHead: `<meta property="article:published_time" content="${post.date}" />\n    ${jsonld(ld)}\n    ${jsonld(crumbs)}`,
     main: `      <article>
         <p class="post-meta"><a href="/blog">Blog</a> · <time datetime="${post.date}">${nice(post.date)}</time></p>
         <h1>${esc(post.title)}</h1>
@@ -99,7 +106,7 @@ ${renderBody(post)}
 export function indexPage(posts, css) {
   return shell({
     css, title: 'Blog: date nights, questions and closeness | Nod Twice', path: '/blog', type: 'website',
-    description: 'Ideas for date nights, questions worth asking and ways to feel closer, from the couple behind Nod Twice.',
+    description: 'Date night ideas, questions worth asking and games to play with your partner on two phones or on a video call, from the couple behind Nod Twice.',
     main: `      <h1>Blog</h1>
       <p class="muted post-lead">Date nights, questions worth asking, and ways to feel closer.</p>
       <ul class="post-list">

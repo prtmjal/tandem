@@ -1,5 +1,6 @@
 // Nod Twice: room server. Serves the built web app and runs live rooms over Socket.IO.
 import express from 'express';
+import compression from 'compression';
 import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
@@ -9,7 +10,7 @@ import { Server, type Socket } from 'socket.io';
 import { Room, mergeProgress, sanitizeProgress } from './game';
 import { newsConfig, subscribe, validEmail } from './news';
 import { STATS_PAGE, Stats } from './stats';
-import { fillPage, hostsFromEnv, robots, route, sitemap } from './hosts';
+import { canonicalFromEnv, fillPage, hostsFromEnv, robots, route, sitemap } from './hosts';
 import { KIT, RETAILERS, affiliateUrl, plainUrl, type KitId } from '../shared/shop';
 import { claim, createCheckout, hasPass, priceFor, priceLabel, storeConfig, validPasses } from './store';
 import { ADULT_REQUIRED, REACTIONS, isAdultAttested, type Action } from '../shared/protocol';
@@ -127,6 +128,8 @@ io.on('connection', socket => {
     if (!room || idx === undefined || !x || typeof x.a !== 'string') return;
     if (limited('act:' + socket.id, 40, 10 * 1000)) return;
     const before = room.prog.sessions, unlockedBefore = room.prog.unlocked.length, phaseBefore = room.phase, sharedBefore = !!room.close?.shareQ && !!room.view(idx).close?.shareCard;
+    if (x.a === 'invite') stats.count('inviteShared'); // totals only: how often an invite is sent, never to whom
+    if (x.a === 'friend') stats.count('friendShared');
     const out = room.act(idx, x);
     if (phaseBefore !== 'card' && room.phase === 'card') { stats.count('nights'); if (room.apart) stats.count('nightsApart'); }
     if (room.prog.sessions > before) stats.count('finished');
@@ -215,6 +218,7 @@ app.use((_, res, next) => {
   next();
 });
 const hosts = hostsFromEnv(process.env);
+const canon = hosts ? null : canonicalFromEnv(process.env);
 if (hosts) console.log(`Site at ${hosts.site.origin}, game at ${hosts.play.origin}`);
 /* ---------------- usage counts (totals only, see server/stats.ts) ---------------- */
 const stats = new Stats(process.env.STATS_FILE);
@@ -308,8 +312,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, '../dist');
 const blogDir = path.resolve(here, '../dist-server/blog');
 if (existsSync(path.join(dist, 'index.html'))) {
+  app.use(compression()); // pages, scripts and styles go out gzipped; live play (socket.io) is untouched
   const read = (f: string) => readFileSync(f, 'utf8');
-  const pages = { home: read(path.join(dist, 'index.html')), privacy: read(path.join(dist, 'privacy.html')) };
+  const pages = { home: read(path.join(dist, 'index.html')), privacy: read(path.join(dist, 'privacy.html')), play: read(path.join(dist, 'play.html')) };
   const posts: { slug: string; title: string; date: string; updated: string }[] = existsSync(path.join(blogDir, 'posts.json')) ? JSON.parse(read(path.join(blogDir, 'posts.json'))) : [];
   const blog = new Map<string, string>(posts.map(p => [p.slug, read(path.join(blogDir, p.slug + '.html'))]));
   const blogIndex = existsSync(path.join(blogDir, 'index.html')) ? read(path.join(blogDir, 'index.html')) : null;
@@ -322,14 +327,20 @@ if (existsSync(path.join(dist, 'index.html'))) {
   app.get('/sitemap.xml', (req, res) => res.type('application/xml').send(sitemap(hosts, originOf(req), posts)));
   // Pages have one address each: /privacy, not /privacy.html.
   app.get(/\.html$/, (req, res) => res.redirect(301, req.path.replace(/(\/index)?\.html$/, '') || '/'));
-  app.use(express.static(dist, { maxAge: '1h', index: false, redirect: false }));
+  app.get('/favicon.ico', (_, res) => res.redirect(301, '/icon.svg'));
+  app.use(express.static(dist, {
+    maxAge: '1h', index: false, redirect: false,
+    // Built files have a hash in their name, so they never change under the same address.
+    setHeaders: (res, file) => { if (file.includes(`${path.sep}assets${path.sep}`)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); },
+  }));
   app.get('*', (req, res) => {
-    const r = route(hosts, req.get('host') || '', req.path, req.url.slice(req.path.length));
+    const r = route(hosts, req.get('host') || '', req.path, req.url.slice(req.path.length), canon);
     if ('redirect' in r) return res.redirect(r.permanent ? 301 : 302, r.redirect);
     if (r.serve === 'play') {
       stats.count('play');
       res.setHeader('X-Robots-Tag', 'noindex'); // the game is not a page for search engines
-      return res.sendFile(path.join(dist, 'play.html'));
+      // Invite links get a proper preview (title, text, picture) in chat apps; the game page itself stays out of search.
+      return res.type('html').setHeader('Cache-Control', 'no-cache').send(fillPage(pages.play, hosts, '/play', originOf(req), { canonical: false }));
     }
     const p = req.path.replace(/\/$/, '') || '/';
     if (p === '/') { stats.count('landing'); return send(req, res, pages.home); }

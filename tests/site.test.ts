@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
-import { fillPage, hostsFromEnv, robots, route, sitemap } from '../server/hosts';
+import { canonicalFromEnv, fillPage, hostsFromEnv, robots, route, sitemap } from '../server/hosts';
 // @ts-expect-error plain JS module shared with the build script
 import { indexPage, loadPosts, parsePost, postPage, renderBody } from '../scripts/blog-lib.mjs';
 import { DECK } from '../shared/content';
@@ -50,12 +50,41 @@ describe('one server, two addresses', () => {
     expect(single).toContain('href="https://x.up.railway.app/privacy"');
     expect(single).toContain('href="/play"');
   });
-  it('search engines are pointed at the site and kept out of the game', () => {
-    expect(robots(H, 'play.example.com', '')).toContain('Disallow: /\n');
-    expect(robots(H, 'example.com', '')).toContain('Sitemap: https://example.com/sitemap.xml');
+  it('search engines get the sitemap, may fetch the game page to see its noindex, and stay out of shop redirects and stats', () => {
+    for (const host of ['play.example.com', 'example.com']) {
+      const r = robots(H, host, '');
+      expect(r).toContain('Sitemap: https://example.com/sitemap.xml');
+      expect(r).toContain('Disallow: /go/'); expect(r).toContain('Disallow: /stats');
+      expect(r).not.toContain('Disallow: /play'); expect(r).not.toMatch(/Disallow: \/\n/);
+    }
     const map = sitemap(H, '', [{ slug: 'a-post', updated: '2026-11-14' }]);
     expect(map).toContain('<loc>https://example.com/blog/a-post</loc><lastmod>2026-11-14</lastmod>');
     expect(map).not.toContain('play');
+  });
+  it('on one address, every other public host is sent to the canonical one, but local runs and health checks are not', () => {
+    const canon = canonicalFromEnv({ PUBLIC_URL: 'https://www.example.com' })!;
+    expect(canonicalFromEnv({ PUBLIC_URL: 'http://www.example.com' })).toBe(null);
+    expect(canonicalFromEnv({})).toBe(null);
+    expect(route(null, 'www.example.com', '/blog', '', canon)).toEqual({ serve: 'site' });
+    expect(route(null, 'old.up.railway.app', '/blog/a-post', '?x=1', canon)).toEqual({ redirect: 'https://www.example.com/blog/a-post?x=1', permanent: true });
+    expect(route(null, 'example.com', '/play', '?j=ABC', canon)).toEqual({ redirect: 'https://www.example.com/play?j=ABC', permanent: true });
+    expect(route(null, 'localhost:3001', '/', '', canon)).toEqual({ serve: 'site' });
+    expect(route(null, 'healthcheck.railway.app', '/healthz', '', canon)).toEqual({ serve: 'shared' });
+    expect(route(null, 'old.up.railway.app', '/socket.io/', '', canon)).toEqual({ serve: 'shared' });
+    expect(route(null, 'old.up.railway.app', '/', '')).toEqual({ serve: 'site' }); // no PUBLIC_URL: nothing to redirect to
+  });
+  it('with the split, an unknown public host is not a second copy of the site', () => {
+    expect(route(H, 'old.up.railway.app', '/blog')).toEqual({ redirect: 'https://example.com/blog', permanent: true });
+    expect(route(H, 'localhost:3001', '/')).toEqual({ serve: 'site' });
+  });
+  it('the game page gets chat-app previews but no canonical address', () => {
+    const play = readFileSync('play.html', 'utf8');
+    for (const tag of ['og:title', 'og:description', 'og:image', 'twitter:card']) expect(play, tag).toContain(tag);
+    expect(play).toContain('noindex');
+    const out = fillPage(play, H, '/play', 'https://x', { canonical: false });
+    expect(out).toContain('content="https://example.com/og.png"');
+    expect(out).not.toContain('rel="canonical"');
+    expect(out).not.toContain('__SITE__');
   });
 });
 
@@ -97,5 +126,30 @@ describe('blog', () => {
     expect(() => parsePost('My Post.md', '')).toThrow(/lowercase words joined by hyphens/);
     expect(() => parsePost('a-post.md', 'no header')).toThrow(/header between two --- lines/);
     expect(() => parsePost('a-post.md', '---\ntitle: Short\n---\nx')).toThrow(/title must be/);
+  });
+});
+
+describe('home page', () => {
+  const html = readFileSync('index.html', 'utf8');
+  const graph = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)![1].replace(/<\\\//g, '</'))['@graph'] as { '@type': string; mainEntity?: { name: string; acceptedAnswer: { text: string } }[] }[];
+  const text = (x: string) => x.replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+  it('describes the site as an organisation, a website, a free web app and an FAQ', () => {
+    expect(graph.map(g => g['@type'])).toEqual(['Organization', 'WebSite', 'WebApplication', 'FAQPage']);
+  });
+  it('the FAQ in the page data matches the visible questions and answers word for word', () => {
+    const visible = [...html.matchAll(/<details><summary>(.*?)<\/summary><p>(.*?)<\/p><\/details>/g)].map(m => [text(m[1]), text(m[2])]);
+    const data = graph[3].mainEntity!.map(q => [q.name, q.acceptedAnswer.text]);
+    expect(data.length).toBe(visible.length);
+    expect(data).toEqual(visible);
+  });
+  it('has a sensible title and description length, and links to the blog', () => {
+    expect(html.match(/<title>(.*?)<\/title>/)![1].length).toBeLessThanOrEqual(70);
+    const d = html.match(/<meta name="description" content="([^"]*)"/)![1];
+    expect(d.length).toBeGreaterThanOrEqual(120); expect(d.length).toBeLessThanOrEqual(160);
+    expect(html).toContain('href="/blog/');
+  });
+  it('every blog link on the home page points at a real post', () => {
+    const slugs = readdirSync('blog').filter(f => f.endsWith('.md') && !f.startsWith('_')).map(f => f.replace(/\.md$/, ''));
+    for (const m of html.matchAll(/href="\/blog\/([a-z0-9-]+)"/g)) expect(slugs, m[1]).toContain(m[1]);
   });
 });

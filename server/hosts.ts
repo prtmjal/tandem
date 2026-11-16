@@ -4,6 +4,14 @@
 
 export interface Hosts { site: URL; play: URL }
 
+/** One address only (no split): PUBLIC_URL names the canonical origin (e.g. https://www.example.com). Requests on any
+ *  other public host are sent there with a permanent redirect, so search engines see one copy of the site. */
+export function canonicalFromEnv(env: Record<string, string | undefined>): URL | null {
+  const u = parse(env.PUBLIC_URL);
+  return u && u.protocol === 'https:' ? u : null;
+}
+const isLocal = (host: string) => /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(host);
+
 const parse = (v: string | undefined): URL | null => {
   try { const u = new URL(String(v || '').trim()); return (u.protocol === 'https:' || u.hostname === 'localhost') && u.pathname === '/' ? u : null; } catch { return null; }
 };
@@ -22,9 +30,10 @@ const isPlayPath = (p: string) => p === '/play' || p.startsWith('/play/');
 export type Route = { redirect: string; permanent?: boolean } | { serve: 'play' | 'site' | 'shared' };
 
 /** Where a request belongs. `host` is the Host header (with port, if any); `search` includes the leading "?". */
-export function route(h: Hosts | null, host: string, path: string, search = ''): Route {
+export function route(h: Hosts | null, host: string, path: string, search = '', canon: URL | null = null): Route {
   if (SHARED.test(path)) return { serve: 'shared' };
   if (!h) {
+    if (canon && host.toLowerCase() !== canon.host && !isLocal(host.toLowerCase())) return { redirect: base(canon) + path + search, permanent: true };
     if (isPlayPath(path)) return { serve: 'play' };
     // Old invite links (/?j=...) go to the game.
     if (path === '/' && /[?&]j=/.test(search)) return { redirect: '/play' + search };
@@ -38,22 +47,25 @@ export function route(h: Hosts | null, host: string, path: string, search = ''):
   // The game always opens on its own address, keeping any invite code.
   if (isPlayPath(path) || (path === '/' && /[?&]j=/.test(search))) return { redirect: base(h.play) + '/' + search };
   if (host === 'www.' + h.site.host) return { redirect: base(h.site) + path + search, permanent: true };
+  // Any other public address (an old host, a typo domain) is not a second copy of the site.
+  if (host !== h.site.host && !isLocal(host)) return { redirect: base(h.site) + path + search, permanent: true };
   return { serve: 'site' };
 }
 
 /** Fills in a public page's absolute links: canonical address, social preview, and the button to the game. */
-export function fillPage(html: string, h: Hosts | null, path: string, origin: string): string {
+export function fillPage(html: string, h: Hosts | null, path: string, origin: string, opts: { canonical?: boolean } = {}): string {
   const site = h ? base(h.site) : origin, play = h ? base(h.play) + '/' : '/play';
   let out = html.split('__SITE__').join(site).split('href="/play"').join(`href="${play}"`);
   out = out.replace('content="/og.png"', `content="${site}/og.png"`);
-  if (!/rel="canonical"/.test(out)) out = out.replace('</head>', `  <link rel="canonical" href="${site}${path === '/' ? '/' : path}" />\n    <meta property="og:url" content="${site}${path === '/' ? '/' : path}" />\n  </head>`);
+  if (opts.canonical !== false && !/rel="canonical"/.test(out)) out = out.replace('</head>', `  <link rel="canonical" href="${site}${path === '/' ? '/' : path}" />\n    <meta property="og:url" content="${site}${path === '/' ? '/' : path}" />\n  </head>`);
   return out;
 }
 
 export function robots(h: Hosts | null, host: string, origin: string): string {
-  // The game has nothing for search engines; its pages also carry a noindex header.
-  if (h && host.toLowerCase() === h.play.host) return 'User-agent: *\nDisallow: /\n';
-  return `User-agent: *\nAllow: /\nDisallow: /play\nDisallow: /go/\nDisallow: /stats\n\nSitemap: ${h ? base(h.site) : origin}/sitemap.xml\n`;
+  // The game is kept out of search results with a noindex header, which crawlers can only see if they may fetch the
+  // page, so /play is not disallowed here. Shop redirects and the private stats page stay closed to crawlers.
+  const site = h ? base(h.site) : origin;
+  return `User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /stats\n\nSitemap: ${site}/sitemap.xml\n`;
 }
 
 export function sitemap(h: Hosts | null, origin: string, posts: { slug: string; updated: string }[]): string {

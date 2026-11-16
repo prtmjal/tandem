@@ -139,6 +139,9 @@ export type Action =
   | { a: 'share'; on: boolean }
   /** A message, or with `seal` an answer kept private until both partners have answered this card. */
   | { a: 'chat'; text: string; seal?: boolean }
+  /** Counted as a daily total only (never tied to a room or person): the invite was sent, or a friend couple was told. */
+  | { a: 'invite' }
+  | { a: 'friend' }
   | { a: 'touch:allow'; on: boolean }
   | { a: 'open' }
   | { a: 'finish' };

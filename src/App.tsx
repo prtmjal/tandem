@@ -332,6 +332,7 @@ function Lobby({ view }: { view: View }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => { QRCode.toDataURL(link, { margin: 0, width: 320, color: { dark: '#1b0b0e', light: '#ffffff' } }).then(setQr).catch(() => {}); }, [link]);
   const share = async () => {
+    net.act({ a: 'invite' });
     try { if (navigator.share) { await navigator.share({ title: 'Nod Twice', text: 'Join me tonight', url: link }); return; } } catch { /* cancelled */ }
     try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* copy blocked */ }
   };
@@ -821,6 +822,17 @@ function TouchPulse({ name }: { name: string }) {
 }
 
 /** End of night: each partner privately opts in to a share card. It appears only if both said yes. */
+/** One quiet button after the night: send the home page to a couple you know. No reward, no reminder, counted as a daily total. */
+function FriendShare({ toast }: { toast: (s: string) => void }) {
+  const send = async () => {
+    cue('tap'); net.act({ a: 'friend' });
+    const url = `${location.protocol}//${location.host.replace(/^play\./, '')}`;
+    try { if (navigator.share) { await navigator.share({ title: 'Nod Twice', text: 'A free question game for couples, played on two phones.', url }); return; } } catch { return; /* cancelled */ }
+    try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { /* copy blocked */ }
+  };
+  return <button className="ctrl" onClick={send}>Tell a couple you know</button>;
+}
+
 function ShareOffer({ view, theme, toast }: { view: View; theme: RoomProps['theme']; toast: (s: string) => void }) {
   const c = view.close!;
   const card = c.shareCard;
@@ -1158,6 +1170,7 @@ function Close(p: RoomProps & { partner: string }) {
           {p.view.chat.length > 0 && <div className="panel"><p className="eyebrow">Tonight's answers</p><ChatPanel view={p.view} partner={p.partner} readOnly /></div>}
           {c.matches.length > 0 && <div className="panel"><div><h3>You’re both open to</h3><p className="tiny muted">Saved to “Next time” on your map.</p></div><div className="kept">{c.matches.map(t => <p key={t}>{t}</p>)}</div></div>}
           <ShareOffer view={p.view} theme={p.theme} toast={p.toast} />
+          <FriendShare toast={p.toast} />
           <ShopLinks kind="kit" items={kitFor(c.kitTopics || [], p.view.session?.tonight ?? 1)} />
           {c.kept.length > 0 && <div className="panel"><h3>Kept tonight</h3><div className="kept">{c.kept.map((t, i) => <p key={i}>{t}</p>)}</div></div>}
           <div className="bottom"><button className="btn" onClick={() => net.act({ a: 'finish' })}>Done for tonight</button></div>

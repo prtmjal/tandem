@@ -216,3 +216,10 @@ section { padding: 44px 0; display: flex; flex-direction: column; gap: 14px; }
 .post-list a { font-family: var(--display); font-size: 1.3rem; line-height: 1.2; }
 .post-list time { color: var(--muted); font-size: .9rem; }
 .post .foot, .post + .foot { padding-bottom: 32px; }
+
+/* Blog links on the home page */
+.blog-links { margin-top: 56px; }
+.blog-links ul { list-style: none; margin: 16px 0 12px; padding: 0; }
+.blog-links li { border-top: 1.5px solid var(--line); }
+.blog-links li:last-child { border-bottom: 1.5px solid var(--line); }
+.blog-links li a { display: flex; align-items: center; min-height: 56px; padding: 8px 0; font-weight: 600; text-underline-offset: 4px; }
